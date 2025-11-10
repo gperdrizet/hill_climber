@@ -6,7 +6,7 @@ import pickle
 import time
 from multiprocessing import Pool, cpu_count
 
-from .climber_functions import perturb_vectors, calculate_correlation_objective
+from .climber_functions import perturb_vectors, calculate_objective
 from .plotting_functions import plot_input_data, plot_results as plot_results_func
 
 
@@ -16,6 +16,9 @@ class HillClimber:
     Performs optimization using hill climbing with optional simulated annealing
     for escaping local optima. Supports three optimization modes: maximize,
     minimize, or target a specific value.
+    
+    Supports n-dimensional data where objective function receives each column
+    as a separate argument.
     
     Attributes:
         data: Initial data (numpy array or pandas DataFrame)
@@ -44,8 +47,10 @@ class HillClimber:
         """Initialize HillClimber.
         
         Args:
-            data: numpy array (Nx2) or pandas DataFrame with 2 columns
-            objective_func: Function returning (metrics_dict, objective_value)
+            data: numpy array (N x M) or pandas DataFrame with M columns
+            objective_func: Function that takes M column arrays and returns 
+                          (metrics_dict, objective_value). For 2D data, receives (x, y).
+                          For 3D data, receives (x, y, z), etc.
             max_time: Maximum runtime in minutes (default: 3)
             step_size: Maximum perturbation amount (default: 0.1)
             perturb_fraction: Fraction of points to perturb each step (default: 0.1)
@@ -106,7 +111,7 @@ class HillClimber:
         self.best_data = self.current_data = self.data_numpy.copy()
         
         # Get initial objective and dynamically create metric columns
-        self.metrics, self.best_objective = calculate_correlation_objective(
+        self.metrics, self.best_objective = calculate_objective(
             self.data_numpy, self.objective_func
         )
 
@@ -131,7 +136,7 @@ class HillClimber:
             # Generate and evaluate new candidate solution
             new_data = perturb_vectors(self.current_data, step_size=self.step_size, 
                                       perturb_fraction=self.perturb_fraction)
-            self.metrics, new_objective = calculate_correlation_objective(
+            self.metrics, new_objective = calculate_objective(
                 new_data, self.objective_func
             )
             

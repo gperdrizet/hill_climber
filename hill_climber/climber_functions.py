@@ -47,6 +47,7 @@ def perturb_vectors(data, step_size, perturb_fraction=0.1):
     Returns:
         Perturbed numpy array
     """
+
     # Calculate number of elements to perturb
     n_total = data.size
     n_perturb = max(1, int(n_total * perturb_fraction))
@@ -56,26 +57,46 @@ def perturb_vectors(data, step_size, perturb_fraction=0.1):
 
 
 def extract_columns(data):
-    """Extract x and y columns from numpy array.
+    """Extract columns from numpy array.
+    
+    Works with n-dimensional data by returning each column separately.
     
     Args:
-        data: numpy array (Nx2)
+        data: numpy array (N x M) where N is number of samples, M is number of features
         
     Returns:
-        Tuple of (x, y) as 1D numpy arrays
+        Tuple of 1D numpy arrays, one for each column
+        
+    Examples:
+        For 2D data (N x 2): returns (x, y)
+        For 3D data (N x 3): returns (x, y, z)
+        For nD data (N x M): returns (col0, col1, ..., colM-1)
     """
-    return data[:, 0], data[:, 1]
+    return tuple(data[:, i] for i in range(data.shape[1]))
 
 
-def calculate_correlation_objective(data, objective_func):
+def calculate_objective(data, objective_func):
     """Calculate objective value using provided objective function.
     
+    Extracts columns from data and passes them to the objective function.
+    Supports n-dimensional data.
+    
     Args:
-        data: Input data as numpy array (Nx2)
-        objective_func: Function that takes (x, y) and returns (metrics_dict, objective_value)
+        data: Input data as numpy array (N x M)
+        objective_func: Function that takes M column arrays and returns 
+                       (metrics_dict, objective_value)
         
     Returns:
         Tuple of (metrics_dict, objective_value)
+        
+    Examples:
+        For 2D data: objective_func(x, y) is called
+        For 3D data: objective_func(x, y, z) is called
+        For nD data: objective_func(col0, col1, ...) is called
     """
-    x, y = extract_columns(data)
-    return objective_func(x, y)
+    columns = extract_columns(data)
+    return objective_func(*columns)
+
+
+# Backwards compatibility alias
+calculate_correlation_objective = calculate_objective
