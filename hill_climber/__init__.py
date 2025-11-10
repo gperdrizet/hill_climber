@@ -36,7 +36,19 @@ Example:
     ...     mode='maximize'
     ... )
     >>> results = climber.climb_parallel(replicates=4)
+    >>> 
+    >>> # Visualize input data
+    >>> climber.plot_input()  # Default scatter plot
+    >>> climber.plot_input(plot_type='kde')  # KDE plot
+    >>> 
+    >>> # Plot results with scatter plots (default)
     >>> climber.plot_results(results)
+    >>> 
+    >>> # Or plot results with KDE (Kernel Density Estimation) plots
+    >>> climber.plot_results(results, plot_type='histogram')
+    >>> 
+    >>> # Or select specific metrics to display
+    >>> climber.plot_results(results, metrics=['correlation'])
 
 Module Contents:
     - optimizer: Main HillClimber class module

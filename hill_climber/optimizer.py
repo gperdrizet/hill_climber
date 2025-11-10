@@ -249,15 +249,20 @@ class HillClimber:
         
         return results
     
-    def plot_input(self):
+    def plot_input(self, plot_type='scatter'):
         """Plot the input data distribution.
         
-        Displays a scatter plot of the input data showing the distribution
+        Displays a visualization of the input data showing the distribution
         of both variables.
+        
+        Args:
+            plot_type: Type of plot - 'scatter' or 'kde' (default: 'scatter')
+                       'scatter' shows x vs y scatter plot
+                       'kde' shows Kernel Density Estimation plots
         """
-        plot_input_data(self.data)
+        plot_input_data(self.data, plot_type=plot_type)
     
-    def plot_results(self, results):
+    def plot_results(self, results, plot_type='scatter', metrics=None):
         """Visualize hill climbing results.
         
         Creates a comprehensive visualization showing progress and snapshots
@@ -265,8 +270,13 @@ class HillClimber:
         
         Args:
             results: List of (best_data, steps_df) tuples from climb_parallel()
+            plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
+                       Note: 'histogram' uses KDE (Kernel Density Estimation) plots
+            metrics: List of metric names to display in progress plots and snapshots.
+                     If None (default), all available metrics are shown.
+                     Example: ['Pearson', 'Spearman'] or ['Mean X', 'Std X']
         """
-        plot_results_func(results)
+        plot_results_func(results, plot_type=plot_type, metrics=metrics)
 
 
     def _is_improvement(self, new_obj):
