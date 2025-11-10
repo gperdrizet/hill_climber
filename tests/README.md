@@ -81,15 +81,15 @@ python -m unittest discover -s tests -p "test_*.py" -v
 ## Test Coverage
 
 The test suite covers:
-- ✅ **40 total tests**
-- ✅ All helper functions
-- ✅ HillClimber initialization and validation
-- ✅ All optimization modes (maximize, minimize, target)
-- ✅ Private methods and internal logic
-- ✅ Single and parallel execution
-- ✅ File I/O operations
-- ✅ Data format preservation (numpy arrays and pandas DataFrames)
-- ✅ Error handling and edge cases
+- **40 total tests**
+- All helper functions
+- HillClimber initialization and validation
+- All optimization modes (maximize, minimize, target)
+- Private methods and internal logic
+- Single and parallel execution
+- File I/O operations
+- Data format preservation (numpy arrays and pandas DataFrames)
+- Error handling and edge cases
 
 ## Test Design Principles
 
