@@ -11,7 +11,7 @@ def plot_input_data(data, plot_type='scatter'):
     
     Args:
         data: numpy array (Nx2) or pandas DataFrame with 2 columns
-        plot_type: Type of plot - 'scatter' or 'kde' (default: 'scatter')
+        plot_type: 'scatter' or 'kde' (default: 'scatter')
     
     Raises:
         ValueError: If plot_type is not 'scatter' or 'kde'
@@ -24,7 +24,6 @@ def plot_input_data(data, plot_type='scatter'):
         cols = data.columns.tolist()
         x, y = data[cols[0]], data[cols[1]]
         x_label, y_label = cols[0], cols[1]
-
     else:
         x, y = data[:, 0], data[:, 1]
         x_label, y_label = 'x', 'y'
@@ -35,41 +34,30 @@ def plot_input_data(data, plot_type='scatter'):
         plt.scatter(x, y, s=5, color='black')
         plt.xlabel(x_label)
         plt.ylabel(y_label)
-        plt.show()
-
     else:  # kde
         plt.figure(figsize=(6, 4))
         plt.title('Input distributions (KDE)', fontsize=14)
         
-        # Convert to numpy arrays
-        x_data = np.array(x)
-        y_data = np.array(y)
+        x_data, y_data = np.array(x), np.array(y)
         
         try:
-            # Create KDE for both distributions
-            kde_x = gaussian_kde(x_data)
-            kde_y = gaussian_kde(y_data)
+            # Create KDE
+            kde_x, kde_y = gaussian_kde(x_data), gaussian_kde(y_data)
             
-            # Create evaluation points
-            x_min = min(x_data.min(), y_data.min())
-            x_max = max(x_data.max(), y_data.max())
+            # Create evaluation range
+            x_min, x_max = min(x_data.min(), y_data.min()), max(x_data.max(), y_data.max())
             x_eval = np.linspace(x_min, x_max, 200)
             
-            # Evaluate KDEs
-            density_x = kde_x(x_eval)
-            density_y = kde_y(x_eval)
-            
-            # Plot overlapping KDEs with standard matplotlib colors
-            plt.plot(x_eval, density_x, label=x_label, linewidth=2, alpha=0.8)
-            plt.fill_between(x_eval, density_x, alpha=0.3)
-            plt.plot(x_eval, density_y, label=y_label, linewidth=2, alpha=0.8)
-            plt.fill_between(x_eval, density_y, alpha=0.3)
+            # Plot KDEs
+            plt.plot(x_eval, kde_x(x_eval), label=x_label, linewidth=2, alpha=0.8)
+            plt.fill_between(x_eval, kde_x(x_eval), alpha=0.3)
+            plt.plot(x_eval, kde_y(x_eval), label=y_label, linewidth=2, alpha=0.8)
+            plt.fill_between(x_eval, kde_y(x_eval), alpha=0.3)
             plt.xlabel('Value')
             plt.ylabel('Density')
             plt.legend()
             plt.grid(True, alpha=0.3)
-            
-        except (np.linalg.LinAlgError, ValueError) as e:
+        except (np.linalg.LinAlgError, ValueError):
             # Fall back to histograms if KDE fails
             plt.hist(x_data, bins=20, alpha=0.6, label=x_label, edgecolor='black')
             plt.hist(y_data, bins=20, alpha=0.6, label=y_label, edgecolor='black')
@@ -77,9 +65,10 @@ def plot_input_data(data, plot_type='scatter'):
             plt.ylabel('Frequency')
             plt.title('Input distributions (histogram)')
             plt.legend()
-            
+        
         plt.tight_layout()
-        plt.show()
+    
+    plt.show()
 
 
 

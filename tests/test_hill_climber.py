@@ -7,14 +7,13 @@ import sys
 import os
 import tempfile
 import pickle
+from multiprocessing import cpu_count
 
-# Add package directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from hill_climber import HillClimber
 
 
-# Module-level objective functions for multiprocessing compatibility
 def _simple_objective_for_parallel(x, y):
     """Simple objective function for parallel tests."""
     mean_val = np.mean(x) + np.mean(y)
@@ -187,14 +186,11 @@ class TestHillClimberPrivateMethods(unittest.TestCase):
     
     def test_record_improvement(self):
         """Test _record_improvement method."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func)
         climber.steps = {'Step': [], 'Objective value': [], 'Best_data': [], 'mean': []}
         climber.step = 1
         climber.best_objective = 5.0
-        climber.best_data = self.data.copy()
+        climber.best_data = np.array([[1.0, 2.0], [3.0, 4.0]])
         climber.metrics = {'mean': 2.5}
         
         climber._record_improvement()
@@ -225,82 +221,49 @@ class TestHillClimberClimb(unittest.TestCase):
     
     def test_climb_returns_tuple(self):
         """Test that climb returns a tuple of (best_data, steps_df)."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01  # Very short time
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         result = climber.climb()
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
     
     def test_climb_returns_dataframe_for_steps(self):
         """Test that climb returns a DataFrame for steps."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         best_data, steps_df = climber.climb()
         self.assertIsInstance(steps_df, pd.DataFrame)
     
     def test_climb_preserves_data_format(self):
         """Test that climb preserves input data format."""
         # Test with DataFrame
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         best_data, _ = climber.climb()
         self.assertIsInstance(best_data, pd.DataFrame)
         
         # Test with array
-        array_data = self.data.values
-        climber_array = HillClimber(
-            data=array_data,
-            objective_func=self.objective_func,
-            max_time=0.01
-        )
+        climber_array = HillClimber(data=self.data.values, objective_func=self.objective_func, max_time=0.01)
         best_data_array, _ = climber_array.climb()
         self.assertIsInstance(best_data_array, np.ndarray)
     
     def test_climb_creates_steps_with_metrics(self):
         """Test that climb creates steps DataFrame with metric columns."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         _, steps_df = climber.climb()
         
-        # Check for required columns
         self.assertIn('Step', steps_df.columns)
         self.assertIn('Objective value', steps_df.columns)
         self.assertIn('Best_data', steps_df.columns)
-        self.assertIn('mean', steps_df.columns)  # From our objective function
+        self.assertIn('mean', steps_df.columns)
     
     def test_climb_with_different_modes(self):
         """Test climb with different optimization modes."""
-        # Maximize mode
-        climber_max = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01,
-            mode='maximize'
-        )
+        climber_max = HillClimber(data=self.data, objective_func=self.objective_func, 
+                                 max_time=0.01, mode='maximize')
         best_max, _ = climber_max.climb()
         
-        # Minimize mode
-        climber_min = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01,
-            mode='minimize'
-        )
+        climber_min = HillClimber(data=self.data, objective_func=self.objective_func, 
+                                 max_time=0.01, mode='minimize')
         best_min, _ = climber_min.climb()
         
-        # Both should return valid results
         self.assertIsNotNone(best_max)
         self.assertIsNotNone(best_min)
 
@@ -320,22 +283,14 @@ class TestHillClimberClimbParallel(unittest.TestCase):
     
     def test_climb_parallel_returns_list(self):
         """Test that climb_parallel returns a list of results."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         results = climber.climb_parallel(replicates=2)
         self.assertIsInstance(results, list)
         self.assertEqual(len(results), 2)
     
     def test_climb_parallel_result_structure(self):
         """Test that each result has correct structure."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         results = climber.climb_parallel(replicates=2)
         
         for best_data, steps_df in results:
@@ -345,25 +300,16 @@ class TestHillClimberClimbParallel(unittest.TestCase):
     
     def test_climb_parallel_saves_file(self):
         """Test that climb_parallel saves results to file."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         
         with tempfile.NamedTemporaryFile(suffix='.pkl', delete=False) as tmp:
             tmp_path = tmp.name
         
         try:
-            results = climber.climb_parallel(
-                replicates=2,
-                output_file=tmp_path
-            )
+            climber.climb_parallel(replicates=2, output_file=tmp_path)
             
-            # Check file exists
             self.assertTrue(os.path.exists(tmp_path))
             
-            # Load and verify contents
             with open(tmp_path, 'rb') as f:
                 package = pickle.load(f)
             
@@ -377,29 +323,15 @@ class TestHillClimberClimbParallel(unittest.TestCase):
     
     def test_climb_parallel_validates_cpu_count(self):
         """Test that climb_parallel validates replicate count against CPUs."""
-        from multiprocessing import cpu_count
+        climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01
-        )
-        
-        # This should raise an error if replicates > cpu_count
         with self.assertRaises(ValueError):
             climber.climb_parallel(replicates=cpu_count() + 100)
     
     def test_climb_parallel_with_initial_noise(self):
         """Test climb_parallel with initial noise parameter."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func,
-            max_time=0.01
-        )
-        results = climber.climb_parallel(
-            replicates=2,
-            initial_noise=0.1
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
+        results = climber.climb_parallel(replicates=2, initial_noise=0.1)
         self.assertEqual(len(results), 2)
 
 
@@ -420,19 +352,13 @@ class TestHillClimberPlottingMethods(unittest.TestCase):
     
     def test_plot_input_method_exists(self):
         """Test that plot_input method exists."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func)
         self.assertTrue(hasattr(climber, 'plot_input'))
         self.assertTrue(callable(climber.plot_input))
     
     def test_plot_results_method_exists(self):
         """Test that plot_results method exists."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=self.objective_func
-        )
+        climber = HillClimber(data=self.data, objective_func=self.objective_func)
         self.assertTrue(hasattr(climber, 'plot_results'))
         self.assertTrue(callable(climber.plot_results))
 

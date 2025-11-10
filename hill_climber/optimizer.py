@@ -119,7 +119,6 @@ class HillClimber:
             self.steps[metric_name] = []
         
         self.current_objective = self.best_objective
-
         self.best_distance = (
             abs(self.best_objective - self.target_value) 
             if self.mode == 'target' else None
@@ -134,14 +133,16 @@ class HillClimber:
             self.step += 1
             
             # Generate and evaluate new candidate solution
-            new_data = perturb_vectors(self.current_data, step_size=self.step_size, 
-                                      perturb_fraction=self.perturb_fraction)
-            self.metrics, new_objective = calculate_objective(
-                new_data, self.objective_func
+            new_data = perturb_vectors(
+                self.current_data, 
+                self.step_size, 
+                self.perturb_fraction
             )
+            self.metrics, new_objective = calculate_objective(new_data, self.objective_func)
             
-            # Simulated annealing: accept worse solutions probabilistically
+            # Determine if we accept the new solution
             if self.temperature > 0:
+                # Simulated annealing: accept worse solutions probabilistically
                 delta = self._calculate_delta(new_objective)
                 accept = delta >= 0 or np.random.random() < np.exp(delta / max(self.temp, 1e-10))
                 
@@ -149,142 +150,97 @@ class HillClimber:
                     self.current_data = new_data
                     self.current_objective = new_objective
                     
-                    # Update best if this accepted solution is the best so far
-                    if self._is_improvement(self.current_objective):
-                        self.best_data = self.current_data.copy()
-                        self.best_objective = self.current_objective
-
+                    # Update best if this is an improvement
+                    if self._is_improvement(new_objective):
+                        self.best_data = new_data.copy()
+                        self.best_objective = new_objective
                         if self.mode == 'target':
-                            self.best_distance = abs(self.best_objective - self.target_value)
-
+                            self.best_distance = abs(new_objective - self.target_value)
                         self._record_improvement()
                 
-                # Decrease temperature
                 self.temp *= self.cooling_rate
-            
-            # Standard hill climbing: only accept improvements
             else:
+                # Standard hill climbing: only accept improvements
                 if self._is_improvement(new_objective):
-                    self.best_data = new_data
-                    self.best_objective = new_objective
-                    self.current_data = new_data
-                    self.current_objective = new_objective
-
+                    self.best_data = self.current_data = new_data
+                    self.best_objective = self.current_objective = new_objective
                     if self.mode == 'target':
-                        self.best_distance = abs(self.best_objective - self.target_value)
-
+                        self.best_distance = abs(new_objective - self.target_value)
                     self._record_improvement()
         
-        # Convert best_data back to DataFrame if input was DataFrame
-        if self.is_dataframe:
-            best_data_output = pd.DataFrame(self.best_data, columns=self.columns)
-        else:
-            best_data_output = self.best_data
+        # Convert back to DataFrame if input was DataFrame
+        best_data_output = (
+            pd.DataFrame(self.best_data, columns=self.columns) 
+            if self.is_dataframe else self.best_data
+        )
         
         return best_data_output, pd.DataFrame(self.steps)
 
 
-    def climb_parallel(
-        self,
-        replicates=4,
-        initial_noise=0.0,
-        output_file=None
-    ):
+    def climb_parallel(self, replicates=4, initial_noise=0.0, output_file=None):
         """Run hill climbing in parallel with multiple replicates.
-        
-        Executes multiple independent hill climbing runs in parallel, optionally
-        adding noise to initial conditions for diversity. Results can be saved
-        automatically to a pickle file.
         
         Args:
             replicates: Number of parallel replicates to run (default: 4)
             initial_noise: Std dev of Gaussian noise added to initial data (default: 0.0)
-            output_file: Path to save results as pickle file (default: None, no save)
+            output_file: Path to save results as pickle file (default: None)
             
         Returns:
             List of (best_data, steps_df) tuples, one for each replicate
             
         Raises:
             ValueError: If replicates exceeds available CPU count
-            
-        Note:
-            If output_file is provided, saves a dictionary containing:
-                - 'results': List of (best_data, steps_df) tuples
-                - 'hyperparameters': Dictionary of all run parameters
-                - 'input_data': The original input data
         """
-
         # Validate CPU availability
         available_cpus = cpu_count()
-
         if replicates > available_cpus:
-
             raise ValueError(
                 f"Replicates ({replicates}) exceeds CPU count ({available_cpus}). "
                 f"Reduce replicates or use more CPUs."
             )
         
-        # Create replicate inputs with optional noise for diversity (using numpy)
+        # Create replicate inputs with optional noise
         replicate_inputs = []
-        
         for _ in range(replicates):
-
             new_data = self.data_numpy.copy()
-
             if initial_noise > 0:
-                noise = np.random.normal(0, initial_noise, new_data.shape)
-                new_data = new_data + noise
-    
+                new_data += np.random.normal(0, initial_noise, new_data.shape)
             replicate_inputs.append(new_data)
         
         # Package arguments for parallel execution
         args_list = [
-            (
-                data_rep,
-                self.objective_func,
-                self.max_time,
-                self.step_size,
-                self.perturb_fraction,
-                self.temperature,
-                self.cooling_rate,
-                self.mode,
-                self.target_value,
-                self.is_dataframe,
-                self.columns
-            )
+            (data_rep, self.objective_func, self.max_time, self.step_size,
+             self.perturb_fraction, self.temperature, self.cooling_rate,
+             self.mode, self.target_value, self.is_dataframe, self.columns)
             for data_rep in replicate_inputs
         ]
         
-        # Execute replicates in parallel
+        # Execute in parallel
         with Pool(processes=replicates) as pool:
             results = pool.map(_climb_wrapper, args_list)
         
-        # Save results package if output file specified
-        if output_file is not None:
-
-            hyperparameters = {
-                'max_time': self.max_time,
-                'step_size': self.step_size,
-                'perturb_fraction': self.perturb_fraction,
-                'replicates': replicates,
-                'initial_noise': initial_noise,
-                'temperature': self.temperature,
-                'cooling_rate': self.cooling_rate,
-                'objective_function': self.objective_func.__name__,
-                'mode': self.mode,
-                'target_value': self.target_value,
-                'input_size': len(self.data)
-            }
-            
+        # Save results if requested
+        if output_file:
             results_package = {
                 'results': results,
-                'hyperparameters': hyperparameters,
+                'hyperparameters': {
+                    'max_time': self.max_time,
+                    'step_size': self.step_size,
+                    'perturb_fraction': self.perturb_fraction,
+                    'replicates': replicates,
+                    'initial_noise': initial_noise,
+                    'temperature': self.temperature,
+                    'cooling_rate': self.cooling_rate,
+                    'objective_function': self.objective_func.__name__,
+                    'mode': self.mode,
+                    'target_value': self.target_value,
+                    'input_size': len(self.data)
+                },
                 'input_data': self.data
             }
             
             with open(output_file, 'wb') as f:
                 pickle.dump(results_package, f)
-            
             print(f"Results saved to: {output_file}")
         
         return results
@@ -292,112 +248,85 @@ class HillClimber:
     def plot_input(self, plot_type='scatter'):
         """Plot the input data distribution.
         
-        Displays a visualization of the input data showing the distribution
-        of both variables.
-        
         Args:
-            plot_type: Type of plot - 'scatter' or 'kde' (default: 'scatter')
-                       'scatter' shows x vs y scatter plot
-                       'kde' shows Kernel Density Estimation plots
+            plot_type: 'scatter' or 'kde' (default: 'scatter')
         """
-
         plot_input_data(self.data, plot_type=plot_type)
-
 
     def plot_results(self, results, plot_type='scatter', metrics=None):
         """Visualize hill climbing results.
         
-        Creates a comprehensive visualization showing progress and snapshots
-        for each replicate.
-        
         Args:
             results: List of (best_data, steps_df) tuples from climb_parallel()
-            plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
-                       Note: 'histogram' uses KDE (Kernel Density Estimation) plots
-            metrics: List of metric names to display in progress plots and snapshots.
-                     If None (default), all available metrics are shown.
-                     Example: ['Pearson', 'Spearman'] or ['Mean X', 'Std X']
+            plot_type: 'scatter' or 'histogram' (default: 'scatter')
+            metrics: List of metric names to display (default: None shows all)
         """
-
         plot_results_func(results, plot_type=plot_type, metrics=metrics)
 
 
     def _is_improvement(self, new_obj):
-        """Check if new objective represents an improvement.
+        """Check if new objective is an improvement.
         
         Args:
             new_obj: New objective value
             
         Returns:
-            True if new_obj is an improvement over current best
+            True if new_obj improves on current best
         """
-
         if self.mode == 'maximize':
             return new_obj > self.best_objective
-
         elif self.mode == 'minimize':
             return new_obj < self.best_objective
-
         else:  # target mode
-            new_dist = abs(new_obj - self.target_value)
-            return new_dist < self.best_distance
-
+            return abs(new_obj - self.target_value) < self.best_distance
 
     def _calculate_delta(self, new_obj):
-        """Calculate delta for simulated annealing acceptance probability.
-        
-        Returns positive delta for improvements, negative for deteriorations.
+        """Calculate delta for simulated annealing acceptance.
         
         Args:
             new_obj: New objective value
             
         Returns:
-            Delta value for acceptance probability calculation
+            Delta (positive = improvement, negative = deterioration)
         """
-
         if self.mode == 'maximize':
             return new_obj - self.current_objective
-
         elif self.mode == 'minimize':
             return self.current_objective - new_obj
-
         else:  # target mode
             curr_dist = abs(self.current_objective - self.target_value)
             new_dist = abs(new_obj - self.target_value)
             return curr_dist - new_dist
 
-
     def _record_improvement(self):
-        """Record current best solution and metrics in steps history."""
-
+        """Record current best solution in steps history."""
         self.steps['Step'].append(self.step)
         self.steps['Objective value'].append(self.best_objective)
-
+        self.steps['Best_data'].append(self.best_data.copy())
+        
         for metric_name, metric_value in self.metrics.items():
             self.steps[metric_name].append(metric_value)
-
-        self.steps['Best_data'].append(self.best_data.copy())
 
 
 def _climb_wrapper(args):
     """Wrapper for parallel execution of HillClimber.climb().
     
     Args:
-        args: Tuple of (data_numpy, objective_func, max_time, step_size, perturb_fraction,
-              temperature, cooling_rate, mode, target_value, is_dataframe, columns)
+        args: Tuple of (data_numpy, objective_func, max_time, step_size, 
+              perturb_fraction, temperature, cooling_rate, mode, target_value, 
+              is_dataframe, columns)
         
     Returns:
         Result from climb(): (best_data, steps_df)
     """
-
     (data_numpy, objective_func, max_time, step_size, perturb_fraction, 
      temperature, cooling_rate, mode, target_value, is_dataframe, columns) = args
     
-    # Reconstruct original data format for HillClimber initialization
-    if is_dataframe:
-        data_input = pd.DataFrame(data_numpy, columns=columns)
-    else:
-        data_input = data_numpy
+    # Reconstruct original data format for HillClimber
+    data_input = (
+        pd.DataFrame(data_numpy, columns=columns) 
+        if is_dataframe else data_numpy
+    )
     
     climber = HillClimber(
         data=data_input,

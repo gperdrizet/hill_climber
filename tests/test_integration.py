@@ -7,13 +7,11 @@ import sys
 import os
 from scipy.stats import pearsonr, spearmanr
 
-# Add package directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from hill_climber import HillClimber
 
 
-# Real objective function from notebook
 def objective_spearman_large_pearson_small(x, y):
     """Maximize Spearman correlation while minimizing Pearson correlation."""
     pearson_corr = pearsonr(x, y)[0]
@@ -28,7 +26,6 @@ def objective_spearman_large_pearson_small(x, y):
     return metrics, objective
 
 
-# 3D objective function for testing (module-level for multiprocessing)
 def objective_3d_simple(x, y, z):
     """Simple 3D objective: maximize sum of means."""
     total = np.mean(x) + np.mean(y) + np.mean(z)
@@ -51,18 +48,15 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         climber = HillClimber(
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
-            max_time=0.02,  # Very short for testing
+            max_time=0.02,
             step_size=0.1,
             mode='maximize'
         )
         
         best_data, steps_df = climber.climb()
         
-        # Verify structure
         self.assertIsInstance(best_data, pd.DataFrame)
         self.assertIsInstance(steps_df, pd.DataFrame)
-        
-        # Verify metrics columns exist
         self.assertIn('Pearson coefficient', steps_df.columns)
         self.assertIn('Spearman coefficient', steps_df.columns)
         self.assertIn('Objective value', steps_df.columns)
@@ -81,7 +75,6 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         
         best_data, steps_df = climber.climb()
         
-        # Should complete without errors
         self.assertIsNotNone(best_data)
         self.assertGreater(len(steps_df), 0)
     
@@ -97,12 +90,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             mode='maximize'
         )
         
-        results = climber.climb_parallel(
-            replicates=2,
-            initial_noise=0.05
-        )
+        results = climber.climb_parallel(replicates=2, initial_noise=0.05)
         
-        # Verify results
         self.assertEqual(len(results), 2)
         
         for best_data, steps_df in results:
@@ -123,7 +112,6 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         
         best_data, steps_df = climber.climb()
         
-        # Should complete successfully
         self.assertIsNotNone(best_data)
         self.assertGreater(len(steps_df), 0)
     
@@ -140,7 +128,6 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         
         best_data, steps_df = climber.climb()
         
-        # Should complete successfully
         self.assertIsNotNone(best_data)
         self.assertGreater(len(steps_df), 0)
     
@@ -157,7 +144,6 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         
         best_data, _ = climber.climb()
         
-        # Verify format preservation
         self.assertIsInstance(best_data, pd.DataFrame)
         self.assertListEqual(list(best_data.columns), original_columns)
         self.assertEqual(best_data.shape, self.data.shape)
@@ -191,15 +177,13 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
         
         best_data, steps_df = climber.climb()
         
-        # Verify structure
         self.assertIsInstance(best_data, pd.DataFrame)
-        self.assertEqual(best_data.shape[1], 3)  # 3 columns
+        self.assertEqual(best_data.shape[1], 3)
         self.assertIn('total_mean', steps_df.columns)
     
     def test_climb_with_4d_numpy_array(self):
         """Test climb() with 4D numpy array data."""
         def objective_4d(a, b, c, d):
-            """Simple 4D objective: maximize variance."""
             variance = np.var(a) + np.var(b) + np.var(c) + np.var(d)
             return {'total_variance': variance}, variance
         
@@ -213,9 +197,8 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
         
         best_data, steps_df = climber.climb()
         
-        # Verify structure
         self.assertIsInstance(best_data, np.ndarray)
-        self.assertEqual(best_data.shape[1], 4)  # 4 columns
+        self.assertEqual(best_data.shape[1], 4)
         self.assertIn('total_variance', steps_df.columns)
     
     def test_climb_parallel_with_3d_data(self):
@@ -230,7 +213,6 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
         
         results = climber.climb_parallel(replicates=2)
         
-        # Verify results
         self.assertEqual(len(results), 2)
         for best_data, steps_df in results:
             self.assertIsInstance(best_data, pd.DataFrame)
