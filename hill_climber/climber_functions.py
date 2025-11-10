@@ -18,6 +18,7 @@ def _perturb_core(data_array, step_size, n_perturb):
     Returns:
         Perturbed numpy array
     """
+
     n_rows, n_cols = data_array.shape
     result = data_array.copy()
     
@@ -27,8 +28,8 @@ def _perturb_core(data_array, step_size, n_perturb):
         perturbation = np.random.normal(0, step_size)
         new_value = result[row_idx, col_idx] + perturbation
         
-        # Ensure positive values
-        result[row_idx, col_idx] = abs(new_value)
+        # Clip to ensure non-negative values
+        result[row_idx, col_idx] = max(0.0, new_value)
     
     return result
 
@@ -72,6 +73,7 @@ def extract_columns(data):
         For 3D data (N x 3): returns (x, y, z)
         For nD data (N x M): returns (col0, col1, ..., colM-1)
     """
+
     return tuple(data[:, i] for i in range(data.shape[1]))
 
 
@@ -94,7 +96,9 @@ def calculate_objective(data, objective_func):
         For 3D data: objective_func(x, y, z) is called
         For nD data: objective_func(col0, col1, ...) is called
     """
+
     columns = extract_columns(data)
+
     return objective_func(*columns)
 
 

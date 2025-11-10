@@ -204,7 +204,9 @@ class HillClimber:
         for _ in range(replicates):
             new_data = self.data_numpy.copy()
             if initial_noise > 0:
-                new_data += np.random.normal(0, initial_noise, new_data.shape)
+                # Add uniform noise and clip to ensure non-negative values
+                noise = np.random.uniform(-initial_noise, initial_noise, new_data.shape)
+                new_data = np.maximum(0.0, new_data + noise)
             replicate_inputs.append(new_data)
         
         # Package arguments for parallel execution
