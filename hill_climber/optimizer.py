@@ -6,8 +6,8 @@ import pickle
 import time
 from multiprocessing import Pool, cpu_count
 
-from climber_functions import perturb_vectors, calculate_correlation_objective
-from plotting_functions import plot_input_data, plot_results as plot_results_func
+from .climber_functions import perturb_vectors, calculate_correlation_objective
+from .plotting_functions import plot_input_data, plot_results as plot_results_func
 
 
 class HillClimber:
