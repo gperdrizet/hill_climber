@@ -64,7 +64,14 @@ class HillClimber:
         if mode == 'target' and target_value is None:
             raise ValueError("target_value must be specified when mode='target'")
         
+        # Store original data and format info
         self.data = data
+        self.is_dataframe = isinstance(data, pd.DataFrame)
+        self.columns = data.columns.tolist() if self.is_dataframe else None
+        
+        # Convert to numpy for efficient processing during optimization
+        self.data_numpy = data.values if self.is_dataframe else data.copy()
+        
         self.objective_func = objective_func
         self.max_time = max_time
         self.step_size = step_size
@@ -96,11 +103,11 @@ class HillClimber:
         """
         # Initialize tracking structures
         self.steps = {'Step': [], 'Objective value': [], 'Best_data': []}
-        self.best_data = self.current_data = self.data.copy()
+        self.best_data = self.current_data = self.data_numpy.copy()
         
         # Get initial objective and dynamically create metric columns
         self.metrics, self.best_objective = calculate_correlation_objective(
-            self.data, self.objective_func
+            self.data_numpy, self.objective_func
         )
 
         for metric_name in self.metrics.keys():
@@ -163,7 +170,13 @@ class HillClimber:
 
                     self._record_improvement()
         
-        return self.best_data, pd.DataFrame(self.steps)
+        # Convert best_data back to DataFrame if input was DataFrame
+        if self.is_dataframe:
+            best_data_output = pd.DataFrame(self.best_data, columns=self.columns)
+        else:
+            best_data_output = self.best_data
+        
+        return best_data_output, pd.DataFrame(self.steps)
 
 
     def climb_parallel(
@@ -206,17 +219,16 @@ class HillClimber:
                 f"Reduce replicates or use more CPUs."
             )
         
-        # Create replicate inputs with optional noise for diversity
-        is_dataframe = isinstance(self.data, pd.DataFrame)
+        # Create replicate inputs with optional noise for diversity (using numpy)
         replicate_inputs = []
         
         for _ in range(replicates):
 
-            new_data = self.data.copy()
+            new_data = self.data_numpy.copy()
 
             if initial_noise > 0:
                 noise = np.random.normal(0, initial_noise, new_data.shape)
-                new_data = new_data + noise if is_dataframe else new_data + noise
+                new_data = new_data + noise
     
             replicate_inputs.append(new_data)
         
@@ -231,7 +243,9 @@ class HillClimber:
                 self.temperature,
                 self.cooling_rate,
                 self.mode,
-                self.target_value
+                self.target_value,
+                self.is_dataframe,
+                self.columns
             )
             for data_rep in replicate_inputs
         ]
@@ -364,17 +378,24 @@ def _climb_wrapper(args):
     """Wrapper for parallel execution of HillClimber.climb().
     
     Args:
-        args: Tuple of (data, objective_func, max_time, step_size, perturb_fraction,
-              temperature, cooling_rate, mode, target_value)
+        args: Tuple of (data_numpy, objective_func, max_time, step_size, perturb_fraction,
+              temperature, cooling_rate, mode, target_value, is_dataframe, columns)
         
     Returns:
         Result from climb(): (best_data, steps_df)
     """
 
-    data, objective_func, max_time, step_size, perturb_fraction, temperature, cooling_rate, mode, target_value = args
+    (data_numpy, objective_func, max_time, step_size, perturb_fraction, 
+     temperature, cooling_rate, mode, target_value, is_dataframe, columns) = args
+    
+    # Reconstruct original data format for HillClimber initialization
+    if is_dataframe:
+        data_input = pd.DataFrame(data_numpy, columns=columns)
+    else:
+        data_input = data_numpy
     
     climber = HillClimber(
-        data=data,
+        data=data_input,
         objective_func=objective_func,
         max_time=max_time,
         step_size=step_size,
