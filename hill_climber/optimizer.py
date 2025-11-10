@@ -22,6 +22,7 @@ class HillClimber:
         objective_func: Objective function returning (metrics_dict, objective_value)
         max_time: Maximum runtime in minutes
         step_size: Maximum perturbation amount for each step
+        perturb_fraction: Fraction of points to perturb at each step
         temperature: Initial temperature for simulated annealing (0 disables)
         cooling_rate: Multiplicative temperature decrease rate
         mode: Optimization mode ('maximize', 'minimize', or 'target')
@@ -34,6 +35,7 @@ class HillClimber:
         objective_func,
         max_time=3,
         step_size=0.1,
+        perturb_fraction=0.1,
         temperature=0.0,
         cooling_rate=0.995,
         mode='maximize',
@@ -46,6 +48,7 @@ class HillClimber:
             objective_func: Function returning (metrics_dict, objective_value)
             max_time: Maximum runtime in minutes (default: 3)
             step_size: Maximum perturbation amount (default: 0.1)
+            perturb_fraction: Fraction of points to perturb each step (default: 0.1)
             temperature: Initial temperature for simulated annealing (default: 0.0)
             cooling_rate: Temperature decrease rate (default: 0.995)
             mode: 'maximize', 'minimize', or 'target' (default: 'maximize')
@@ -54,6 +57,7 @@ class HillClimber:
         Raises:
             ValueError: If mode is invalid or target_value missing for target mode
         """
+
         if mode not in ['maximize', 'minimize', 'target']:
             raise ValueError(f"Mode must be 'maximize', 'minimize', or 'target', got '{mode}'")
         
@@ -64,6 +68,7 @@ class HillClimber:
         self.objective_func = objective_func
         self.max_time = max_time
         self.step_size = step_size
+        self.perturb_fraction = perturb_fraction
         self.temperature = temperature
         self.cooling_rate = cooling_rate
         self.mode = mode
@@ -97,10 +102,12 @@ class HillClimber:
         self.metrics, self.best_objective = calculate_correlation_objective(
             self.data, self.objective_func
         )
+
         for metric_name in self.metrics.keys():
             self.steps[metric_name] = []
         
         self.current_objective = self.best_objective
+
         self.best_distance = (
             abs(self.best_objective - self.target_value) 
             if self.mode == 'target' else None
@@ -115,7 +122,8 @@ class HillClimber:
             self.step += 1
             
             # Generate and evaluate new candidate solution
-            new_data = perturb_vectors(self.current_data, step_size=self.step_size)
+            new_data = perturb_vectors(self.current_data, step_size=self.step_size, 
+                                      perturb_fraction=self.perturb_fraction)
             self.metrics, new_objective = calculate_correlation_objective(
                 new_data, self.objective_func
             )
@@ -133,8 +141,10 @@ class HillClimber:
                     if self._is_improvement(self.current_objective):
                         self.best_data = self.current_data.copy()
                         self.best_objective = self.current_objective
+
                         if self.mode == 'target':
                             self.best_distance = abs(self.best_objective - self.target_value)
+
                         self._record_improvement()
                 
                 # Decrease temperature
@@ -147,8 +157,10 @@ class HillClimber:
                     self.best_objective = new_objective
                     self.current_data = new_data
                     self.current_objective = new_objective
+
                     if self.mode == 'target':
                         self.best_distance = abs(self.best_objective - self.target_value)
+
                     self._record_improvement()
         
         return self.best_data, pd.DataFrame(self.steps)
@@ -183,9 +195,12 @@ class HillClimber:
                 - 'hyperparameters': Dictionary of all run parameters
                 - 'input_data': The original input data
         """
+
         # Validate CPU availability
         available_cpus = cpu_count()
+
         if replicates > available_cpus:
+
             raise ValueError(
                 f"Replicates ({replicates}) exceeds CPU count ({available_cpus}). "
                 f"Reduce replicates or use more CPUs."
@@ -196,10 +211,13 @@ class HillClimber:
         replicate_inputs = []
         
         for _ in range(replicates):
+
             new_data = self.data.copy()
+
             if initial_noise > 0:
                 noise = np.random.normal(0, initial_noise, new_data.shape)
                 new_data = new_data + noise if is_dataframe else new_data + noise
+    
             replicate_inputs.append(new_data)
         
         # Package arguments for parallel execution
@@ -209,6 +227,7 @@ class HillClimber:
                 self.objective_func,
                 self.max_time,
                 self.step_size,
+                self.perturb_fraction,
                 self.temperature,
                 self.cooling_rate,
                 self.mode,
@@ -223,9 +242,11 @@ class HillClimber:
         
         # Save results package if output file specified
         if output_file is not None:
+
             hyperparameters = {
                 'max_time': self.max_time,
                 'step_size': self.step_size,
+                'perturb_fraction': self.perturb_fraction,
                 'replicates': replicates,
                 'initial_noise': initial_noise,
                 'temperature': self.temperature,
@@ -260,8 +281,10 @@ class HillClimber:
                        'scatter' shows x vs y scatter plot
                        'kde' shows Kernel Density Estimation plots
         """
+
         plot_input_data(self.data, plot_type=plot_type)
-    
+
+
     def plot_results(self, results, plot_type='scatter', metrics=None):
         """Visualize hill climbing results.
         
@@ -276,6 +299,7 @@ class HillClimber:
                      If None (default), all available metrics are shown.
                      Example: ['Pearson', 'Spearman'] or ['Mean X', 'Std X']
         """
+
         plot_results_func(results, plot_type=plot_type, metrics=metrics)
 
 
@@ -288,10 +312,13 @@ class HillClimber:
         Returns:
             True if new_obj is an improvement over current best
         """
+
         if self.mode == 'maximize':
             return new_obj > self.best_objective
+
         elif self.mode == 'minimize':
             return new_obj < self.best_objective
+
         else:  # target mode
             new_dist = abs(new_obj - self.target_value)
             return new_dist < self.best_distance
@@ -308,10 +335,13 @@ class HillClimber:
         Returns:
             Delta value for acceptance probability calculation
         """
+
         if self.mode == 'maximize':
             return new_obj - self.current_objective
+
         elif self.mode == 'minimize':
             return self.current_objective - new_obj
+
         else:  # target mode
             curr_dist = abs(self.current_objective - self.target_value)
             new_dist = abs(new_obj - self.target_value)
@@ -320,10 +350,13 @@ class HillClimber:
 
     def _record_improvement(self):
         """Record current best solution and metrics in steps history."""
+
         self.steps['Step'].append(self.step)
         self.steps['Objective value'].append(self.best_objective)
+
         for metric_name, metric_value in self.metrics.items():
             self.steps[metric_name].append(metric_value)
+
         self.steps['Best_data'].append(self.best_data.copy())
 
 
@@ -331,19 +364,21 @@ def _climb_wrapper(args):
     """Wrapper for parallel execution of HillClimber.climb().
     
     Args:
-        args: Tuple of (data, objective_func, max_time, step_size, 
+        args: Tuple of (data, objective_func, max_time, step_size, perturb_fraction,
               temperature, cooling_rate, mode, target_value)
         
     Returns:
         Result from climb(): (best_data, steps_df)
     """
-    data, objective_func, max_time, step_size, temperature, cooling_rate, mode, target_value = args
+
+    data, objective_func, max_time, step_size, perturb_fraction, temperature, cooling_rate, mode, target_value = args
     
     climber = HillClimber(
         data=data,
         objective_func=objective_func,
         max_time=max_time,
         step_size=step_size,
+        perturb_fraction=perturb_fraction,
         temperature=temperature,
         cooling_rate=cooling_rate,
         mode=mode,

@@ -4,14 +4,15 @@ import numpy as np
 import pandas as pd
 
 
-def perturb_vectors(data, step_size):
-    '''Randomly perturb a single value in the input data.
+def perturb_vectors(data, step_size, perturb_fraction=0.1):
+    '''Randomly perturb a fraction of values in the input data.
     
     Ensures all values remain strictly positive (> 0) after perturbation.
     
     Args:
         data: numpy array or pandas DataFrame to perturb
         step_size: maximum perturbation amount
+        perturb_fraction: fraction of points to perturb (default: 0.1)
         
     Returns:
         Perturbed data in the same format as input (array or DataFrame)
@@ -24,18 +25,26 @@ def perturb_vectors(data, step_size):
     else:
         new_data = data.copy()
     
-    # Select and perturb random element
+    # Calculate number of elements to perturb
     flat_array = new_data.flatten()
-    element_idx = np.random.randint(0, len(flat_array))
-    original_value = flat_array[element_idx]
-    perturbation = np.random.uniform(-step_size, step_size)
-    new_value = original_value + perturbation
+    n_elements = len(flat_array)
+    n_perturb = max(1, int(n_elements * perturb_fraction))
     
-    # Ensure value stays positive
-    if new_value <= 0:
-        new_value = original_value + np.random.uniform(0, step_size)
+    # Select random elements to perturb
+    perturb_indices = np.random.choice(n_elements, size=n_perturb, replace=False)
     
-    flat_array[element_idx] = new_value
+    # Perturb selected elements
+    for element_idx in perturb_indices:
+        original_value = flat_array[element_idx]
+        perturbation = np.random.uniform(-step_size, step_size)
+        new_value = original_value + perturbation
+        
+        # Ensure value stays positive
+        if new_value <= 0:
+            new_value = original_value + np.random.uniform(0, step_size)
+        
+        flat_array[element_idx] = new_value
+    
     new_data = flat_array.reshape(new_data.shape)
     
     return pd.DataFrame(new_data, columns=columns) if is_dataframe else new_data
