@@ -281,24 +281,35 @@ class TestHillClimberClimbParallel(unittest.TestCase):
         # Use module-level function for parallel tests
         self.objective_func = _simple_objective_for_parallel
     
-    def test_climb_parallel_returns_list(self):
-        """Test that climb_parallel returns a list of results."""
+    def test_climb_parallel_returns_dict(self):
+        """Test that climb_parallel returns a dictionary with correct structure."""
         climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         results = climber.climb_parallel(replicates=2)
-        self.assertIsInstance(results, list)
-        self.assertEqual(len(results), 2)
+        self.assertIsInstance(results, dict)
+        self.assertIn('input_data', results)
+        self.assertIn('results', results)
+        self.assertEqual(len(results['results']), 2)
     
     def test_climb_parallel_result_structure(self):
         """Test that each result has correct structure."""
         climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         results = climber.climb_parallel(replicates=2)
         
-        for initial_data, best_data, steps_df in results:
+        # Check dictionary structure
+        self.assertIsInstance(results, dict)
+        self.assertIn('input_data', results)
+        self.assertIn('results', results)
+        
+        # Check input_data
+        self.assertIsNotNone(results['input_data'])
+        
+        # Check results list
+        for noisy_initial, best_data, steps_df in results['results']:
             self.assertIsInstance(steps_df, pd.DataFrame)
             self.assertIn('Step', steps_df.columns)
             self.assertIn('Objective value', steps_df.columns)
-            # Check initial_data is returned
-            self.assertIsNotNone(initial_data)
+            # Check noisy_initial is returned
+            self.assertIsNotNone(noisy_initial)
     
     def test_climb_parallel_saves_file(self):
         """Test that climb_parallel saves results to file."""

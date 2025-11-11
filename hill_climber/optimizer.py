@@ -378,7 +378,9 @@ class HillClimber:
             checkpoint_dir: Directory to save individual replicate checkpoints (default: None)
             
         Returns:
-            List of (initial_data, best_data, steps_df) tuples, one for each replicate
+            Dictionary with:
+                'input_data': Original input data (before noise)
+                'results': List of (noisy_initial_data, best_data, steps_df) tuples
             
         Raises:
             ValueError: If replicates exceeds available CPU count
@@ -457,23 +459,30 @@ class HillClimber:
         with Pool(processes=replicates) as pool:
             optimization_results = pool.map(_climb_wrapper, args_list)
         
-        # Combine initial data with optimization results
-        # Format: [(initial_data, best_data, steps_df), ...]
-        results = []
+        # Combine results with noisy initial data for each replicate
+        # Format: [(noisy_initial_data, best_data, steps_df), ...]
+        results_list = []
         for i, (best_data, steps_df) in enumerate(optimization_results):
-            # Convert initial numpy array to DataFrame if needed
+            # Convert noisy initial numpy array to DataFrame if needed
             if self.is_dataframe:
-                initial_data = pd.DataFrame(replicate_inputs[i], columns=self.columns)
+                noisy_initial = pd.DataFrame(replicate_inputs[i], columns=self.columns)
             else:
-                initial_data = replicate_inputs[i]
+                noisy_initial = replicate_inputs[i]
             
-            results.append((initial_data, best_data, steps_df))
+            results_list.append((noisy_initial, best_data, steps_df))
+        
+        # Package results with original input data (saved only once)
+        results = {
+            'input_data': self.data,  # Original data before noise
+            'results': results_list    # List of (noisy_initial, best, steps) tuples
+        }
         
         # Save results if requested
         if output_file:
 
             results_package = {
-                'results': results,
+                'input_data': self.data,
+                'results': results_list,
                 'hyperparameters': {
                     'max_time': self.max_time,
                     'step_size': self.step_size,
@@ -486,8 +495,7 @@ class HillClimber:
                     'mode': self.mode,
                     'target_value': self.target_value,
                     'input_size': len(self.data)
-                },
-                'input_data': self.data
+                }
             }
             
             with open(output_file, 'wb') as f:

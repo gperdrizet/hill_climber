@@ -92,15 +92,17 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         
         results = climber.climb_parallel(replicates=2, initial_noise=0.05)
         
-        self.assertEqual(len(results), 2)
+        # Check dictionary structure
+        self.assertIsInstance(results, dict)
+        self.assertEqual(len(results['results']), 2)
         
-        for initial_data, best_data, steps_df in results:
+        for noisy_initial, best_data, steps_df in results['results']:
             self.assertIsInstance(best_data, pd.DataFrame)
             self.assertIsInstance(steps_df, pd.DataFrame)
             self.assertIn('Pearson coefficient', steps_df.columns)
             self.assertIn('Spearman coefficient', steps_df.columns)
-            # Check initial_data is returned
-            self.assertIsNotNone(initial_data)
+            # Check noisy_initial is returned
+            self.assertIsNotNone(noisy_initial)
     
     def test_minimize_mode_with_real_objective(self):
         """Test minimize mode with real objective function."""
@@ -215,13 +217,16 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
         
         results = climber.climb_parallel(replicates=2)
         
-        self.assertEqual(len(results), 2)
-        for initial_data, best_data, steps_df in results:
+        # Check dictionary structure
+        self.assertIsInstance(results, dict)
+        self.assertEqual(len(results['results']), 2)
+        
+        for noisy_initial, best_data, steps_df in results['results']:
             self.assertIsInstance(best_data, pd.DataFrame)
             self.assertEqual(best_data.shape[1], 3)
             self.assertIn('total_mean', steps_df.columns)
-            # Check initial_data is returned
-            self.assertIsNotNone(initial_data)
+            # Check noisy_initial is returned
+            self.assertIsNotNone(noisy_initial)
 
 
 if __name__ == '__main__':

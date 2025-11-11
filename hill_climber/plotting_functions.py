@@ -87,9 +87,10 @@ def plot_results(results, plot_type='scatter', metrics=None):
     - Snapshot plots at 25%, 50%, 75%, and 100% completion
     
     Args:
-        results: List of tuples from climb_parallel(). Can be either:
-                 - (initial_data, best_data, steps_df) tuples (new format)
-                 - (best_data, steps_df) tuples (legacy format)
+        results: Results from climb_parallel(). Can be:
+                 - Dictionary with 'input_data' and 'results' keys (current format)
+                 - List of (noisy_initial, best_data, steps_df) tuples (legacy)
+                 - List of (best_data, steps_df) tuples (older legacy)
         plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
                    Note: 'histogram' uses KDE (Kernel Density Estimation) plots
         metrics: List of metric names to display in progress plots and snapshots.
@@ -104,15 +105,21 @@ def plot_results(results, plot_type='scatter', metrics=None):
     if plot_type not in ['scatter', 'histogram']:
         raise ValueError(f"plot_type must be 'scatter' or 'histogram', got '{plot_type}'")
     
-    # Handle both old and new result formats
-    # New format: (initial_data, best_data, steps_df)
-    # Old format: (best_data, steps_df)
-    if len(results[0]) == 3:
-        # New format - extract steps_df
-        _, _, steps_df = results[0]
+    # Handle different result formats for backward compatibility
+    if isinstance(results, dict):
+        # New dictionary format
+        results_list = results['results']
     else:
-        # Old format - extract steps_df
-        _, steps_df = results[0]
+        # Legacy list format
+        results_list = results
+    
+    # Determine format of individual results
+    if len(results_list[0]) == 3:
+        # Format: (noisy_initial, best_data, steps_df)
+        _, _, steps_df = results_list[0]
+    else:
+        # Format: (best_data, steps_df)
+        _, steps_df = results_list[0]
     
     # Validate metrics if provided
     if metrics is not None:
@@ -126,10 +133,10 @@ def plot_results(results, plot_type='scatter', metrics=None):
                            f"Available metrics: {available_metrics}")
     
     if plot_type == 'scatter':
-        _plot_results_scatter(results, metrics)
+        _plot_results_scatter(results_list, metrics)
 
     else:
-        _plot_results_histogram(results, metrics)
+        _plot_results_histogram(results_list, metrics)
 
 
 def _plot_results_scatter(results, metrics=None):
