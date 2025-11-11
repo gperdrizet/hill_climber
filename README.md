@@ -1,6 +1,6 @@
 # Hill Climber
 
-A Python package for hill climbing optimization with simulated annealing, designed for flexible multi-objective optimization with support for N-dimensional data.
+A Python package for hill climbing optimization of user-supplied objective function with simulated annealing. Designed for flexible multi-objective optimization with support for N-dimensional data.
 
 ## Features
 
@@ -71,12 +71,32 @@ climber.plot_results(results, plot_type='histogram')
 - **minimize**: Find minimum objective value  
 - **target**: Approach a specific target value
 
+### Replicate Noise
+
+When running parallel optimization with multiple replicates, you can add uniform noise to create diverse starting points:
+
+```python
+results = climber.climb_parallel(replicates=8, initial_noise=2.0)
+```
+
+- **initial_noise**: Controls the magnitude of noise added to each replicate's starting data
+- Noise is sampled uniformly: `±initial_noise`
+- Each replicate gets different random noise, creating diverse exploration paths
+- After noise addition, values are reflected back into bounds (see Boundary Handling)
+- This helps find multiple diverse solutions rather than converging to the same local optimum
+
+**Benefits:**
+- Explores different regions of the solution space
+- Increases chance of finding global optimum
+- Generates diverse solutions for comparison
+
 ### Boundary Handling
 
-The optimizer uses a **reflection strategy** instead of clipping to handle values that exceed bounds:
+Optimization is constrained to the input range. The optimizer uses a **reflection strategy** instead of clipping to handle values that exceed bounds:
 - Values that go below minimum are reflected back: `new_value = min + (min - value)`
 - Values that go above maximum are reflected back: `new_value = max - (value - max)`
 - This prevents accumulation of points at boundaries (~77x improvement over clipping)
+- Applies to both initial noise and optimization perturbations
 
 ### Result Structure
 
@@ -112,7 +132,7 @@ Generate 4 distributions with:
 - Demonstrates N-dimensional optimization
 
 ### 4. Low Pearson Correlation & Low Entropy (`04-entropy_pearson.ipynb`)
-Create low-correlation, low-entropy distributions with internal structure and minimal edge concentration.
+Create low-correlation, low-entropy 2D distributions with internal structure.
 
 ### 5. Checkpoint Example (`05-checkpoint_example.ipynb`)
 Demonstrates checkpoint/resume functionality for long-running optimizations.
@@ -162,6 +182,7 @@ def objective_diverse_structures(w, x, y, z):
     ks_values = []
     
     for name1, name2 in combinations(distributions.keys(), 2):
+
         ks_stat, _ = stats.ks_2samp(
             distributions[name1], 
             distributions[name2]
@@ -171,6 +192,7 @@ def objective_diverse_structures(w, x, y, z):
     # Calculate objective
     mean_ks = np.mean(ks_values)
     target_mean = 10.0
+
     mean_penalty = np.mean([
         abs(m - target_mean) for m in means.values()
     ])
