@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import time
+import os
 from multiprocessing import Pool, cpu_count
 
 from .climber_functions import perturb_vectors, calculate_objective
@@ -42,7 +43,9 @@ class HillClimber:
         temperature=0.0,
         cooling_rate=0.995,
         mode='maximize',
-        target_value=None
+        target_value=None,
+        checkpoint_file=None,
+        save_interval=60
     ):
         """Initialize HillClimber.
         
@@ -58,6 +61,8 @@ class HillClimber:
             cooling_rate: Temperature decrease rate (default: 0.995)
             mode: 'maximize', 'minimize', or 'target' (default: 'maximize')
             target_value: Target objective value for target mode (default: None)
+            checkpoint_file: Path to save/load checkpoints (default: None)
+            save_interval: Seconds between checkpoint saves (default: 60)
             
         Raises:
             ValueError: If mode is invalid or target_value missing for target mode
@@ -90,6 +95,8 @@ class HillClimber:
         self.cooling_rate = cooling_rate
         self.mode = mode
         self.target_value = target_value
+        self.checkpoint_file = checkpoint_file
+        self.save_interval = save_interval
         
         # These will be set during climb
         self.best_data = None
@@ -101,6 +108,161 @@ class HillClimber:
         self.metrics = None
         self.step = 0
         self.temp = temperature
+        self.start_time = None
+        self.last_save_time = None
+
+
+    def save_checkpoint(self, force=False):
+        """Save current optimization state to checkpoint file.
+        
+        Args:
+            force: Save even if save_interval hasn't elapsed (default: False)
+        """
+        if not self.checkpoint_file:
+            return
+            
+        current_time = time.time()
+        
+        if not force and self.last_save_time is not None:
+            if current_time - self.last_save_time < self.save_interval:
+                return
+        
+        checkpoint_data = {
+            'best_data': self.best_data.copy() if self.best_data is not None else None,
+            'current_data': self.current_data.copy() if self.current_data is not None else None,
+            'best_objective': self.best_objective,
+            'current_objective': self.current_objective,
+            'best_distance': self.best_distance,
+            'steps': self.steps.copy() if self.steps is not None else None,
+            'step': self.step,
+            'temp': self.temp,
+            'start_time': self.start_time,
+            'elapsed_time': current_time - self.start_time if self.start_time else 0,
+            'hyperparameters': {
+                'max_time': self.max_time,
+                'step_size': self.step_size,
+                'perturb_fraction': self.perturb_fraction,
+                'temperature': self.temperature,
+                'cooling_rate': self.cooling_rate,
+                'mode': self.mode,
+                'target_value': self.target_value
+            },
+            'data_info': {
+                'is_dataframe': self.is_dataframe,
+                'columns': self.columns,
+                'bounds': self.bounds
+            },
+            'original_data': self.data_numpy.copy()
+        }
+        
+        # Create checkpoint directory if needed
+        checkpoint_dir = os.path.dirname(self.checkpoint_file)
+        if checkpoint_dir and not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
+        
+        with open(self.checkpoint_file, 'wb') as f:
+            pickle.dump(checkpoint_data, f)
+        
+        self.last_save_time = current_time
+        print(f"Checkpoint saved: {self.checkpoint_file}")
+
+
+    def load_checkpoint(self, checkpoint_file):
+        """Load optimization state from checkpoint file.
+        
+        Args:
+            checkpoint_file: Path to checkpoint file to load
+            
+        Returns:
+            True if checkpoint was loaded successfully, False otherwise
+        """
+        if not os.path.exists(checkpoint_file):
+            print(f"Checkpoint file not found: {checkpoint_file}")
+            return False
+        
+        try:
+            with open(checkpoint_file, 'rb') as f:
+                checkpoint_data = pickle.load(f)
+            
+            # Restore optimization state
+            self.best_data = checkpoint_data['best_data']
+            self.current_data = checkpoint_data['current_data']
+            self.best_objective = checkpoint_data['best_objective']
+            self.current_objective = checkpoint_data['current_objective']
+            self.best_distance = checkpoint_data['best_distance']
+            self.steps = checkpoint_data['steps']
+            self.step = checkpoint_data['step']
+            self.temp = checkpoint_data['temp']
+            self.start_time = checkpoint_data['start_time']
+            
+            # Restore data info
+            data_info = checkpoint_data['data_info']
+            self.is_dataframe = data_info['is_dataframe']
+            self.columns = data_info['columns']
+            self.bounds = data_info['bounds']
+            self.data_numpy = checkpoint_data['original_data']
+            
+            # Adjust start time to account for elapsed time
+            elapsed_time = checkpoint_data['elapsed_time']
+            self.start_time = time.time() - elapsed_time
+            
+            print(f"Checkpoint loaded: {checkpoint_file}")
+            print(f"Resuming from step {self.step}, elapsed time: {elapsed_time:.1f}s")
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error loading checkpoint: {e}")
+            return False
+
+
+    @classmethod
+    def resume_from_checkpoint(cls, checkpoint_file, objective_func, 
+                             new_max_time=None, new_checkpoint_file=None):
+        """Create a new HillClimber instance from a checkpoint file.
+        
+        Args:
+            checkpoint_file: Path to checkpoint file
+            objective_func: Objective function (must be same as original)
+            new_max_time: New max_time for continued optimization (default: use original)
+            new_checkpoint_file: New checkpoint file path (default: use original)
+            
+        Returns:
+            New HillClimber instance with state loaded from checkpoint
+        """
+        if not os.path.exists(checkpoint_file):
+            raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_file}")
+        
+        with open(checkpoint_file, 'rb') as f:
+            checkpoint_data = pickle.load(f)
+        
+        # Extract hyperparameters
+        hyperparams = checkpoint_data['hyperparameters']
+        data_info = checkpoint_data['data_info']
+        
+        # Reconstruct original data
+        original_data = checkpoint_data['original_data']
+        if data_info['is_dataframe']:
+            original_data = pd.DataFrame(original_data, columns=data_info['columns'])
+        
+        # Create new instance
+        climber = cls(
+            data=original_data,
+            objective_func=objective_func,
+            max_time=new_max_time if new_max_time is not None else hyperparams['max_time'],
+            step_size=hyperparams['step_size'],
+            perturb_fraction=hyperparams['perturb_fraction'],
+            temperature=hyperparams['temperature'],
+            cooling_rate=hyperparams['cooling_rate'],
+            mode=hyperparams['mode'],
+            target_value=hyperparams['target_value'],
+            checkpoint_file=new_checkpoint_file if new_checkpoint_file is not None else checkpoint_file
+        )
+        
+        # Load the checkpoint state
+        climber.load_checkpoint(checkpoint_file)
+        
+        return climber
 
 
     def climb(self):
@@ -112,31 +274,35 @@ class HillClimber:
                 - steps_df: DataFrame tracking optimization progress
         """
 
-        # Initialize tracking structures
-        self.steps = {'Step': [], 'Objective value': [], 'Best_data': []}
-        self.best_data = self.current_data = self.data_numpy.copy()
-        
-        # Get initial objective and dynamically create metric columns
-        self.metrics, self.best_objective = calculate_objective(
-            self.data_numpy, self.objective_func
-        )
+        # Initialize tracking structures if not resuming
+        if self.steps is None:
+            self.steps = {'Step': [], 'Objective value': [], 'Best_data': []}
+            self.best_data = self.current_data = self.data_numpy.copy()
+            
+            # Get initial objective and dynamically create metric columns
+            self.metrics, self.best_objective = calculate_objective(
+                self.data_numpy, self.objective_func
+            )
 
-        for metric_name in self.metrics.keys():
-            self.steps[metric_name] = []
-        
-        self.current_objective = self.best_objective
+            for metric_name in self.metrics.keys():
+                self.steps[metric_name] = []
+            
+            self.current_objective = self.best_objective
 
-        self.best_distance = (
-            abs(self.best_objective - self.target_value) 
-            if self.mode == 'target' else None
-        )
+            self.best_distance = (
+                abs(self.best_objective - self.target_value) 
+                if self.mode == 'target' else None
+            )
+            
+            self.step = 0
+            self.temp = self.temperature
         
-        self.step = 0
-        self.temp = self.temperature
-        start_time = time.time()
+        # Set or update start time
+        if self.start_time is None:
+            self.start_time = time.time()
         
         # Main optimization loop
-        while time.time() - start_time < self.max_time * 60:
+        while time.time() - self.start_time < self.max_time * 60:
 
             self.step += 1
             
@@ -185,6 +351,12 @@ class HillClimber:
                         self.best_distance = abs(new_objective - self.target_value)
 
                     self._record_improvement()
+            
+            # Save checkpoint periodically
+            self.save_checkpoint()
+        
+        # Save final checkpoint
+        self.save_checkpoint(force=True)
         
         # Convert back to DataFrame if input was DataFrame
         best_data_output = (
@@ -195,13 +367,15 @@ class HillClimber:
         return best_data_output, pd.DataFrame(self.steps)
 
 
-    def climb_parallel(self, replicates=4, initial_noise=0.0, output_file=None):
+    def climb_parallel(self, replicates=4, initial_noise=0.0, output_file=None, 
+                      checkpoint_dir=None):
         """Run hill climbing in parallel with multiple replicates.
         
         Args:
             replicates: Number of parallel replicates to run (default: 4)
             initial_noise: Std dev of Gaussian noise added to initial data (default: 0.0)
             output_file: Path to save results as pickle file (default: None)
+            checkpoint_dir: Directory to save individual replicate checkpoints (default: None)
             
         Returns:
             List of (best_data, steps_df) tuples, one for each replicate
@@ -235,12 +409,19 @@ class HillClimber:
             replicate_inputs.append(new_data)
         
         # Package arguments for parallel execution
-        args_list = [
-            (data_rep, self.objective_func, self.max_time, self.step_size,
-             self.perturb_fraction, self.temperature, self.cooling_rate,
-             self.mode, self.target_value, self.is_dataframe, self.columns)
-            for data_rep in replicate_inputs
-        ]
+        args_list = []
+        for i, data_rep in enumerate(replicate_inputs):
+            checkpoint_file = None
+            if checkpoint_dir:
+                os.makedirs(checkpoint_dir, exist_ok=True)
+                checkpoint_file = os.path.join(checkpoint_dir, f'replicate_{i:03d}.pkl')
+            
+            args_list.append((
+                data_rep, self.objective_func, self.max_time, self.step_size,
+                self.perturb_fraction, self.temperature, self.cooling_rate,
+                self.mode, self.target_value, self.is_dataframe, self.columns,
+                checkpoint_file, self.save_interval
+            ))
         
         # Execute in parallel
         with Pool(processes=replicates) as pool:
@@ -352,14 +533,15 @@ def _climb_wrapper(args):
     Args:
         args: Tuple of (data_numpy, objective_func, max_time, step_size, 
               perturb_fraction, temperature, cooling_rate, mode, target_value, 
-              is_dataframe, columns)
+              is_dataframe, columns, checkpoint_file, save_interval)
         
     Returns:
         Result from climb(): (best_data, steps_df)
     """
 
     (data_numpy, objective_func, max_time, step_size, perturb_fraction, 
-     temperature, cooling_rate, mode, target_value, is_dataframe, columns) = args
+     temperature, cooling_rate, mode, target_value, is_dataframe, columns,
+     checkpoint_file, save_interval) = args
     
     # Reconstruct original data format for HillClimber
     data_input = (
@@ -376,7 +558,9 @@ def _climb_wrapper(args):
         temperature=temperature,
         cooling_rate=cooling_rate,
         mode=mode,
-        target_value=target_value
+        target_value=target_value,
+        checkpoint_file=checkpoint_file,
+        save_interval=save_interval
     )
     
     return climber.climb()
