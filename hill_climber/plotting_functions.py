@@ -156,7 +156,8 @@ def _plot_results_scatter(results, metrics=None):
             step_idx = max(0, min(int(len(steps_df) * pct) - 1, len(steps_df) - 1))
             snapshot_data = steps_df['Best_data'].iloc[step_idx]
             
-            # Extract x and y
+            # For scatter plots, we can only show 2D projections
+            # Extract first two columns for visualization
             if isinstance(snapshot_data, pd.DataFrame):
                 snap_x, snap_y = snapshot_data.iloc[:, 0], snapshot_data.iloc[:, 1]
             else:
@@ -227,42 +228,38 @@ def _plot_results_histogram(results, metrics=None):
             step_idx = max(0, min(int(len(steps_df) * pct) - 1, len(steps_df) - 1))
             snapshot_data = steps_df['Best_data'].iloc[step_idx]
             
-            # Extract x and y
+            # Extract all columns dynamically
             if isinstance(snapshot_data, pd.DataFrame):
-                snap_x, snap_y = snapshot_data.iloc[:, 0], snapshot_data.iloc[:, 1]
-                x_label = snapshot_data.columns[0]
-                y_label = snapshot_data.columns[1]
+                columns = snapshot_data.columns.tolist()
+                column_data = {col: np.array(snapshot_data[col]) for col in columns}
             else:
-                snap_x, snap_y = snapshot_data[:, 0], snapshot_data[:, 1]
-                x_label = 'x'
-                y_label = 'y'
+                # For numpy arrays, generate column names
+                n_cols = snapshot_data.shape[1] if len(snapshot_data.shape) > 1 else 1
+                columns = [f'col_{k}' for k in range(n_cols)]
+                column_data = {columns[k]: snapshot_data[:, k] for k in range(n_cols)}
             
             ax.set_title(f'Climb {label} complete', fontsize=10)
             
-            # Create KDE plots
-            # Convert to numpy arrays if needed
-            x_data = np.array(snap_x)
-            y_data = np.array(snap_y)
+            # Define colors for up to 10 columns
+            colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
             
-            # Create KDE for both distributions
+            # Create KDE plots for all columns
             try:
-                kde_x = gaussian_kde(x_data)
-                kde_y = gaussian_kde(y_data)
-                
-                # Create evaluation points
-                x_min = min(x_data.min(), y_data.min())
-                x_max = max(x_data.max(), y_data.max())
+                # Get global min/max across all columns for consistent x-axis
+                all_data = np.concatenate([column_data[col] for col in columns])
+                x_min, x_max = all_data.min(), all_data.max()
                 x_eval = np.linspace(x_min, x_max, 200)
                 
-                # Evaluate KDEs
-                density_x = kde_x(x_eval)
-                density_y = kde_y(x_eval)
-                
-                # Plot KDE curves
-                ax.plot(x_eval, density_x, label=x_label, color='blue', linewidth=2, alpha=0.8)
-                ax.fill_between(x_eval, density_x, alpha=0.3, color='blue')
-                ax.plot(x_eval, density_y, label=y_label, color='red', linewidth=2, alpha=0.8)
-                ax.fill_between(x_eval, density_y, alpha=0.3, color='red')
+                # Plot KDE for each column
+                for k, col in enumerate(columns):
+                    col_data = column_data[col]
+                    color = colors[k % len(colors)]
+                    
+                    kde = gaussian_kde(col_data)
+                    density = kde(x_eval)
+                    
+                    ax.plot(x_eval, density, label=col, color=color, linewidth=2, alpha=0.8)
+                    ax.fill_between(x_eval, density, alpha=0.2, color=color)
                 
                 ax.set_xlabel('Value')
                 ax.set_ylabel('Density')
@@ -271,8 +268,11 @@ def _plot_results_histogram(results, metrics=None):
                 
             except (np.linalg.LinAlgError, ValueError) as e:
                 # If KDE fails (e.g., all values identical), fall back to histogram
-                ax.hist(x_data, bins=20, alpha=0.6, label=x_label, color='blue', edgecolor='black')
-                ax.hist(y_data, bins=20, alpha=0.6, label=y_label, color='red', edgecolor='black')
+                for k, col in enumerate(columns):
+                    col_data = column_data[col]
+                    color = colors[k % len(colors)]
+                    ax.hist(col_data, bins=20, alpha=0.5, label=col, color=color, edgecolor='black')
+                
                 ax.set_xlabel('Value')
                 ax.set_ylabel('Frequency')
                 ax.legend(fontsize=7)

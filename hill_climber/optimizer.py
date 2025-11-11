@@ -402,16 +402,46 @@ class HillClimber:
 
             if initial_noise > 0:
 
-                # Add uniform noise and clip to ensure non-negative values
+                # Add uniform noise and reflect values back into bounds
                 noise = np.random.uniform(-initial_noise, initial_noise, new_data.shape)
-                new_data = np.maximum(0.0, new_data + noise)
+                new_data = new_data + noise
+                
+                # Reflect values that exceed bounds back into valid range
+                # This prevents accumulation at boundaries
+                for col_idx in range(new_data.shape[1]):
+
+                    col_min = self.min_bounds[col_idx]
+                    col_max = self.max_bounds[col_idx]
+                    col_range = col_max - col_min
+                    
+                    # Reflect values below minimum
+                    below_min = new_data[:, col_idx] < col_min
+                    new_data[below_min, col_idx] = col_min + (col_min - new_data[below_min, col_idx])
+                    
+                    # Reflect values above maximum
+                    above_max = new_data[:, col_idx] > col_max
+                    new_data[above_max, col_idx] = col_max - (new_data[above_max, col_idx] - col_max)
+                    
+                    # Handle cases where reflection itself goes out of bounds
+                    # (can happen with large noise values) - wrap around
+                    still_out = (new_data[:, col_idx] < col_min) | (new_data[:, col_idx] > col_max)
+
+                    if np.any(still_out):
+
+                        # Use modulo to wrap into range
+                        new_data[still_out, col_idx] = col_min + np.mod(
+                            new_data[still_out, col_idx] - col_min, col_range
+                        )
 
             replicate_inputs.append(new_data)
         
         # Package arguments for parallel execution
         args_list = []
+
         for i, data_rep in enumerate(replicate_inputs):
+
             checkpoint_file = None
+
             if checkpoint_dir:
                 os.makedirs(checkpoint_dir, exist_ok=True)
                 checkpoint_file = os.path.join(checkpoint_dir, f'replicate_{i:03d}.pkl')
