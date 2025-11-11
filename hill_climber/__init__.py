@@ -67,8 +67,7 @@ from .climber_functions import (
 )
 from .plotting_functions import (
     plot_input_data,
-    plot_results,
-    plot_solution
+    plot_results
 )
 
 __all__ = [
@@ -78,5 +77,4 @@ __all__ = [
     'calculate_correlation_objective',
     'plot_input_data',
     'plot_results',
-    'plot_solution',
 ]
