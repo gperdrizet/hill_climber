@@ -87,7 +87,9 @@ def plot_results(results, plot_type='scatter', metrics=None):
     - Snapshot plots at 25%, 50%, 75%, and 100% completion
     
     Args:
-        results: List of (best_data, steps_df) tuples from climb_parallel()
+        results: List of tuples from climb_parallel(). Can be either:
+                 - (initial_data, best_data, steps_df) tuples (new format)
+                 - (best_data, steps_df) tuples (legacy format)
         plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
                    Note: 'histogram' uses KDE (Kernel Density Estimation) plots
         metrics: List of metric names to display in progress plots and snapshots.
@@ -102,11 +104,18 @@ def plot_results(results, plot_type='scatter', metrics=None):
     if plot_type not in ['scatter', 'histogram']:
         raise ValueError(f"plot_type must be 'scatter' or 'histogram', got '{plot_type}'")
     
+    # Handle both old and new result formats
+    # New format: (initial_data, best_data, steps_df)
+    # Old format: (best_data, steps_df)
+    if len(results[0]) == 3:
+        # New format - extract steps_df
+        _, _, steps_df = results[0]
+    else:
+        # Old format - extract steps_df
+        _, steps_df = results[0]
+    
     # Validate metrics if provided
     if metrics is not None:
-
-        _, steps_df = results[0]
-
         available_metrics = [col for col in steps_df.columns 
                             if col not in ['Step', 'Objective value', 'Best_data']]
 
@@ -127,7 +136,7 @@ def _plot_results_scatter(results, metrics=None):
     """Internal function: Visualize results with scatter plots.
     
     Args:
-        results: List of (best_data, steps_df) tuples from climb_parallel()
+        results: List of tuples from climb_parallel() - handles both formats
         metrics: List of metric names to display, or None for all metrics
     """
 
@@ -138,7 +147,11 @@ def _plot_results_scatter(results, metrics=None):
 
     for i in range(n_replicates):
 
-        best_data, steps_df = results[i]
+        # Handle both old and new formats
+        if len(results[i]) == 3:
+            _, best_data, steps_df = results[i]
+        else:
+            best_data, steps_df = results[i]
         
         # Get metric columns
         all_metric_columns = [col for col in steps_df.columns 
@@ -216,7 +229,7 @@ def _plot_results_histogram(results, metrics=None):
     """Internal function: Visualize results with KDE plots.
     
     Args:
-        results: List of (best_data, steps_df) tuples from climb_parallel()
+        results: List of tuples from climb_parallel() - handles both formats
         metrics: List of metric names to display, or None for all metrics
     """
 
@@ -226,7 +239,11 @@ def _plot_results_histogram(results, metrics=None):
     fig.suptitle('Hill climb results (KDE plots)', fontsize=16)
 
     for i in range(n_replicates):
-        best_data, steps_df = results[i]
+        # Handle both old and new formats
+        if len(results[i]) == 3:
+            _, best_data, steps_df = results[i]
+        else:
+            best_data, steps_df = results[i]
         
         # Get metric columns
         all_metric_columns = [col for col in steps_df.columns 

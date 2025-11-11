@@ -8,7 +8,8 @@ from numba import jit
 def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds):
     """JIT-compiled core perturbation logic.
     
-    This function is optimized with Numba for fast execution.
+    Uses reflection to keep values within bounds instead of clipping,
+    which prevents pile-up of values at the boundaries.
     
     Args:
         data_array: 2D numpy array to perturb
@@ -31,10 +32,28 @@ def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds):
         perturbation = np.random.normal(0, step_size)
         new_value = result[row_idx, col_idx] + perturbation
         
-        # Clip to original data bounds
+        # Reflect values back into bounds instead of clipping
         min_val = min_bounds[col_idx]
         max_val = max_bounds[col_idx]
-        result[row_idx, col_idx] = max(min_val, min(max_val, new_value))
+        range_val = max_val - min_val
+        
+        # Reflect below minimum
+        if new_value < min_val:
+            new_value = min_val + (min_val - new_value)
+        
+        # Reflect above maximum
+        if new_value > max_val:
+            new_value = max_val - (new_value - max_val)
+        
+        # Handle cases where reflection itself goes out of bounds (large perturbations)
+        # Use modulo wrapping as fallback
+        if new_value < min_val or new_value > max_val:
+            new_value = min_val + np.fmod(new_value - min_val, range_val)
+
+            if new_value < min_val:
+                new_value += range_val
+        
+        result[row_idx, col_idx] = new_value
     
     return result
 
@@ -64,6 +83,7 @@ def perturb_vectors(data, step_size, perturb_fraction=0.1, bounds=None):
     if bounds is None:
         min_bounds = np.min(data, axis=0)
         max_bounds = np.max(data, axis=0)
+
     else:
         min_bounds, max_bounds = bounds
     

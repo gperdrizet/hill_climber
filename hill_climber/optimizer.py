@@ -378,7 +378,7 @@ class HillClimber:
             checkpoint_dir: Directory to save individual replicate checkpoints (default: None)
             
         Returns:
-            List of (best_data, steps_df) tuples, one for each replicate
+            List of (initial_data, best_data, steps_df) tuples, one for each replicate
             
         Raises:
             ValueError: If replicates exceeds available CPU count
@@ -455,7 +455,19 @@ class HillClimber:
         
         # Execute in parallel
         with Pool(processes=replicates) as pool:
-            results = pool.map(_climb_wrapper, args_list)
+            optimization_results = pool.map(_climb_wrapper, args_list)
+        
+        # Combine initial data with optimization results
+        # Format: [(initial_data, best_data, steps_df), ...]
+        results = []
+        for i, (best_data, steps_df) in enumerate(optimization_results):
+            # Convert initial numpy array to DataFrame if needed
+            if self.is_dataframe:
+                initial_data = pd.DataFrame(replicate_inputs[i], columns=self.columns)
+            else:
+                initial_data = replicate_inputs[i]
+            
+            results.append((initial_data, best_data, steps_df))
         
         # Save results if requested
         if output_file:

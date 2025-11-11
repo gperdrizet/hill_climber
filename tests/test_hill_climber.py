@@ -293,10 +293,12 @@ class TestHillClimberClimbParallel(unittest.TestCase):
         climber = HillClimber(data=self.data, objective_func=self.objective_func, max_time=0.01)
         results = climber.climb_parallel(replicates=2)
         
-        for best_data, steps_df in results:
+        for initial_data, best_data, steps_df in results:
             self.assertIsInstance(steps_df, pd.DataFrame)
             self.assertIn('Step', steps_df.columns)
             self.assertIn('Objective value', steps_df.columns)
+            # Check initial_data is returned
+            self.assertIsNotNone(initial_data)
     
     def test_climb_parallel_saves_file(self):
         """Test that climb_parallel saves results to file."""

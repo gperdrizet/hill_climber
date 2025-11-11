@@ -94,11 +94,13 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         
         self.assertEqual(len(results), 2)
         
-        for best_data, steps_df in results:
+        for initial_data, best_data, steps_df in results:
             self.assertIsInstance(best_data, pd.DataFrame)
             self.assertIsInstance(steps_df, pd.DataFrame)
             self.assertIn('Pearson coefficient', steps_df.columns)
             self.assertIn('Spearman coefficient', steps_df.columns)
+            # Check initial_data is returned
+            self.assertIsNotNone(initial_data)
     
     def test_minimize_mode_with_real_objective(self):
         """Test minimize mode with real objective function."""
@@ -214,10 +216,12 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
         results = climber.climb_parallel(replicates=2)
         
         self.assertEqual(len(results), 2)
-        for best_data, steps_df in results:
+        for initial_data, best_data, steps_df in results:
             self.assertIsInstance(best_data, pd.DataFrame)
             self.assertEqual(best_data.shape[1], 3)
             self.assertIn('total_mean', steps_df.columns)
+            # Check initial_data is returned
+            self.assertIsNotNone(initial_data)
 
 
 if __name__ == '__main__':
