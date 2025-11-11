@@ -130,11 +130,19 @@ Generate 4 distributions with:
 - Same mean and standard deviation
 - Maximum structural diversity (different shapes)
 - Demonstrates N-dimensional optimization
+- Updated objective function with improved convergence
 
 ### 4. Low Pearson Correlation & Low Entropy (`04-entropy_pearson.ipynb`)
 Create low-correlation, low-entropy 2D distributions with internal structure.
+- Refactored helper functions for cleaner code organization
 
-### 5. Checkpoint Example (`05-checkpoint_example.ipynb`)
+### 5. Feature Interactions (`05-feature_interactions.ipynb`)
+Demonstrate feature interactions in machine learning:
+- 3 features with weak individual correlations to label
+- Strong collective prediction via multiple linear regression
+- Shows importance of feature interactions over individual correlations
+
+### 6. Checkpoint Example (`06-checkpoint_example.ipynb`)
 Demonstrates checkpoint/resume functionality for long-running optimizations.
 
 ## Advanced Features
