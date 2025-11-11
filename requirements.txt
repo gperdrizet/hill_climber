@@ -2,4 +2,5 @@ ipykernel
 matplotlib
 numba
 pandas
+scikit-learn
 scipy
