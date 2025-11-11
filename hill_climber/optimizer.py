@@ -77,6 +77,11 @@ class HillClimber:
         # Convert to numpy for efficient processing during optimization
         self.data_numpy = data.values if self.is_dataframe else data.copy()
         
+        # Calculate bounds for perturbation clipping
+        self.min_bounds = np.min(self.data_numpy, axis=0)
+        self.max_bounds = np.max(self.data_numpy, axis=0)
+        self.bounds = (self.min_bounds, self.max_bounds)
+        
         self.objective_func = objective_func
         self.max_time = max_time
         self.step_size = step_size
@@ -106,6 +111,7 @@ class HillClimber:
                 - best_data: Best solution found (same format as input data)
                 - steps_df: DataFrame tracking optimization progress
         """
+
         # Initialize tracking structures
         self.steps = {'Step': [], 'Objective value': [], 'Best_data': []}
         self.best_data = self.current_data = self.data_numpy.copy()
@@ -119,6 +125,7 @@ class HillClimber:
             self.steps[metric_name] = []
         
         self.current_objective = self.best_objective
+
         self.best_distance = (
             abs(self.best_objective - self.target_value) 
             if self.mode == 'target' else None
@@ -130,42 +137,53 @@ class HillClimber:
         
         # Main optimization loop
         while time.time() - start_time < self.max_time * 60:
+
             self.step += 1
             
             # Generate and evaluate new candidate solution
             new_data = perturb_vectors(
                 self.current_data, 
                 self.step_size, 
-                self.perturb_fraction
+                self.perturb_fraction,
+                self.bounds
             )
+
             self.metrics, new_objective = calculate_objective(new_data, self.objective_func)
             
             # Determine if we accept the new solution
             if self.temperature > 0:
+
                 # Simulated annealing: accept worse solutions probabilistically
                 delta = self._calculate_delta(new_objective)
                 accept = delta >= 0 or np.random.random() < np.exp(delta / max(self.temp, 1e-10))
                 
                 if accept:
+
                     self.current_data = new_data
                     self.current_objective = new_objective
                     
                     # Update best if this is an improvement
                     if self._is_improvement(new_objective):
+
                         self.best_data = new_data.copy()
                         self.best_objective = new_objective
+
                         if self.mode == 'target':
                             self.best_distance = abs(new_objective - self.target_value)
+
                         self._record_improvement()
                 
                 self.temp *= self.cooling_rate
+
             else:
                 # Standard hill climbing: only accept improvements
                 if self._is_improvement(new_objective):
                     self.best_data = self.current_data = new_data
                     self.best_objective = self.current_objective = new_objective
+
                     if self.mode == 'target':
                         self.best_distance = abs(new_objective - self.target_value)
+
                     self._record_improvement()
         
         # Convert back to DataFrame if input was DataFrame
@@ -191,8 +209,10 @@ class HillClimber:
         Raises:
             ValueError: If replicates exceeds available CPU count
         """
+
         # Validate CPU availability
         available_cpus = cpu_count()
+
         if replicates > available_cpus:
             raise ValueError(
                 f"Replicates ({replicates}) exceeds CPU count ({available_cpus}). "
@@ -201,12 +221,17 @@ class HillClimber:
         
         # Create replicate inputs with optional noise
         replicate_inputs = []
+
         for _ in range(replicates):
+
             new_data = self.data_numpy.copy()
+
             if initial_noise > 0:
+
                 # Add uniform noise and clip to ensure non-negative values
                 noise = np.random.uniform(-initial_noise, initial_noise, new_data.shape)
                 new_data = np.maximum(0.0, new_data + noise)
+
             replicate_inputs.append(new_data)
         
         # Package arguments for parallel execution
@@ -223,6 +248,7 @@ class HillClimber:
         
         # Save results if requested
         if output_file:
+
             results_package = {
                 'results': results,
                 'hyperparameters': {
@@ -243,6 +269,7 @@ class HillClimber:
             
             with open(output_file, 'wb') as f:
                 pickle.dump(results_package, f)
+
             print(f"Results saved to: {output_file}")
         
         return results
@@ -253,6 +280,7 @@ class HillClimber:
         Args:
             plot_type: 'scatter' or 'kde' (default: 'scatter')
         """
+
         plot_input_data(self.data, plot_type=plot_type)
 
     def plot_results(self, results, plot_type='scatter', metrics=None):
@@ -263,6 +291,7 @@ class HillClimber:
             plot_type: 'scatter' or 'histogram' (default: 'scatter')
             metrics: List of metric names to display (default: None shows all)
         """
+
         plot_results_func(results, plot_type=plot_type, metrics=metrics)
 
 
@@ -277,8 +306,10 @@ class HillClimber:
         """
         if self.mode == 'maximize':
             return new_obj > self.best_objective
+
         elif self.mode == 'minimize':
             return new_obj < self.best_objective
+
         else:  # target mode
             return abs(new_obj - self.target_value) < self.best_distance
 
@@ -291,17 +322,22 @@ class HillClimber:
         Returns:
             Delta (positive = improvement, negative = deterioration)
         """
+
         if self.mode == 'maximize':
             return new_obj - self.current_objective
+
         elif self.mode == 'minimize':
             return self.current_objective - new_obj
+
         else:  # target mode
             curr_dist = abs(self.current_objective - self.target_value)
             new_dist = abs(new_obj - self.target_value)
+
             return curr_dist - new_dist
 
     def _record_improvement(self):
         """Record current best solution in steps history."""
+
         self.steps['Step'].append(self.step)
         self.steps['Objective value'].append(self.best_objective)
         self.steps['Best_data'].append(self.best_data.copy())
@@ -321,6 +357,7 @@ def _climb_wrapper(args):
     Returns:
         Result from climb(): (best_data, steps_df)
     """
+
     (data_numpy, objective_func, max_time, step_size, perturb_fraction, 
      temperature, cooling_rate, mode, target_value, is_dataframe, columns) = args
     

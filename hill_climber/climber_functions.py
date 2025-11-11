@@ -5,7 +5,7 @@ from numba import jit
 
 
 @jit(nopython=True, cache=True)
-def _perturb_core(data_array, step_size, n_perturb):
+def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds):
     """JIT-compiled core perturbation logic.
     
     This function is optimized with Numba for fast execution.
@@ -14,6 +14,8 @@ def _perturb_core(data_array, step_size, n_perturb):
         data_array: 2D numpy array to perturb
         step_size: Standard deviation of perturbation
         n_perturb: Number of elements to perturb
+        min_bounds: 1D array of minimum bounds for each column
+        max_bounds: 1D array of maximum bounds for each column
         
     Returns:
         Perturbed numpy array
@@ -23,18 +25,21 @@ def _perturb_core(data_array, step_size, n_perturb):
     result = data_array.copy()
     
     for _ in range(n_perturb):
+
         row_idx = np.random.randint(0, n_rows)
         col_idx = np.random.randint(0, n_cols)
         perturbation = np.random.normal(0, step_size)
         new_value = result[row_idx, col_idx] + perturbation
         
-        # Clip to ensure non-negative values
-        result[row_idx, col_idx] = max(0.0, new_value)
+        # Clip to original data bounds
+        min_val = min_bounds[col_idx]
+        max_val = max_bounds[col_idx]
+        result[row_idx, col_idx] = max(min_val, min(max_val, new_value))
     
     return result
 
 
-def perturb_vectors(data, step_size, perturb_fraction=0.1):
+def perturb_vectors(data, step_size, perturb_fraction=0.1, bounds=None):
     """Randomly perturb a fraction of elements in the data.
     
     This function uses JIT-compiled core logic for performance.
@@ -44,6 +49,8 @@ def perturb_vectors(data, step_size, perturb_fraction=0.1):
         data: Input data as numpy array
         step_size: Standard deviation of normal distribution for perturbations
         perturb_fraction: Fraction of total elements to perturb (default: 0.1)
+        bounds: Tuple of (min_bounds, max_bounds) arrays for each column.
+                If None, uses data min/max (default: None)
         
     Returns:
         Perturbed numpy array
@@ -53,8 +60,15 @@ def perturb_vectors(data, step_size, perturb_fraction=0.1):
     n_total = data.size
     n_perturb = max(1, int(n_total * perturb_fraction))
     
+    # Determine bounds
+    if bounds is None:
+        min_bounds = np.min(data, axis=0)
+        max_bounds = np.max(data, axis=0)
+    else:
+        min_bounds, max_bounds = bounds
+    
     # Call JIT-compiled function
-    return _perturb_core(data, step_size, n_perturb)
+    return _perturb_core(data, step_size, n_perturb, min_bounds, max_bounds)
 
 
 def extract_columns(data):
