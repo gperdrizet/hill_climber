@@ -31,16 +31,17 @@ jobs:
     - name: Verify version matches tag
       run: |
         TAG_VERSION=${GITHUB_REF#refs/tags/v}
-        PACKAGE_VERSION=$(python -c "
+        PACKAGE_VERSION=$(python << 'EOF'
         import re
         with open('hill_climber/__init__.py', 'r') as f:
             content = f.read()
-            match = re.search(r\"__version__\s*=\s*['\\\"]([^'\\\"]+)['\\\"]", content)
+            match = re.search(r"__version__\s*=\s*['\"]([^'\"]+)['\"]", content)
             if match:
                 print(match.group(1))
             else:
                 raise ValueError('Could not find __version__ in __init__.py')
-        ")
+        EOF
+        )
         echo "Tag version: $TAG_VERSION"
         echo "Package version: $PACKAGE_VERSION"
         if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
