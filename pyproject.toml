@@ -6,11 +6,11 @@ build-backend = "setuptools.build_meta"
 name = "parallel-hill-climber"
 version = "0.1.0"
 authors = [
-    {name = "gperdrizet", email = "your.email@example.com"},
+    {name = "gperdrizet", email = "george@perdrizet.org"},
 ]
 description = "A Python package for hill climbing optimization with simulated annealing"
 readme = "README.md"
-license = {text = "MIT"}
+license = {text = "GPLv3"}
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -45,10 +45,10 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/gperdrizet/hill_climber"
-Documentation = "https://gperdrizet.github.io/hill_climber/"
+Documentation = "https://gperdrizet.github.io/hill_climber"
 Repository = "https://github.com/gperdrizet/hill_climber"
 Issues = "https://github.com/gperdrizet/hill_climber/issues"
-PyPI = "https://pypi.org/project/parallel-hill-climber/"
+PyPI = "https://pypi.org/project/parallel-hill-climber"
 
 [tool.setuptools.packages.find]
 include = ["hill_climber*"]
