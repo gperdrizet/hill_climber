@@ -37,11 +37,11 @@ class HillClimber:
         self,
         data,
         objective_func,
-        max_time=3,
-        step_size=0.1,
-        perturb_fraction=0.1,
-        temperature=0.0,
-        cooling_rate=0.995,
+        max_time=30,
+        step_size=0.05,
+        perturb_fraction=0.05,
+        temperature=1000,
+        cooling_rate=0.9999,
         mode='maximize',
         target_value=None,
         checkpoint_file=None,
@@ -54,11 +54,11 @@ class HillClimber:
             objective_func: Function that takes M column arrays and returns 
                           (metrics_dict, objective_value). For 2D data, receives (x, y).
                           For 3D data, receives (x, y, z), etc.
-            max_time: Maximum runtime in minutes (default: 3)
-            step_size: Maximum perturbation amount (default: 0.1)
-            perturb_fraction: Fraction of points to perturb each step (default: 0.1)
-            temperature: Initial temperature for simulated annealing (default: 0.0)
-            cooling_rate: Temperature decrease rate (default: 0.995)
+            max_time: Maximum runtime in minutes (default: 30)
+            step_size: Maximum perturbation amount (default: 0.05)
+            perturb_fraction: Fraction of points to perturb each step (default: 0.05)
+            temperature: Initial temperature for simulated annealing (default: 1000)
+            cooling_rate: Temperature decrease rate (default: 0.9999)
             mode: 'maximize', 'minimize', or 'target' (default: 'maximize')
             target_value: Target objective value for target mode (default: None)
             checkpoint_file: Path to save/load checkpoints (default: None)
