@@ -1,0 +1,263 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Guide &mdash; Hill Climber 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api.html" />
+    <link rel="prev" title="Quick Start" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Hill Climber
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#optimization-modes">Optimization Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#objective-functions">Objective Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hyperparameters">Hyperparameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#boundary-handling">Boundary Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#replicate-noise">Replicate Noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#results-structure">Results Structure</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Hill Climber</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">User Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/user_guide.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="user-guide">
+<h1>User Guide<a class="headerlink" href="#user-guide" title="Link to this heading"></a></h1>
+<p>This guide explains the key concepts and parameters of Hill Climber.</p>
+<section id="optimization-modes">
+<h2>Optimization Modes<a class="headerlink" href="#optimization-modes" title="Link to this heading"></a></h2>
+<p>Hill Climber supports two modes:</p>
+<dl class="simple">
+<dt><strong>Maximize Mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='maximize'</span></code>)</dt><dd><p>Searches for solutions that maximize the objective function value.
+Use this when higher objective values are better.</p>
+</dd>
+<dt><strong>Minimize Mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='minimize'</span></code>)</dt><dd><p>Searches for solutions that minimize the objective function value.
+Use this when lower objective values are better.</p>
+</dd>
+</dl>
+</section>
+<section id="objective-functions">
+<h2>Objective Functions<a class="headerlink" href="#objective-functions" title="Link to this heading"></a></h2>
+<p>An objective function takes the data columns as arguments and returns:</p>
+<ol class="arabic simple">
+<li><p>A dictionary of metrics to track</p></li>
+<li><p>A single objective value to optimize</p></li>
+</ol>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">my_objective</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="c1"># Calculate metrics</span>
+    <span class="n">mean_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">mean_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="c1"># Calculate objective (e.g., minimize difference)</span>
+    <span class="n">objective</span> <span class="o">=</span> <span class="o">-</span><span class="nb">abs</span><span class="p">(</span><span class="n">mean_x</span> <span class="o">-</span> <span class="n">mean_y</span><span class="p">)</span>
+
+    <span class="c1"># Return metrics and objective</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Mean X&#39;</span><span class="p">:</span> <span class="n">mean_x</span><span class="p">,</span>
+        <span class="s1">&#39;Mean Y&#39;</span><span class="p">:</span> <span class="n">mean_y</span><span class="p">,</span>
+        <span class="s1">&#39;Difference&#39;</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">mean_x</span> <span class="o">-</span> <span class="n">mean_y</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span>
+</pre></div>
+</div>
+</section>
+<section id="hyperparameters">
+<h2>Hyperparameters<a class="headerlink" href="#hyperparameters" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt><strong>step_size</strong> (default: 0.1)</dt><dd><p>Controls the magnitude of perturbations. Larger values make bigger changes
+but may overshoot optimal solutions. Smaller values are more precise but
+slower.</p>
+</dd>
+<dt><strong>perturb_fraction</strong> (default: 0.1)</dt><dd><p>Fraction of data points to modify in each iteration (0.0 to 1.0).
+Higher values create more dramatic changes per step.</p>
+</dd>
+<dt><strong>temperature</strong> (default: 1.0)</dt><dd><p>Initial temperature for simulated annealing. Higher temperatures allow
+more exploration of suboptimal solutions early on.</p>
+</dd>
+<dt><strong>cooling_rate</strong> (default: 0.999)</dt><dd><p>Rate at which temperature decreases (0.0 to 1.0). Values closer to 1.0
+result in slower cooling and more iterations.</p>
+</dd>
+<dt><strong>max_time</strong> (default: 60)</dt><dd><p>Maximum optimization time in minutes.</p>
+</dd>
+<dt><strong>initial_noise</strong> (default: 0.0)</dt><dd><p>Amount of uniform noise to add when creating replicate starting points.
+Only used in <code class="docutils literal notranslate"><span class="pre">climb_parallel()</span></code>.</p>
+</dd>
+</dl>
+</section>
+<section id="boundary-handling">
+<h2>Boundary Handling<a class="headerlink" href="#boundary-handling" title="Link to this heading"></a></h2>
+<p>Hill Climber uses <strong>reflection</strong> to keep perturbed values within the original
+data bounds:</p>
+<ul class="simple">
+<li><p>When a perturbation would push a value beyond the minimum bound, it reflects
+back into the valid range</p></li>
+<li><p>Same for maximum bounds</p></li>
+<li><p>This prevents artificial accumulation of points at boundaries</p></li>
+</ul>
+<p>Example: If minimum is 5 and a perturbation creates 4.5, it reflects to 5.5.</p>
+</section>
+<section id="replicate-noise">
+<h2>Replicate Noise<a class="headerlink" href="#replicate-noise" title="Link to this heading"></a></h2>
+<p>When running parallel replicates, <code class="docutils literal notranslate"><span class="pre">initial_noise</span></code> adds diversity:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb_parallel</span><span class="p">(</span>
+    <span class="n">replicates</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">initial_noise</span><span class="o">=</span><span class="mf">0.5</span>  <span class="c1"># Add ±50% uniform noise to starting data</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Each replicate starts from a slightly different position</p></li>
+<li><p>Helps explore different regions of the solution space</p></li>
+<li><p>Increases chances of finding global optima</p></li>
+<li><p>Generates diverse solutions for comparison</p></li>
+</ul>
+</section>
+<section id="checkpointing">
+<h2>Checkpointing<a class="headerlink" href="#checkpointing" title="Link to this heading"></a></h2>
+<p>For long optimizations, save intermediate progress:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
+    <span class="n">max_time</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+    <span class="n">checkpoint_file</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
+    <span class="n">save_interval</span><span class="o">=</span><span class="mi">300</span>  <span class="c1"># Save every 5 minutes</span>
+<span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Resume from a checkpoint:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">resume_from_checkpoint</span><span class="p">(</span>
+    <span class="n">checkpoint_file</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
+    <span class="n">new_max_time</span><span class="o">=</span><span class="mi">30</span>  <span class="c1"># Continue for 30 more minutes</span>
+<span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="results-structure">
+<h2>Results Structure<a class="headerlink" href="#results-structure" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt><strong>Single climb</strong> returns:</dt><dd><p>The optimized DataFrame and metrics history.</p>
+</dd>
+</dl>
+<p><strong>Parallel climbs</strong> returns a dictionary:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;input_data&#39;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">original</span> <span class="n">DataFrame</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">initial_data_1</span><span class="p">,</span> <span class="n">best_data_1</span><span class="p">,</span> <span class="n">steps_df_1</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">initial_data_2</span><span class="p">,</span> <span class="n">best_data_2</span><span class="p">,</span> <span class="n">steps_df_2</span><span class="p">),</span>
+        <span class="o">...</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Where:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">initial_data</span></code>: Data after noise addition</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">best_data</span></code>: Final optimized data</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">steps_df</span></code>: DataFrame tracking metrics at each step</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hill Climber Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

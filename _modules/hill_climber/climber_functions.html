@@ -1,0 +1,256 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hill_climber.climber_functions &mdash; Hill Climber 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Hill Climber
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Hill Climber</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hill_climber.climber_functions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hill_climber.climber_functions</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Helper functions for hill climbing optimization.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numba</span><span class="w"> </span><span class="kn">import</span> <span class="n">jit</span>
+
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_perturb_core</span><span class="p">(</span><span class="n">data_array</span><span class="p">,</span> <span class="n">step_size</span><span class="p">,</span> <span class="n">n_perturb</span><span class="p">,</span> <span class="n">min_bounds</span><span class="p">,</span> <span class="n">max_bounds</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;JIT-compiled core perturbation logic.</span>
+<span class="sd">    </span>
+<span class="sd">    Uses reflection to keep values within bounds instead of clipping,</span>
+<span class="sd">    which prevents pile-up of values at the boundaries.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        data_array: 2D numpy array to perturb</span>
+<span class="sd">        step_size: Standard deviation of perturbation</span>
+<span class="sd">        n_perturb: Number of elements to perturb</span>
+<span class="sd">        min_bounds: 1D array of minimum bounds for each column</span>
+<span class="sd">        max_bounds: 1D array of maximum bounds for each column</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Perturbed numpy array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_rows</span><span class="p">,</span> <span class="n">n_cols</span> <span class="o">=</span> <span class="n">data_array</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">data_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_perturb</span><span class="p">):</span>
+
+        <span class="n">row_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_rows</span><span class="p">)</span>
+        <span class="n">col_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">)</span>
+        <span class="n">perturbation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">step_size</span><span class="p">)</span>
+        <span class="n">new_value</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">+</span> <span class="n">perturbation</span>
+        
+        <span class="c1"># Reflect values back into bounds instead of clipping</span>
+        <span class="n">min_val</span> <span class="o">=</span> <span class="n">min_bounds</span><span class="p">[</span><span class="n">col_idx</span><span class="p">]</span>
+        <span class="n">max_val</span> <span class="o">=</span> <span class="n">max_bounds</span><span class="p">[</span><span class="n">col_idx</span><span class="p">]</span>
+        <span class="n">range_val</span> <span class="o">=</span> <span class="n">max_val</span> <span class="o">-</span> <span class="n">min_val</span>
+        
+        <span class="c1"># Reflect below minimum</span>
+        <span class="k">if</span> <span class="n">new_value</span> <span class="o">&lt;</span> <span class="n">min_val</span><span class="p">:</span>
+            <span class="n">new_value</span> <span class="o">=</span> <span class="n">min_val</span> <span class="o">+</span> <span class="p">(</span><span class="n">min_val</span> <span class="o">-</span> <span class="n">new_value</span><span class="p">)</span>
+        
+        <span class="c1"># Reflect above maximum</span>
+        <span class="k">if</span> <span class="n">new_value</span> <span class="o">&gt;</span> <span class="n">max_val</span><span class="p">:</span>
+            <span class="n">new_value</span> <span class="o">=</span> <span class="n">max_val</span> <span class="o">-</span> <span class="p">(</span><span class="n">new_value</span> <span class="o">-</span> <span class="n">max_val</span><span class="p">)</span>
+        
+        <span class="c1"># Handle cases where reflection itself goes out of bounds (large perturbations)</span>
+        <span class="c1"># Use modulo wrapping as fallback</span>
+        <span class="k">if</span> <span class="n">new_value</span> <span class="o">&lt;</span> <span class="n">min_val</span> <span class="ow">or</span> <span class="n">new_value</span> <span class="o">&gt;</span> <span class="n">max_val</span><span class="p">:</span>
+            <span class="n">new_value</span> <span class="o">=</span> <span class="n">min_val</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">fmod</span><span class="p">(</span><span class="n">new_value</span> <span class="o">-</span> <span class="n">min_val</span><span class="p">,</span> <span class="n">range_val</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">new_value</span> <span class="o">&lt;</span> <span class="n">min_val</span><span class="p">:</span>
+                <span class="n">new_value</span> <span class="o">+=</span> <span class="n">range_val</span>
+        
+        <span class="n">result</span><span class="p">[</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_value</span>
+    
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<div class="viewcode-block" id="perturb_vectors">
+<a class="viewcode-back" href="../../api.html#hill_climber.climber_functions.perturb_vectors">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">perturb_vectors</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">step_size</span><span class="p">,</span> <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Randomly perturb a fraction of elements in the data.</span>
+<span class="sd">    </span>
+<span class="sd">    This function uses JIT-compiled core logic for performance.</span>
+<span class="sd">    Works directly with numpy arrays - no DataFrame conversions.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        data: Input data as numpy array</span>
+<span class="sd">        step_size: Standard deviation of normal distribution for perturbations</span>
+<span class="sd">        perturb_fraction: Fraction of total elements to perturb (default: 0.1)</span>
+<span class="sd">        bounds: Tuple of (min_bounds, max_bounds) arrays for each column.</span>
+<span class="sd">                If None, uses data min/max (default: None)</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Perturbed numpy array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Calculate number of elements to perturb</span>
+    <span class="n">n_total</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">n_perturb</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_total</span> <span class="o">*</span> <span class="n">perturb_fraction</span><span class="p">))</span>
+    
+    <span class="c1"># Determine bounds</span>
+    <span class="k">if</span> <span class="n">bounds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">min_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">max_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">min_bounds</span><span class="p">,</span> <span class="n">max_bounds</span> <span class="o">=</span> <span class="n">bounds</span>
+    
+    <span class="c1"># Call JIT-compiled function</span>
+    <span class="k">return</span> <span class="n">_perturb_core</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">step_size</span><span class="p">,</span> <span class="n">n_perturb</span><span class="p">,</span> <span class="n">min_bounds</span><span class="p">,</span> <span class="n">max_bounds</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="extract_columns">
+<a class="viewcode-back" href="../../api.html#hill_climber.climber_functions.extract_columns">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_columns</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract columns from numpy array.</span>
+<span class="sd">    </span>
+<span class="sd">    Works with n-dimensional data by returning each column separately.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        data: numpy array (N x M) where N is number of samples, M is number of features</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of 1D numpy arrays, one for each column</span>
+<span class="sd">        </span>
+<span class="sd">    Examples:</span>
+<span class="sd">        For 2D data (N x 2): returns (x, y)</span>
+<span class="sd">        For 3D data (N x 3): returns (x, y, z)</span>
+<span class="sd">        For nD data (N x M): returns (col0, col1, ..., colM-1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div>
+
+
+
+<div class="viewcode-block" id="calculate_objective">
+<a class="viewcode-back" href="../../api.html#hill_climber.climber_functions.calculate_objective">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_objective</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">objective_func</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate objective value using provided objective function.</span>
+<span class="sd">    </span>
+<span class="sd">    Extracts columns from data and passes them to the objective function.</span>
+<span class="sd">    Supports n-dimensional data.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        data: Input data as numpy array (N x M)</span>
+<span class="sd">        objective_func: Function that takes M column arrays and returns </span>
+<span class="sd">                       (metrics_dict, objective_value)</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of (metrics_dict, objective_value)</span>
+<span class="sd">        </span>
+<span class="sd">    Examples:</span>
+<span class="sd">        For 2D data: objective_func(x, y) is called</span>
+<span class="sd">        For 3D data: objective_func(x, y, z) is called</span>
+<span class="sd">        For nD data: objective_func(col0, col1, ...) is called</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">extract_columns</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">objective_func</span><span class="p">(</span><span class="o">*</span><span class="n">columns</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Backwards compatibility alias</span>
+<span class="n">calculate_correlation_objective</span> <span class="o">=</span> <span class="n">calculate_objective</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hill Climber Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
