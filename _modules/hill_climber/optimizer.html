@@ -118,11 +118,11 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">data</span><span class="p">,</span>
         <span class="n">objective_func</span><span class="p">,</span>
-        <span class="n">max_time</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-        <span class="n">step_size</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">cooling_rate</span><span class="o">=</span><span class="mf">0.995</span><span class="p">,</span>
+        <span class="n">max_time</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">step_size</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">temperature</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">cooling_rate</span><span class="o">=</span><span class="mf">0.9999</span><span class="p">,</span>
         <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span>
         <span class="n">target_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">checkpoint_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -135,11 +135,11 @@
 <span class="sd">            objective_func: Function that takes M column arrays and returns </span>
 <span class="sd">                          (metrics_dict, objective_value). For 2D data, receives (x, y).</span>
 <span class="sd">                          For 3D data, receives (x, y, z), etc.</span>
-<span class="sd">            max_time: Maximum runtime in minutes (default: 3)</span>
-<span class="sd">            step_size: Maximum perturbation amount (default: 0.1)</span>
-<span class="sd">            perturb_fraction: Fraction of points to perturb each step (default: 0.1)</span>
-<span class="sd">            temperature: Initial temperature for simulated annealing (default: 0.0)</span>
-<span class="sd">            cooling_rate: Temperature decrease rate (default: 0.995)</span>
+<span class="sd">            max_time: Maximum runtime in minutes (default: 30)</span>
+<span class="sd">            step_size: Maximum perturbation amount (default: 0.05)</span>
+<span class="sd">            perturb_fraction: Fraction of points to perturb each step (default: 0.05)</span>
+<span class="sd">            temperature: Initial temperature for simulated annealing (default: 1000)</span>
+<span class="sd">            cooling_rate: Temperature decrease rate (default: 0.9999)</span>
 <span class="sd">            mode: &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39; (default: &#39;maximize&#39;)</span>
 <span class="sd">            target_value: Target objective value for target mode (default: None)</span>
 <span class="sd">            checkpoint_file: Path to save/load checkpoints (default: None)</span>
