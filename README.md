@@ -49,6 +49,7 @@ data = pd.DataFrame({
 def my_objective(x, y):
     correlation = pd.Series(x).corr(pd.Series(y))
     metrics = {'correlation': correlation}
+
     return metrics, correlation
 
 # Create optimizer
@@ -94,8 +95,6 @@ python -m pytest tests/test_hill_climber.py
 # Run with coverage
 python -m pytest tests/ --cov=hill_climber
 ```
-
-All 53 tests passing ✓
 
 ## License
 
