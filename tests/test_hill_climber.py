@@ -38,10 +38,10 @@ class TestHillClimberInitialization(unittest.TestCase):
             data=self.data,
             objective_func=self.objective_func
         )
-        self.assertEqual(climber.max_time, 3)
-        self.assertEqual(climber.step_size, 0.1)
-        self.assertEqual(climber.temperature, 0.0)
-        self.assertEqual(climber.cooling_rate, 0.995)
+        self.assertEqual(climber.max_time, 30)
+        self.assertEqual(climber.step_size, 0.05)
+        self.assertEqual(climber.temperature, 1000)
+        self.assertEqual(climber.cooling_rate, 1 - 0.000001)
         self.assertEqual(climber.mode, 'maximize')
         self.assertIsNone(climber.target_value)
     
@@ -53,13 +53,13 @@ class TestHillClimberInitialization(unittest.TestCase):
             max_time=5,
             step_size=0.2,
             temperature=10.0,
-            cooling_rate=0.99,
+            cooling_rate=0.01,
             mode='minimize'
         )
         self.assertEqual(climber.max_time, 5)
         self.assertEqual(climber.step_size, 0.2)
         self.assertEqual(climber.temperature, 10.0)
-        self.assertEqual(climber.cooling_rate, 0.99)
+        self.assertEqual(climber.cooling_rate, 1 - 0.01)
         self.assertEqual(climber.mode, 'minimize')
     
     def test_initialization_invalid_mode(self):

@@ -56,15 +56,16 @@ Hyperparameters
    Fraction of data points to modify in each iteration (0.0 to 1.0).
    Higher values create more dramatic changes per step.
 
-**temperature** (default: 1.0)
+**temperature** (default: 1000)
    Initial temperature for simulated annealing. Higher temperatures allow
    more exploration of suboptimal solutions early on.
 
-**cooling_rate** (default: 0.999)
-   Rate at which temperature decreases (0.0 to 1.0). Values closer to 1.0
-   result in slower cooling and more iterations.
+**cooling_rate** (default: 0.000001)
+   Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
+   is multiplied by (1 - cooling_rate) each iteration. Smaller values result in slower
+   cooling and longer exploration. For example, 0.000001 means temp *= 0.999999 each step.
 
-**max_time** (default: 60)
+**max_time** (default: 30)
    Maximum optimization time in minutes.
 
 **initial_noise** (default: 0.0)

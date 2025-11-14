@@ -28,7 +28,7 @@ class HillClimber:
         step_size: Maximum perturbation amount for each step
         perturb_fraction: Fraction of points to perturb at each step
         temperature: Initial temperature for simulated annealing (0 disables)
-        cooling_rate: Multiplicative temperature decrease rate
+        cooling_rate: Amount subtracted from 1 to get multiplicative cooling factor
         mode: Optimization mode ('maximize', 'minimize', or 'target')
         target_value: Target objective value when mode='target'
     """
@@ -41,7 +41,7 @@ class HillClimber:
         step_size=0.05,
         perturb_fraction=0.05,
         temperature=1000,
-        cooling_rate=0.9999,
+        cooling_rate=0.000001,
         mode='maximize',
         target_value=None,
         checkpoint_file=None,
@@ -58,7 +58,9 @@ class HillClimber:
             step_size: Maximum perturbation amount (default: 0.05)
             perturb_fraction: Fraction of points to perturb each step (default: 0.05)
             temperature: Initial temperature for simulated annealing (default: 1000)
-            cooling_rate: Temperature decrease rate (default: 0.9999)
+            cooling_rate: Amount subtracted from 1 to get multiplicative cooling rate.
+                         For example, 0.000001 results in temp *= 0.999999 each step.
+                         Smaller values = slower cooling. (default: 0.000001)
             mode: 'maximize', 'minimize', or 'target' (default: 'maximize')
             target_value: Target objective value for target mode (default: None)
             checkpoint_file: Path to save/load checkpoints (default: None)
@@ -92,7 +94,10 @@ class HillClimber:
         self.step_size = step_size
         self.perturb_fraction = perturb_fraction
         self.temperature = temperature
-        self.cooling_rate = cooling_rate
+        # Convert user-provided cooling_rate to multiplicative factor
+        # User specifies 1 - multiplicative_rate, we store the multiplicative rate
+        self.cooling_rate = 1 - cooling_rate
+        self.cooling_rate_input = cooling_rate  # Store original for checkpointing
         self.mode = mode
         self.target_value = target_value
         self.checkpoint_file = checkpoint_file
@@ -143,7 +148,7 @@ class HillClimber:
                 'step_size': self.step_size,
                 'perturb_fraction': self.perturb_fraction,
                 'temperature': self.temperature,
-                'cooling_rate': self.cooling_rate,
+                'cooling_rate': self.cooling_rate_input,
                 'mode': self.mode,
                 'target_value': self.target_value
             },
@@ -490,7 +495,7 @@ class HillClimber:
                     'replicates': replicates,
                     'initial_noise': initial_noise,
                     'temperature': self.temperature,
-                    'cooling_rate': self.cooling_rate,
+                    'cooling_rate': self.cooling_rate_input,
                     'objective_function': self.objective_func.__name__,
                     'mode': self.mode,
                     'target_value': self.target_value,

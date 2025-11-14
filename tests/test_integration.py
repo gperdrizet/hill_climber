@@ -69,7 +69,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.02,
             step_size=0.1,
             temperature=10.0,
-            cooling_rate=0.995,
+            cooling_rate=0.005,
             mode='maximize'
         )
         
@@ -86,7 +86,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.02,
             step_size=0.1,
             temperature=5.0,
-            cooling_rate=0.999,
+            cooling_rate=0.001,
             mode='maximize'
         )
         
