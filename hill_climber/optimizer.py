@@ -6,6 +6,7 @@ import pickle
 import time
 import os
 from multiprocessing import Pool, cpu_count
+import matplotlib.pyplot as plt
 
 from .climber_functions import perturb_vectors, calculate_objective
 from .plotting_functions import plot_input_data, plot_results as plot_results_func
@@ -97,6 +98,7 @@ class HillClimber:
         self.step_size = step_size
         self.perturb_fraction = perturb_fraction
         self.temperature = temperature
+
         # Convert user-provided cooling_rate to multiplicative factor
         # User specifies 1 - multiplicative_rate, we store the multiplicative rate
         self.cooling_rate = 1 - cooling_rate
@@ -167,6 +169,7 @@ class HillClimber:
         
         # Create checkpoint directory if needed
         checkpoint_dir = os.path.dirname(self.checkpoint_file)
+
         if checkpoint_dir and not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         
@@ -192,6 +195,18 @@ class HillClimber:
             if (current_time - self.last_plot_time) / 60 < self.plot_progress:
                 return
         
+        # Clear any existing plots
+        plt.close('all')
+        
+        # Clear output in Jupyter notebooks to replace previous plot
+        try:
+            from IPython.display import clear_output
+            clear_output(wait=True)
+
+        except ImportError:
+            # Not in IPython/Jupyter environment
+            pass
+        
         # Create a result structure for single climb
         best_data_output = (
             pd.DataFrame(self.best_data, columns=self.columns) 
@@ -206,8 +221,16 @@ class HillClimber:
         
         # Plot current progress
         elapsed_min = (current_time - self.start_time) / 60
-        print(f"\nPlotting progress at {elapsed_min:.1f} minutes...")
-        plot_results_func(results, plot_type='scatter')
+        last_elapsed_min = (self.last_plot_time - self.start_time) / 60 if self.last_plot_time else 0
+        
+        try:
+            print(f"\nPlotting progress at {elapsed_min:.1f} minutes...")
+            plot_results_func(results, plot_type='scatter')
+
+        except IndexError:
+            print(f"\nNo accepted steps since last progress update")
+            print(f"Last progress update: {last_elapsed_min:.1f} minutes")
+            print(f"Current time: {elapsed_min:.1f} minutes")
         
         self.last_plot_time = current_time
 
@@ -555,7 +578,8 @@ class HillClimber:
             print(f"Results saved to: {output_file}")
         
         return results
-    
+
+
     def plot_input(self, plot_type='scatter'):
         """Plot the input data distribution.
         
