@@ -5,11 +5,16 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   test-build:
-    name: Test package build
+    name: Test package build and publish to TestPyPI
     runs-on: ubuntu-latest
+    environment: test-pypi
+    permissions:
+      contents: read
+      id-token: write  # Required for trusted publishing
     
     steps:
     - name: Checkout code
@@ -38,3 +43,8 @@ jobs:
         echo ""
         echo "=== Wheel Contents ==="
         unzip -l dist/*.whl
+    
+    - name: Publish to TestPyPI using Trusted Publishing
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
