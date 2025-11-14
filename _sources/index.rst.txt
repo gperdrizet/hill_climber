@@ -10,6 +10,15 @@ A flexible simulated annealing optimizer for generating synthetic datasets with 
 - Creating datasets for testing and benchmarking
 - Educational demonstrations of optimization algorithms
 
+Installation
+------------
+
+.. code-block:: bash
+
+   pip install parallel-hill-climber
+
+See :doc:`installation` for more options including development setup.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
@@ -30,6 +39,20 @@ Features
 - **Checkpointing**: Save and resume long-running optimizations
 - **Rich visualization**: Built-in plotting for results analysis
 - **N-dimensional support**: Optimize datasets with any number of variables
+- **JIT Compilation**: Numba-optimized core functions for performance
+
+Python Version Support
+---------------------
+
+- Python 3.10+
+- Tested on Python 3.10, 3.11, and 3.12
+
+Links
+-----
+
+- **PyPI Package**: https://pypi.org/project/parallel-hill-climber/
+- **GitHub Repository**: https://github.com/gperdrizet/hill_climber
+- **Issue Tracker**: https://github.com/gperdrizet/hill_climber/issues
 
 Indices and Tables
 ==================

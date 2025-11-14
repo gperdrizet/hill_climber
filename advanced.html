@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Topics &mdash; Hill Climber 1.0.0 documentation</title>
+  <title>Advanced Topics &mdash; Hill Climber 0.1.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/documentation_options.js?v=ca7ad2ea"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -74,6 +74,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#no-progress-after-many-steps">No Progress After Many Steps</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#converging-to-local-optima">Converging to Local Optima</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#oscillating-objective-values">Oscillating Objective Values</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#package-information">Package Information</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#version-information">Version Information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#license">License</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#citation">Citation</a></li>
 </ul>
 </li>
 </ul>
@@ -270,6 +276,31 @@ The algorithm:</p>
 <li><p>Check for bugs in objective function</p></li>
 <li><p>Ensure objective weights are balanced</p></li>
 </ul>
+</section>
+</section>
+<section id="package-information">
+<h2>Package Information<a class="headerlink" href="#package-information" title="Link to this heading"></a></h2>
+<section id="version-information">
+<h3>Version Information<a class="headerlink" href="#version-information" title="Link to this heading"></a></h3>
+<p>To check the installed version:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hill_climber</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">hill_climber</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The package follows semantic versioning (MAJOR.MINOR.PATCH).</p>
+</section>
+<section id="license">
+<h3>License<a class="headerlink" href="#license" title="Link to this heading"></a></h3>
+<p>Hill Climber is licensed under the GNU General Public License v3.0 (GPL-3.0).
+You are free to use, modify, and distribute this software, but any derivative
+works must also be released under the GPL-3.0 license.</p>
+</section>
+<section id="citation">
+<h3>Citation<a class="headerlink" href="#citation" title="Link to this heading"></a></h3>
+<p>If you use this package in your research, please cite it appropriately.
+Visit the <a class="reference external" href="https://github.com/gperdrizet/hill_climber">GitHub repository</a>
+and click the “Cite this repository” button for properly formatted citations
+in APA, BibTeX, or other formats.</p>
 </section>
 </section>
 </section>
