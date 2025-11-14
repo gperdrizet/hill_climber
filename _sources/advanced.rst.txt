@@ -158,7 +158,7 @@ Converging to Local Optima
 
 - Increase ``temperature`` for more exploration
 - Increase ``initial_noise`` for more diverse starting points
-- Use slower ``cooling_rate`` to explore longer
+- Use smaller ``cooling_rate`` (slower cooling) to explore longer
 - Increase number of replicates
 
 Oscillating Objective Values

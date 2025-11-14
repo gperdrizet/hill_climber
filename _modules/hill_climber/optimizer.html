@@ -107,7 +107,7 @@
 <span class="sd">        step_size: Maximum perturbation amount for each step</span>
 <span class="sd">        perturb_fraction: Fraction of points to perturb at each step</span>
 <span class="sd">        temperature: Initial temperature for simulated annealing (0 disables)</span>
-<span class="sd">        cooling_rate: Multiplicative temperature decrease rate</span>
+<span class="sd">        cooling_rate: Amount subtracted from 1 to get multiplicative cooling factor</span>
 <span class="sd">        mode: Optimization mode (&#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;)</span>
 <span class="sd">        target_value: Target objective value when mode=&#39;target&#39;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -122,7 +122,7 @@
         <span class="n">step_size</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
         <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
         <span class="n">temperature</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
-        <span class="n">cooling_rate</span><span class="o">=</span><span class="mf">0.9999</span><span class="p">,</span>
+        <span class="n">cooling_rate</span><span class="o">=</span><span class="mf">0.000001</span><span class="p">,</span>
         <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span>
         <span class="n">target_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">checkpoint_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -139,7 +139,9 @@
 <span class="sd">            step_size: Maximum perturbation amount (default: 0.05)</span>
 <span class="sd">            perturb_fraction: Fraction of points to perturb each step (default: 0.05)</span>
 <span class="sd">            temperature: Initial temperature for simulated annealing (default: 1000)</span>
-<span class="sd">            cooling_rate: Temperature decrease rate (default: 0.9999)</span>
+<span class="sd">            cooling_rate: Amount subtracted from 1 to get multiplicative cooling rate.</span>
+<span class="sd">                         For example, 0.000001 results in temp *= 0.999999 each step.</span>
+<span class="sd">                         Smaller values = slower cooling. (default: 0.000001)</span>
 <span class="sd">            mode: &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39; (default: &#39;maximize&#39;)</span>
 <span class="sd">            target_value: Target objective value for target mode (default: None)</span>
 <span class="sd">            checkpoint_file: Path to save/load checkpoints (default: None)</span>
@@ -173,7 +175,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="n">step_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span> <span class="o">=</span> <span class="n">perturb_fraction</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">temperature</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span> <span class="o">=</span> <span class="n">cooling_rate</span>
+        <span class="c1"># Convert user-provided cooling_rate to multiplicative factor</span>
+        <span class="c1"># User specifies 1 - multiplicative_rate, we store the multiplicative rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">cooling_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate_input</span> <span class="o">=</span> <span class="n">cooling_rate</span>  <span class="c1"># Store original for checkpointing</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span> <span class="o">=</span> <span class="n">target_value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">checkpoint_file</span>
@@ -227,7 +232,7 @@
                 <span class="s1">&#39;step_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span><span class="p">,</span>
                 <span class="s1">&#39;perturb_fraction&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span><span class="p">,</span>
                 <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
-                <span class="s1">&#39;cooling_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span><span class="p">,</span>
+                <span class="s1">&#39;cooling_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate_input</span><span class="p">,</span>
                 <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
                 <span class="s1">&#39;target_value&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span>
             <span class="p">},</span>
@@ -586,7 +591,7 @@
                     <span class="s1">&#39;replicates&#39;</span><span class="p">:</span> <span class="n">replicates</span><span class="p">,</span>
                     <span class="s1">&#39;initial_noise&#39;</span><span class="p">:</span> <span class="n">initial_noise</span><span class="p">,</span>
                     <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
-                    <span class="s1">&#39;cooling_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span><span class="p">,</span>
+                    <span class="s1">&#39;cooling_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate_input</span><span class="p">,</span>
                     <span class="s1">&#39;objective_function&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective_func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
                     <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
                     <span class="s1">&#39;target_value&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">,</span>

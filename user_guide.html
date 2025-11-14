@@ -137,13 +137,14 @@ slower.</p>
 <dt><strong>perturb_fraction</strong> (default: 0.1)</dt><dd><p>Fraction of data points to modify in each iteration (0.0 to 1.0).
 Higher values create more dramatic changes per step.</p>
 </dd>
-<dt><strong>temperature</strong> (default: 1.0)</dt><dd><p>Initial temperature for simulated annealing. Higher temperatures allow
+<dt><strong>temperature</strong> (default: 1000)</dt><dd><p>Initial temperature for simulated annealing. Higher temperatures allow
 more exploration of suboptimal solutions early on.</p>
 </dd>
-<dt><strong>cooling_rate</strong> (default: 0.999)</dt><dd><p>Rate at which temperature decreases (0.0 to 1.0). Values closer to 1.0
-result in slower cooling and more iterations.</p>
+<dt><strong>cooling_rate</strong> (default: 0.000001)</dt><dd><p>Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
+is multiplied by (1 - cooling_rate) each iteration. Smaller values result in slower
+cooling and longer exploration. For example, 0.000001 means temp <a href="#id1"><span class="problematic" id="id2">*</span></a>= 0.999999 each step.</p>
 </dd>
-<dt><strong>max_time</strong> (default: 60)</dt><dd><p>Maximum optimization time in minutes.</p>
+<dt><strong>max_time</strong> (default: 30)</dt><dd><p>Maximum optimization time in minutes.</p>
 </dd>
 <dt><strong>initial_noise</strong> (default: 0.0)</dt><dd><p>Amount of uniform noise to add when creating replicate starting points.
 Only used in <code class="docutils literal notranslate"><span class="pre">climb_parallel()</span></code>.</p>
