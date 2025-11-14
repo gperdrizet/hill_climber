@@ -34,6 +34,7 @@ jobs:
     name: Test Build Package
     needs: test  # Only run if tests pass
     runs-on: ubuntu-latest
+    environment: test-pypi
     permissions:
       contents: read
     
