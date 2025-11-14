@@ -45,7 +45,8 @@ class HillClimber:
         mode='maximize',
         target_value=None,
         checkpoint_file=None,
-        save_interval=60
+        save_interval=60,
+        plot_progress=None
     ):
         """Initialize HillClimber.
         
@@ -65,6 +66,8 @@ class HillClimber:
             target_value: Target objective value for target mode (default: None)
             checkpoint_file: Path to save/load checkpoints (default: None)
             save_interval: Seconds between checkpoint saves (default: 60)
+            plot_progress: Plot results every N minutes during optimization. 
+                          If None (default), no plots are drawn during optimization.
             
         Raises:
             ValueError: If mode is invalid or target_value missing for target mode
@@ -102,6 +105,7 @@ class HillClimber:
         self.target_value = target_value
         self.checkpoint_file = checkpoint_file
         self.save_interval = save_interval
+        self.plot_progress = plot_progress
         
         # These will be set during climb
         self.best_data = None
@@ -115,6 +119,7 @@ class HillClimber:
         self.temp = temperature
         self.start_time = None
         self.last_save_time = None
+        self.last_plot_time = None
 
 
     def save_checkpoint(self, force=False):
@@ -170,6 +175,41 @@ class HillClimber:
         
         self.last_save_time = current_time
         print(f"Checkpoint saved: {self.checkpoint_file}")
+
+
+    def plot_progress_check(self, force=False):
+        """Plot optimization progress if plot_progress interval has elapsed.
+        
+        Args:
+            force: Plot even if plot_progress interval hasn't elapsed (default: False)
+        """
+        if self.plot_progress is None:
+            return
+            
+        current_time = time.time()
+        
+        if not force and self.last_plot_time is not None:
+            if (current_time - self.last_plot_time) / 60 < self.plot_progress:
+                return
+        
+        # Create a result structure for single climb
+        best_data_output = (
+            pd.DataFrame(self.best_data, columns=self.columns) 
+            if self.is_dataframe else self.best_data
+        )
+        
+        # Format as expected by plot_results (single replicate)
+        results = {
+            'input_data': self.data,
+            'results': [(self.data, best_data_output, pd.DataFrame(self.steps))]
+        }
+        
+        # Plot current progress
+        elapsed_min = (current_time - self.start_time) / 60
+        print(f"\nPlotting progress at {elapsed_min:.1f} minutes...")
+        plot_results_func(results, plot_type='scatter')
+        
+        self.last_plot_time = current_time
 
 
     def load_checkpoint(self, checkpoint_file):
@@ -359,9 +399,15 @@ class HillClimber:
             
             # Save checkpoint periodically
             self.save_checkpoint()
+            
+            # Plot progress periodically
+            self.plot_progress_check()
         
         # Save final checkpoint
         self.save_checkpoint(force=True)
+        
+        # Plot final results
+        self.plot_progress_check(force=True)
         
         # Convert back to DataFrame if input was DataFrame
         best_data_output = (
@@ -457,7 +503,7 @@ class HillClimber:
                 data_rep, self.objective_func, self.max_time, self.step_size,
                 self.perturb_fraction, self.temperature, self.cooling_rate,
                 self.mode, self.target_value, self.is_dataframe, self.columns,
-                checkpoint_file, self.save_interval
+                checkpoint_file, self.save_interval, None  # Disable plot_progress for parallel
             ))
         
         # Execute in parallel
@@ -588,7 +634,7 @@ def _climb_wrapper(args):
     Args:
         args: Tuple of (data_numpy, objective_func, max_time, step_size, 
               perturb_fraction, temperature, cooling_rate, mode, target_value, 
-              is_dataframe, columns, checkpoint_file, save_interval)
+              is_dataframe, columns, checkpoint_file, save_interval, plot_progress)
         
     Returns:
         Result from climb(): (best_data, steps_df)
@@ -596,7 +642,7 @@ def _climb_wrapper(args):
 
     (data_numpy, objective_func, max_time, step_size, perturb_fraction, 
      temperature, cooling_rate, mode, target_value, is_dataframe, columns,
-     checkpoint_file, save_interval) = args
+     checkpoint_file, save_interval, plot_progress) = args
     
     # Reconstruct original data format for HillClimber
     data_input = (
@@ -615,7 +661,8 @@ def _climb_wrapper(args):
         mode=mode,
         target_value=target_value,
         checkpoint_file=checkpoint_file,
-        save_interval=save_interval
+        save_interval=save_interval,
+        plot_progress=plot_progress
     )
     
     return climber.climb()
