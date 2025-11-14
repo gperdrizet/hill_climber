@@ -50,7 +50,7 @@ def get_version_from_citation():
 
     citation_file = get_project_root() / "CITATION.cff"
     content = citation_file.read_text()
-    match = re.search(r'version: (.+)', content)
+    match = re.search(r'^version: (.+)', content, re.MULTILINE)
 
     if match:
         return match.group(1).strip()
@@ -87,14 +87,15 @@ def update_version_in_pyproject(new_version):
 
 
 def update_version_in_citation(new_version):
-    """Update version in CITATION.cff."""
+    """Update version in CITATION.cff (not cff-version)."""
 
     citation_file = get_project_root() / "CITATION.cff"
     content = citation_file.read_text()
     updated = re.sub(
-        r'version: .+',
+        r'^version: .+',
         f'version: {new_version}',
-        content
+        content,
+        flags=re.MULTILINE
     )
     citation_file.write_text(updated)
     print(f"✓ Updated CITATION.cff to version {new_version}")
