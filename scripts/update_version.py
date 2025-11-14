@@ -15,31 +15,39 @@ from pathlib import Path
 
 def get_project_root():
     """Get the project root directory."""
+
     return Path(__file__).parent.parent
 
 
 def get_version_from_init():
     """Read version from __init__.py."""
+
     init_file = get_project_root() / "hill_climber" / "__init__.py"
     content = init_file.read_text()
     match = re.search(r"__version__ = ['\"]([^'\"]+)['\"]", content)
+
     if match:
         return match.group(1)
+
     raise ValueError("Could not find __version__ in __init__.py")
 
 
 def get_version_from_pyproject():
     """Read version from pyproject.toml."""
+
     pyproject_file = get_project_root() / "pyproject.toml"
     content = pyproject_file.read_text()
     match = re.search(r'version = "([^"]+)"', content)
+
     if match:
         return match.group(1)
+
     raise ValueError("Could not find version in pyproject.toml")
 
 
 def update_version_in_init(new_version):
     """Update version in __init__.py."""
+
     init_file = get_project_root() / "hill_climber" / "__init__.py"
     content = init_file.read_text()
     updated = re.sub(
@@ -53,6 +61,7 @@ def update_version_in_init(new_version):
 
 def update_version_in_pyproject(new_version):
     """Update version in pyproject.toml."""
+
     pyproject_file = get_project_root() / "pyproject.toml"
     content = pyproject_file.read_text()
     updated = re.sub(
@@ -66,6 +75,7 @@ def update_version_in_pyproject(new_version):
 
 def check_versions():
     """Check if versions are consistent."""
+
     try:
         init_version = get_version_from_init()
         pyproject_version = get_version_from_pyproject()
@@ -76,9 +86,11 @@ def check_versions():
         if init_version == pyproject_version:
             print("\n✓ Versions are consistent!")
             return True
+
         else:
             print("\n✗ Versions are inconsistent!")
             return False
+
     except Exception as e:
         print(f"\n✗ Error checking versions: {e}")
         return False
@@ -86,7 +98,9 @@ def check_versions():
 
 def validate_version(version):
     """Validate semantic version format."""
+
     pattern = r'^\d+\.\d+\.\d+$'
+
     if not re.match(pattern, version):
         raise ValueError(
             f"Invalid version format: {version}\n"
@@ -95,14 +109,17 @@ def validate_version(version):
 
 
 def main():
+
     parser = argparse.ArgumentParser(
         description="Update version numbers in hill-climber package"
     )
+
     parser.add_argument(
         "version",
         nargs="?",
         help="New version number (e.g., 0.2.0)"
     )
+
     parser.add_argument(
         "--check",
         action="store_true",
@@ -130,8 +147,7 @@ def main():
         print(f"\nNext steps:")
         print(f"  1. Review changes: git diff")
         print(f"  2. Commit: git commit -am 'Bump version to {args.version}'")
-        print(f"  3. Tag: git tag v{args.version}")
-        print(f"  4. Push: git push origin main --tags")
+        print(f"  3. Push: git push origin dev")
         
     except ValueError as e:
         print(f"\n✗ Error: {e}")
