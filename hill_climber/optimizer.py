@@ -223,14 +223,22 @@ class HillClimber:
         elapsed_min = (current_time - self.start_time) / 60
         last_elapsed_min = (self.last_plot_time - self.start_time) / 60 if self.last_plot_time else 0
         
+        # Format elapsed time based on duration
+        def format_elapsed(minutes):
+            if minutes < 60:
+                return f"{int(minutes)} minutes"
+            else:
+                hours = minutes / 60
+                return f"{hours:.1f} hours"
+        
         try:
-            print(f"\nPlotting progress at {elapsed_min:.1f} minutes...")
+            print(f"\nPlotting progress at {format_elapsed(elapsed_min)}...")
             plot_results_func(results, plot_type='scatter')
 
         except IndexError:
             print(f"\nNo accepted steps since last progress update")
-            print(f"Last progress update: {last_elapsed_min:.1f} minutes")
-            print(f"Current time: {elapsed_min:.1f} minutes")
+            print(f"Last progress update: {format_elapsed(last_elapsed_min)}")
+            print(f"Current time: {format_elapsed(elapsed_min)}")
         
         self.last_plot_time = current_time
 
