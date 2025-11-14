@@ -13,7 +13,7 @@ def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds):
     
     Args:
         data_array: 2D numpy array to perturb
-        step_size: Standard deviation of perturbation
+        step_size: Half-width of uniform distribution for perturbation
         n_perturb: Number of elements to perturb
         min_bounds: 1D array of minimum bounds for each column
         max_bounds: 1D array of maximum bounds for each column
@@ -29,7 +29,7 @@ def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds):
 
         row_idx = np.random.randint(0, n_rows)
         col_idx = np.random.randint(0, n_cols)
-        perturbation = np.random.normal(0, step_size)
+        perturbation = np.random.uniform(-step_size, step_size)
         new_value = result[row_idx, col_idx] + perturbation
         
         # Reflect values back into bounds instead of clipping
@@ -66,7 +66,7 @@ def perturb_vectors(data, step_size, perturb_fraction=0.1, bounds=None):
     
     Args:
         data: Input data as numpy array
-        step_size: Standard deviation of normal distribution for perturbations
+        step_size: Half-width of uniform distribution for perturbations
         perturb_fraction: Fraction of total elements to perturb (default: 0.1)
         bounds: Tuple of (min_bounds, max_bounds) arrays for each column.
                 If None, uses data min/max (default: None)
