@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'Hill Climber'
 copyright = '2025, Hill Climber Contributors'
 author = 'Hill Climber Contributors'
-release = '1.0.0'
+release = '0.1.7'
 
 # -- General configuration ---------------------------------------------------
 extensions = [

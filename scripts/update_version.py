@@ -58,6 +58,19 @@ def get_version_from_citation():
     raise ValueError("Could not find version in CITATION.cff")
 
 
+def get_version_from_docs():
+    """Read version from docs/source/conf.py."""
+
+    docs_conf = get_project_root() / "docs" / "source" / "conf.py"
+    content = docs_conf.read_text()
+    match = re.search(r"^release = ['\"]([^'\"]+)['\"]", content, re.MULTILINE)
+
+    if match:
+        return match.group(1)
+
+    raise ValueError("Could not find release in docs/source/conf.py")
+
+
 def update_version_in_init(new_version):
     """Update version in __init__.py."""
 
@@ -101,6 +114,21 @@ def update_version_in_citation(new_version):
     print(f"✓ Updated CITATION.cff to version {new_version}")
 
 
+def update_version_in_docs(new_version):
+    """Update version in docs/source/conf.py."""
+
+    docs_conf = get_project_root() / "docs" / "source" / "conf.py"
+    content = docs_conf.read_text()
+    updated = re.sub(
+        r"^release = ['\"]([^'\"]+)['\"]",
+        f"release = '{new_version}'",
+        content,
+        flags=re.MULTILINE
+    )
+    docs_conf.write_text(updated)
+    print(f"✓ Updated docs/source/conf.py to version {new_version}")
+
+
 def check_versions():
     """Check if versions are consistent."""
 
@@ -108,12 +136,14 @@ def check_versions():
         init_version = get_version_from_init()
         pyproject_version = get_version_from_pyproject()
         citation_version = get_version_from_citation()
+        docs_version = get_version_from_docs()
         
         print(f"__init__.py version:    {init_version}")
         print(f"pyproject.toml version: {pyproject_version}")
         print(f"CITATION.cff version:   {citation_version}")
+        print(f"docs/conf.py version:   {docs_version}")
         
-        if init_version == pyproject_version == citation_version:
+        if init_version == pyproject_version == citation_version == docs_version:
             print("\n✓ Versions are consistent!")
             return True
 
@@ -173,6 +203,7 @@ def main():
         update_version_in_init(args.version)
         update_version_in_pyproject(args.version)
         update_version_in_citation(args.version)
+        update_version_in_docs(args.version)
         
         print("\n✓ Version update complete!")
         print(f"\nNext steps:")

@@ -172,3 +172,33 @@ Oscillating Objective Values
 - Decrease ``temperature`` to be more selective
 - Check for bugs in objective function
 - Ensure objective weights are balanced
+
+Package Information
+-------------------
+
+Version Information
+~~~~~~~~~~~~~~~~~~~
+
+To check the installed version:
+
+.. code-block:: python
+
+   import hill_climber
+   print(hill_climber.__version__)
+
+The package follows semantic versioning (MAJOR.MINOR.PATCH).
+
+License
+~~~~~~~
+
+Hill Climber is licensed under the GNU General Public License v3.0 (GPL-3.0).
+You are free to use, modify, and distribute this software, but any derivative
+works must also be released under the GPL-3.0 license.
+
+Citation
+~~~~~~~~
+
+If you use this package in your research, please cite it appropriately.
+Visit the `GitHub repository <https://github.com/gperdrizet/hill_climber>`_
+and click the "Cite this repository" button for properly formatted citations
+in APA, BibTeX, or other formats.
