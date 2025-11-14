@@ -81,22 +81,71 @@ Replicate Noise Tuning
 - **Medium noise (0.3-0.7)**: General purpose exploration
 - **High noise (0.7-1.5)**: When you need very diverse starting points
 
-Checkpoint Strategies
----------------------
+Checkpointing
+-------------
 
-For Very Long Runs
-~~~~~~~~~~~~~~~~~~
+For long optimizations, save intermediate progress:
 
 .. code-block:: python
 
-   # Save every 10 minutes for 24-hour runs
    climber = HillClimber(
        data=data,
-       objective_func=objective,
-       max_time=1440,  # 24 hours
-       checkpoint_file='long_run.pkl',
-       save_interval=600  # 10 minutes
+       objective_func=my_objective,
+       max_time=60,
+       checkpoint_file='optimization.pkl',
+       save_interval=300  # Save every 5 minutes
    )
+   
+   result = climber.climb()
+
+Resume from a checkpoint:
+
+.. code-block:: python
+
+   resumed = HillClimber.resume_from_checkpoint(
+       checkpoint_file='optimization.pkl',
+       objective_func=my_objective,
+       new_max_time=30  # Continue for 30 more minutes
+   )
+   
+   result = resumed.climb()
+
+Progress Monitoring
+-------------------
+
+Live Progress Plots
+~~~~~~~~~~~~~~~~~~~
+
+Monitor optimization progress in real-time with automatic plotting:
+
+.. code-block:: python
+
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       max_time=60,
+       plot_progress=5  # Plot every 5 minutes
+   )
+   
+   result = climber.climb()
+
+This is particularly useful for:
+
+- Long-running optimizations (>10 minutes)
+- Interactive Jupyter notebooks
+- Debugging objective functions
+- Monitoring convergence behavior
+
+**Important Notes**:
+
+- Only works with ``climb()`` method (single-process mode)
+- Does **not** work with ``climb_parallel()`` because worker processes don't
+  report intermediate results
+- If no steps are accepted between plot intervals, displays time information
+  instead of plotting
+- In Jupyter notebooks, each plot replaces the previous one for clean output
+
+Checkpoint Strategies
 
 Performance Optimization
 ------------------------

@@ -42,6 +42,26 @@ Here's a simple example that creates a dataset with high Pearson correlation:
    # View results
    print(f"Final correlation: {result['Pearson correlation']:.3f}")
 
+Monitoring Progress
+-------------------
+
+For longer runs, monitor progress with live plots:
+
+.. code-block:: python
+
+   climber = HillClimber(
+       data=data,
+       objective_func=objective_high_correlation,
+       max_time=30,
+       mode='maximize',
+       plot_progress=5  # Plot every 5 minutes
+   )
+
+   result = climber.climb()
+
+.. note::
+   Progress plotting only works with ``climb()`` (not ``climb_parallel()``).
+
 Understanding the Results
 --------------------------
 
