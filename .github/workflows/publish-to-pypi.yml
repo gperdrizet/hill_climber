@@ -1,11 +1,9 @@
 name: Publish to PyPI
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'  # Triggers on version tags like v0.1.0, v1.2.3, etc.
-    branches:
-      - main  # Only run when tag is pushed to main branch
+  release:
+    types: [published]
+  workflow_dispatch:
 
 jobs:
   build-and-publish:
@@ -30,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install build twine
     
-    - name: Verify version matches tag
+    - name: Verify version matches release tag
       run: |
         TAG_VERSION=${GITHUB_REF#refs/tags/v}
         PACKAGE_VERSION=$(python << 'EOF'
@@ -44,10 +42,10 @@ jobs:
                 raise ValueError('Could not find __version__ in __init__.py')
         EOF
         )
-        echo "Tag version: $TAG_VERSION"
+        echo "Release tag version: $TAG_VERSION"
         echo "Package version: $PACKAGE_VERSION"
         if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
-          echo "Error: Tag version ($TAG_VERSION) does not match package version ($PACKAGE_VERSION)"
+          echo "Error: Release tag version ($TAG_VERSION) does not match package version ($PACKAGE_VERSION)"
           exit 1
         fi
     
