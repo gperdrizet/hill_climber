@@ -45,6 +45,19 @@ def get_version_from_pyproject():
     raise ValueError("Could not find version in pyproject.toml")
 
 
+def get_version_from_citation():
+    """Read version from CITATION.cff."""
+
+    citation_file = get_project_root() / "CITATION.cff"
+    content = citation_file.read_text()
+    match = re.search(r'^version: (.+)', content, re.MULTILINE)
+
+    if match:
+        return match.group(1).strip()
+
+    raise ValueError("Could not find version in CITATION.cff")
+
+
 def update_version_in_init(new_version):
     """Update version in __init__.py."""
 
@@ -73,17 +86,34 @@ def update_version_in_pyproject(new_version):
     print(f"✓ Updated pyproject.toml to version {new_version}")
 
 
+def update_version_in_citation(new_version):
+    """Update version in CITATION.cff (not cff-version)."""
+
+    citation_file = get_project_root() / "CITATION.cff"
+    content = citation_file.read_text()
+    updated = re.sub(
+        r'^version: .+',
+        f'version: {new_version}',
+        content,
+        flags=re.MULTILINE
+    )
+    citation_file.write_text(updated)
+    print(f"✓ Updated CITATION.cff to version {new_version}")
+
+
 def check_versions():
     """Check if versions are consistent."""
 
     try:
         init_version = get_version_from_init()
         pyproject_version = get_version_from_pyproject()
+        citation_version = get_version_from_citation()
         
         print(f"__init__.py version:    {init_version}")
         print(f"pyproject.toml version: {pyproject_version}")
+        print(f"CITATION.cff version:   {citation_version}")
         
-        if init_version == pyproject_version:
+        if init_version == pyproject_version == citation_version:
             print("\n✓ Versions are consistent!")
             return True
 
@@ -142,6 +172,7 @@ def main():
         print(f"\nUpdating to version {args.version}...")
         update_version_in_init(args.version)
         update_version_in_pyproject(args.version)
+        update_version_in_citation(args.version)
         
         print("\n✓ Version update complete!")
         print(f"\nNext steps:")
