@@ -2,9 +2,10 @@ name: Test Build
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v0.1.0, v1.2.3, etc.
+    branches:
+      - dev  # Only run when tag is pushed to dev branch
   workflow_dispatch:
 
 jobs:
