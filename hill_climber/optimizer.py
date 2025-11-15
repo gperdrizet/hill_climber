@@ -231,14 +231,14 @@ class HillClimber:
                 hours = minutes / 60
                 return f"{hours:.1f} hours"
         
-        try:
-            print(f"\nPlotting progress at {format_elapsed(elapsed_min)}...")
-            plot_results_func(results, plot_type='scatter')
-
-        except IndexError:
+        # Check if there are any steps to plot
+        if len(self.steps) == 0:
             print(f"\nNo accepted steps since last progress update")
             print(f"Last progress update: {format_elapsed(last_elapsed_min)}")
             print(f"Current time: {format_elapsed(elapsed_min)}")
+        else:
+            print(f"\nPlotting progress at {format_elapsed(elapsed_min)}...")
+            plot_results_func(results, plot_type='scatter')
         
         self.last_plot_time = current_time
 

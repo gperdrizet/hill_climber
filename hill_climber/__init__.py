@@ -56,7 +56,7 @@ Module Contents:
     - plotting_functions: Visualization utilities
 """
 
-__version__ = '0.1.8'
+__version__ = '0.1.9'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber
