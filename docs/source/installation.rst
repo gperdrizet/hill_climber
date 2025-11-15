@@ -33,6 +33,16 @@ To explore the examples, modify the code, or contribute:
 2. Open in GitHub Codespaces
 3. The development environment will be configured automatically
 
+Verify Installation
+-------------------
+
+Test that the installation was successful:
+
+.. code-block:: python
+
+   import hill_climber
+   print(f"Hill Climber {hill_climber.__version__} successfully installed!")
+
 **Option 2: Local Development**
 
 1. Clone or fork the repository:
@@ -47,16 +57,6 @@ To explore the examples, modify the code, or contribute:
    .. code-block:: bash
 
       pip install -e .
-
-Verify Installation
--------------------
-
-Test that the installation was successful:
-
-.. code-block:: python
-
-   from hill_climber import HillClimber
-   print("Hill Climber successfully installed!")
 
 Running Tests
 -------------

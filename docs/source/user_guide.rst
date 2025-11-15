@@ -72,6 +72,16 @@ Hyperparameters
    Amount of uniform noise to add when creating replicate starting points.
    Only used in ``climb_parallel()``.
 
+**plot_progress** (default: None)
+   Interval in minutes for plotting optimization progress during a run.
+   When set, creates scatter plots showing the current best solution at
+   regular intervals. For example, ``plot_progress=5`` plots every 5 minutes.
+   
+   .. note::
+      This option only works in single-process mode (``climb()``). It does not
+      work with parallel mode (``climb_parallel()``) because results from worker
+      processes are not collected until the end of the run.
+
 Boundary Handling
 -----------------
 
