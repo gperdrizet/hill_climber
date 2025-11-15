@@ -33,9 +33,6 @@ To explore the examples, modify the code, or contribute:
 2. Open in GitHub Codespaces
 3. The development environment will be configured automatically
 
-Verify Installation
--------------------
-
 Test that the installation was successful:
 
 .. code-block:: python
@@ -58,8 +55,7 @@ Test that the installation was successful:
 
       pip install -e .
 
-Running Tests
--------------
+3. Running Tests
 
 After installation, verify everything works by running the test suite:
 

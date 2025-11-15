@@ -47,7 +47,8 @@ class HillClimber:
         target_value=None,
         checkpoint_file=None,
         save_interval=60,
-        plot_progress=None
+        plot_progress=None,
+        perturb_row=False
     ):
         """Initialize HillClimber.
         
@@ -69,6 +70,8 @@ class HillClimber:
             save_interval: Seconds between checkpoint saves (default: 60)
             plot_progress: Plot results every N minutes during optimization. 
                           If None (default), no plots are drawn during optimization.
+            perturb_row: If True, perturb all values in randomly selected rows.
+                        If False (default), perturb individual randomly selected elements.
             
         Raises:
             ValueError: If mode is invalid or target_value missing for target mode
@@ -108,6 +111,7 @@ class HillClimber:
         self.checkpoint_file = checkpoint_file
         self.save_interval = save_interval
         self.plot_progress = plot_progress
+        self.perturb_row = perturb_row
         
         # These will be set during climb
         self.best_data = None
@@ -157,7 +161,8 @@ class HillClimber:
                 'temperature': self.temperature,
                 'cooling_rate': self.cooling_rate_input,
                 'mode': self.mode,
-                'target_value': self.target_value
+                'target_value': self.target_value,
+                'perturb_row': self.perturb_row
             },
             'data_info': {
                 'is_dataframe': self.is_dataframe,
@@ -337,7 +342,8 @@ class HillClimber:
             cooling_rate=hyperparams['cooling_rate'],
             mode=hyperparams['mode'],
             target_value=hyperparams['target_value'],
-            checkpoint_file=new_checkpoint_file if new_checkpoint_file is not None else checkpoint_file
+            checkpoint_file=new_checkpoint_file if new_checkpoint_file is not None else checkpoint_file,
+            perturb_row=hyperparams.get('perturb_row', False)  # Default to False for old checkpoints
         )
         
         # Load the checkpoint state
@@ -392,7 +398,8 @@ class HillClimber:
                 self.current_data, 
                 self.step_size, 
                 self.perturb_fraction,
-                self.bounds
+                self.bounds,
+                self.perturb_row
             )
 
             self.metrics, new_objective = calculate_objective(new_data, self.objective_func)
@@ -539,7 +546,7 @@ class HillClimber:
                 data_rep, self.objective_func, self.max_time, self.step_size,
                 self.perturb_fraction, self.temperature, self.cooling_rate,
                 self.mode, self.target_value, self.is_dataframe, self.columns,
-                checkpoint_file, self.save_interval, None  # Disable plot_progress for parallel
+                checkpoint_file, self.save_interval, None, self.perturb_row  # Disable plot_progress for parallel
             ))
         
         # Execute in parallel
@@ -581,7 +588,8 @@ class HillClimber:
                     'objective_function': self.objective_func.__name__,
                     'mode': self.mode,
                     'target_value': self.target_value,
-                    'input_size': len(self.data)
+                    'input_size': len(self.data),
+                    'perturb_row': self.perturb_row
                 }
             }
             
@@ -671,7 +679,7 @@ def _climb_wrapper(args):
     Args:
         args: Tuple of (data_numpy, objective_func, max_time, step_size, 
               perturb_fraction, temperature, cooling_rate, mode, target_value, 
-              is_dataframe, columns, checkpoint_file, save_interval, plot_progress)
+              is_dataframe, columns, checkpoint_file, save_interval, plot_progress, perturb_row)
         
     Returns:
         Result from climb(): (best_data, steps_df)
@@ -679,7 +687,7 @@ def _climb_wrapper(args):
 
     (data_numpy, objective_func, max_time, step_size, perturb_fraction, 
      temperature, cooling_rate, mode, target_value, is_dataframe, columns,
-     checkpoint_file, save_interval, plot_progress) = args
+     checkpoint_file, save_interval, plot_progress, perturb_row) = args
     
     # Reconstruct original data format for HillClimber
     data_input = (
@@ -699,7 +707,8 @@ def _climb_wrapper(args):
         target_value=target_value,
         checkpoint_file=checkpoint_file,
         save_interval=save_interval,
-        plot_progress=plot_progress
+        plot_progress=plot_progress,
+        perturb_row=perturb_row
     )
     
     return climber.climb()

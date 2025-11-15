@@ -24,6 +24,10 @@ An objective function takes the data columns as arguments and returns:
 1. A dictionary of metrics to track
 2. A single objective value to optimize
 
+.. note::
+   Hill Climber currently supports a maximum of 2D input data (two columns).
+   Your objective function should accept exactly two arguments (x, y).
+
 Example:
 
 .. code-block:: python
@@ -53,8 +57,14 @@ Hyperparameters
    slower.
 
 **perturb_fraction** (default: 0.1)
-   Fraction of data points to modify in each iteration (0.0 to 1.0).
-   Higher values create more dramatic changes per step.
+   Fraction of data points (or rows, if ``perturb_row=True``) to modify in 
+   each iteration (0.0 to 1.0). Higher values create more dramatic changes per step.
+
+**perturb_row** (default: False)
+   If True, perturbs all values in randomly selected rows instead of individual
+   random elements. When True, ``perturb_fraction`` refers to the fraction of
+   rows to modify rather than individual elements. Useful when you want to
+   maintain consistency across all columns for the same data points.
 
 **temperature** (default: 1000)
    Initial temperature for simulated annealing. Higher temperatures allow

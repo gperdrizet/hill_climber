@@ -72,14 +72,14 @@ Choosing Number of Replicates
 
 - **4-8 replicates**: Good balance for most problems
 - **More replicates**: Better exploration, find more diverse solutions
-- **Fewer replicates**: Faster completion, use when solutions are similar
+- **CPU resource limit**: Not recommended to run more replicates than one less than avalible CPU threads
 
 Replicate Noise Tuning
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-- **Low noise (0.1-0.3)**: When starting data is already close to solutions
-- **Medium noise (0.3-0.7)**: General purpose exploration
-- **High noise (0.7-1.5)**: When you need very diverse starting points
+- **Low noise** (~1%-10% of input range): When starting data is already close to solutions
+- **Medium noise** (~10%-50% of input range): General purpose exploration
+- **High noise** (~50%-150% of input range): When you need very diverse starting points
 
 Checkpointing
 -------------
@@ -148,25 +148,64 @@ This is particularly useful for:
 Performance Optimization
 ------------------------
 
+Perturbation Strategies
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Choose between element-wise and row-wise perturbations:
+
+**Element-wise perturbation** (``perturb_row=False``, default):
+
+- Perturbs randomly selected individual data points
+- Best for most optimization problems
+- Allows independent optimization of x and y values
+- ``perturb_fraction`` controls fraction of total elements modified
+
+**Row-wise perturbation** (``perturb_row=True``):
+
+- Perturbs all values in randomly selected rows
+- Useful when x and y values should change together
+- Maintains row-level consistency during optimization
+- ``perturb_fraction`` controls fraction of rows modified
+
+Example:
+
+.. code-block:: python
+
+   # Element-wise: perturb 10% of all elements independently
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       perturb_fraction=0.1,
+       perturb_row=False  # default
+   )
+   
+   # Row-wise: perturb all values in 10% of rows
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       perturb_fraction=0.1,
+       perturb_row=True
+   )
+
 Faster Convergence
 ~~~~~~~~~~~~~~~~~~
 
 For quick convergence, use aggressive parameters:
 
-- **Large step_size** (2.0-5.0): Make bigger changes
+- **Large step_size** (~10%-50% of input range): Make bigger changes
 - **High perturb_fraction** (0.4-0.6): Modify more points
 - **Low temperature** (10-50): More greedy optimization
-- **Slower cooling** (0.9999): More iterations
+- **Slower cooling** (0.0001): More exploration of suboptimal solutions
 
 Better Exploration
 ~~~~~~~~~~~~~~~~~~
 
 For thorough exploration of solution space:
 
-- **Small step_size** (0.1-1.0): Precise adjustments
+- **Small step_size** (~1%-10% of input range): Precise adjustments
 - **Low perturb_fraction** (0.1-0.2): Subtle changes
 - **High temperature** (100-500): Accept more suboptimal moves
-- **Faster cooling** (0.999-0.9995): Gradual convergence
+- **Faster cooling** (0.01-0.001): Gradual convergence
 
 Algorithm Visualization
 -----------------------

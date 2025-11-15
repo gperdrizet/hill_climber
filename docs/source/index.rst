@@ -38,8 +38,9 @@ Features
 - **Parallel replicates**: Run multiple optimizations simultaneously
 - **Checkpointing**: Save and resume long-running optimizations
 - **Rich visualization**: Built-in plotting for results analysis
-- **N-dimensional support**: Optimize datasets with any number of variables
+- **2D data optimization**: Optimize datasets with two variables (x, y)
 - **JIT Compilation**: Numba-optimized core functions for performance
+- **Flexible perturbation**: Element-wise or row-wise perturbation strategies
 
 Python Version Support
 ---------------------

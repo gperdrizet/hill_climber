@@ -3,6 +3,9 @@ Quick Start
 
 This guide will get you started with Hill Climber in just a few minutes.
 
+.. note::
+   Hill Climber currently supports a maximum of 2D input data (two columns: x and y).
+
 Basic Example
 -------------
 
