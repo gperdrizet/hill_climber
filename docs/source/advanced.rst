@@ -145,8 +145,6 @@ This is particularly useful for:
   instead of plotting
 - In Jupyter notebooks, each plot replaces the previous one for clean output
 
-Checkpoint Strategies
-
 Performance Optimization
 ------------------------
 
