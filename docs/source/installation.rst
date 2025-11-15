@@ -40,7 +40,7 @@ Test that the installation was successful:
 
 .. code-block:: python
 
-   from hill_climber import HillClimber
+   import hill_climber
    print(f"Hill Climber {hill_climber.__version__} successfully installed!")
 
 **Option 2: Local Development**
