@@ -35,12 +35,13 @@ Features
 
 - **Flexible objective functions**: Define custom objectives for any statistical property
 - **Simulated annealing**: Escape local optima and find global solutions
+- **N-dimensional data**: Optimize datasets with any number of variables (x, y, z, ...)
 - **Parallel replicates**: Run multiple optimizations simultaneously
+- **Unified state management**: Clean dataclass architecture for internal state tracking
 - **Checkpointing**: Save and resume long-running optimizations
+- **Progress monitoring**: Live plotting during optimization runs
 - **Rich visualization**: Built-in plotting for results analysis
-- **2D data optimization**: Optimize datasets with two variables (x, y)
 - **JIT Compilation**: Numba-optimized core functions for performance
-- **Flexible perturbation**: Element-wise or row-wise perturbation strategies
 
 Python Version Support
 ---------------------

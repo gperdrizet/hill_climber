@@ -6,6 +6,7 @@ execution.
 
 Main Components:
     HillClimber: Main optimization class
+    OptimizerState: Internal state management dataclass
     Helper functions: Data manipulation and objective calculation utilities
     Plotting functions: Visualization tools for input data and results
 
@@ -35,6 +36,9 @@ Example:
     ...     max_time=1,
     ...     mode='maximize'
     ... )
+    >>> best_data, steps_df = climber.climb()
+    >>> 
+    >>> # Or run parallel replicates
     >>> results = climber.climb_parallel(replicates=4)
     >>> 
     >>> # Visualize input data
@@ -52,6 +56,7 @@ Example:
 
 Module Contents:
     - optimizer: Main HillClimber class module
+    - optimizer_state: OptimizerState dataclass for state management
     - climber_functions: Helper functions for data manipulation
     - plotting_functions: Visualization utilities
 """
@@ -60,6 +65,7 @@ __version__ = '0.1.10'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber
+from .optimizer_state import OptimizerState
 from .climber_functions import (
     perturb_vectors,
     extract_columns,
@@ -72,6 +78,7 @@ from .plotting_functions import (
 
 __all__ = [
     'HillClimber',
+    'OptimizerState',
     'perturb_vectors',
     'extract_columns',
     'calculate_correlation_objective',

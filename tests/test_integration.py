@@ -49,7 +49,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
             max_time=0.02,
-            step_size=0.1,
+            step_spread=0.1,
             mode='maximize'
         )
         
@@ -67,7 +67,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
             max_time=0.02,
-            step_size=0.1,
+            step_spread=0.1,
             temperature=10.0,
             cooling_rate=0.005,
             mode='maximize'
@@ -84,7 +84,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
             max_time=0.02,
-            step_size=0.1,
+            step_spread=0.1,
             temperature=5.0,
             cooling_rate=0.001,
             mode='maximize'
@@ -110,7 +110,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
             max_time=0.02,
-            step_size=0.1,
+            step_spread=0.1,
             mode='minimize'
         )
         
@@ -125,7 +125,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
             max_time=0.02,
-            step_size=0.1,
+            step_spread=0.1,
             mode='target',
             target_value=0.5
         )
@@ -143,7 +143,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
             max_time=0.02,
-            step_size=0.1
+            step_spread=0.1
         )
         
         best_data, _ = climber.climb()
@@ -175,7 +175,7 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             data=self.data_3d,
             objective_func=objective_3d_simple,
             max_time=0.02,
-            step_size=0.1,
+            step_spread=0.1,
             mode='maximize'
         )
         
@@ -195,7 +195,7 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             data=self.data_4d,
             objective_func=objective_4d,
             max_time=0.02,
-            step_size=0.1,
+            step_spread=0.1,
             mode='maximize'
         )
         
@@ -211,7 +211,7 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             data=self.data_3d,
             objective_func=objective_3d_simple,
             max_time=0.02,
-            step_size=0.1,
+            step_spread=0.1,
             mode='maximize'
         )
         

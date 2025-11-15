@@ -9,6 +9,14 @@ HillClimber
    :undoc-members:
    :show-inheritance:
 
+OptimizerState
+--------------
+
+.. autoclass:: hill_climber.optimizer_state.OptimizerState
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Core Functions
 --------------
 
@@ -22,3 +30,4 @@ Plotting Functions
 .. automodule:: hill_climber.plotting_functions
    :members:
    :undoc-members:
+

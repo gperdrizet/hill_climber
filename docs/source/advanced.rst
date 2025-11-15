@@ -7,12 +7,13 @@ Custom Objective Functions
 Complex Multi-Objective Optimization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Combine multiple objectives with different weights:
+Hill Climber supports n-dimensional data. Your objective function should accept
+as many arguments as you have columns. Combine multiple objectives with different weights:
 
 .. code-block:: python
 
    def multi_objective(w, x, y, z):
-       """Optimize multiple properties simultaneously."""
+       """Optimize multiple properties simultaneously for 4D data."""
        
        # Calculate individual objectives
        mean_similarity = calculate_mean_penalty(w, x, y, z)
@@ -151,52 +152,23 @@ Performance Optimization
 Perturbation Strategies
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Choose between element-wise and row-wise perturbations:
-
-**Element-wise perturbation** (``perturb_row=False``, default):
-
-- Perturbs randomly selected individual data points
-- Best for most optimization problems
-- Allows independent optimization of x and y values
-- ``perturb_fraction`` controls fraction of total elements modified
-
-**Row-wise perturbation** (``perturb_row=True``):
-
-- Perturbs all values in randomly selected rows
-- Useful when x and y values should change together
-- Maintains row-level consistency during optimization
-- ``perturb_fraction`` controls fraction of rows modified
-
 **Perturbation distribution**:
 
-Perturbations are sampled from a normal distribution N(``step_size``, ``step_spread``):
+Perturbations are sampled from a normal distribution N(0, ``step_spread``):
 
-- ``step_size``: Mean of the distribution (bias direction of perturbations)
+- Mean is always 0 (symmetric perturbations around current values)
 - ``step_spread``: Standard deviation (controls magnitude variability)
-- Default (``step_size=0``, ``step_spread=1.0``): symmetric perturbations around current values
+- Default ``step_spread=1.0`` provides moderate-sized perturbations
 
 Example:
 
 .. code-block:: python
 
-   # Element-wise: perturb 10% of all elements independently
    climber = HillClimber(
        data=data,
        objective_func=my_objective,
-       perturb_fraction=0.1,
-       perturb_row=False,  # default
-       step_size=0,        # centered perturbations
-       step_spread=0.5     # moderate variability
-   )
-   
-   # Row-wise: perturb all values in 10% of rows
-   climber = HillClimber(
-       data=data,
-       objective_func=my_objective,
-       perturb_fraction=0.1,
-       perturb_row=True,
-       step_size=0.01,     # slight upward bias
-       step_spread=2.0     # high variability
+       perturb_fraction=0.1,  # perturb 10% of elements
+       step_spread=0.5        # moderate variability
    )
 
 Faster Convergence
@@ -226,7 +198,7 @@ The hill climbing process can be visualized as searching a fitness landscape.
 The algorithm:
 
 1. Starts from initial data
-2. Makes random perturbations sampled from a normal distribution N(``step_size``, ``step_spread``)
+2. Makes random perturbations sampled from a normal distribution N(0, ``step_spread``)
 3. Evaluates fitness via objective function
 4. Accepts improvements (always) or worsening moves (with probability based on temperature)
 5. Gradually reduces temperature to focus on local optimization

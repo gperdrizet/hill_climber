@@ -3,13 +3,13 @@ Quick Start
 
 This guide will get you started with Hill Climber in just a few minutes.
 
-.. note::
-   Hill Climber currently supports a maximum of 2D input data (two columns: x and y).
+Hill Climber supports n-dimensional data - you can optimize datasets with any number
+of columns (x, y, z, etc.).
 
 Basic Example
 -------------
 
-Here's a simple example that creates a dataset with high Pearson correlation:
+Here's a simple example that creates a 2D dataset with high Pearson correlation:
 
 .. code-block:: python
 
@@ -68,7 +68,11 @@ For longer runs, monitor progress with live plots:
 Understanding the Results
 --------------------------
 
-The ``climb()`` method returns the optimized data and a history of metrics at each step.
+The ``climb()`` method returns a tuple of ``(best_data, steps_df)``:
+
+- ``best_data``: The optimized data (same format as input - DataFrame or numpy array)
+- ``steps_df``: A DataFrame tracking the optimization history at each accepted step,
+  including the objective value and all metrics you defined
 
 Parallel Replicates
 -------------------
