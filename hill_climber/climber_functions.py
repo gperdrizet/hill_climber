@@ -5,7 +5,7 @@ from numba import jit
 
 
 @jit(nopython=True, cache=True)
-def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds, perturb_row):
+def _perturb_core(data_array, step_size, step_spread, n_perturb, min_bounds, max_bounds, perturb_row):
     """JIT-compiled core perturbation logic.
     
     Uses reflection to keep values within bounds instead of clipping,
@@ -13,7 +13,8 @@ def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds, pert
     
     Args:
         data_array: 2D numpy array to perturb
-        step_size: Half-width of uniform distribution for perturbation
+        step_size: Mean of normal distribution for perturbation
+        step_spread: Standard deviation of normal distribution for perturbation
         n_perturb: Number of elements (or rows) to perturb
         min_bounds: 1D array of minimum bounds for each column
         max_bounds: 1D array of maximum bounds for each column
@@ -27,13 +28,15 @@ def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds, pert
     result = data_array.copy()
     
     if perturb_row:
+
         # Perturb entire rows
         for _ in range(n_perturb):
             row_idx = np.random.randint(0, n_rows)
             
             # Perturb all columns in this row
             for col_idx in range(n_cols):
-                perturbation = np.random.uniform(-step_size, step_size)
+
+                perturbation = np.random.normal(step_size, step_spread)
                 new_value = result[row_idx, col_idx] + perturbation
                 
                 # Reflect values back into bounds instead of clipping
@@ -59,11 +62,13 @@ def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds, pert
                 
                 result[row_idx, col_idx] = new_value
     else:
+
         # Perturb individual elements
         for _ in range(n_perturb):
+
             row_idx = np.random.randint(0, n_rows)
             col_idx = np.random.randint(0, n_cols)
-            perturbation = np.random.uniform(-step_size, step_size)
+            perturbation = np.random.normal(step_size, step_spread)
             new_value = result[row_idx, col_idx] + perturbation
             
             # Reflect values back into bounds instead of clipping
@@ -92,7 +97,7 @@ def _perturb_core(data_array, step_size, n_perturb, min_bounds, max_bounds, pert
     return result
 
 
-def perturb_vectors(data, step_size, perturb_fraction=0.1, bounds=None, perturb_row=False):
+def perturb_vectors(data, step_size, perturb_fraction=0.1, bounds=None, perturb_row=False, step_spread=1.0):
     """Randomly perturb a fraction of elements in the data.
     
     This function uses JIT-compiled core logic for performance.
@@ -100,11 +105,12 @@ def perturb_vectors(data, step_size, perturb_fraction=0.1, bounds=None, perturb_
     
     Args:
         data: Input data as numpy array
-        step_size: Half-width of uniform distribution for perturbations
+        step_size: Mean of normal distribution for perturbations (default: 0)
         perturb_fraction: Fraction of total elements (or rows) to perturb (default: 0.1)
         bounds: Tuple of (min_bounds, max_bounds) arrays for each column.
                 If None, uses data min/max (default: None)
         perturb_row: If True, perturb entire rows; if False, perturb individual elements (default: False)
+        step_spread: Standard deviation of normal distribution for perturbations (default: 1.0)
         
     Returns:
         Perturbed numpy array
@@ -127,7 +133,7 @@ def perturb_vectors(data, step_size, perturb_fraction=0.1, bounds=None, perturb_
         min_bounds, max_bounds = bounds
     
     # Call JIT-compiled function
-    return _perturb_core(data, step_size, n_perturb, min_bounds, max_bounds, perturb_row)
+    return _perturb_core(data, step_size, step_spread, n_perturb, min_bounds, max_bounds, perturb_row)
 
 
 def extract_columns(data):

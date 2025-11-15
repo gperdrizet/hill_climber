@@ -51,10 +51,15 @@ Example:
 Hyperparameters
 ---------------
 
-**step_size** (default: 0.1)
-   Controls the magnitude of perturbations. Larger values make bigger changes
-   but may overshoot optimal solutions. Smaller values are more precise but
-   slower.
+**step_size** (default: 0)
+   Mean of the normal distribution used for perturbations. Controls the central
+   tendency of perturbation magnitude. A value of 0 means perturbations are 
+   centered around no change, with the actual changes determined by ``step_spread``.
+
+**step_spread** (default: 1.0)
+   Standard deviation of the normal distribution used for perturbations. Controls
+   the variability and typical magnitude of changes. Larger values create more
+   dramatic perturbations, smaller values make more subtle adjustments.
 
 **perturb_fraction** (default: 0.1)
    Fraction of data points (or rows, if ``perturb_row=True``) to modify in 

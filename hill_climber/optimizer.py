@@ -39,7 +39,7 @@ class HillClimber:
         data,
         objective_func,
         max_time=30,
-        step_size=0.05,
+        step_size=0,
         perturb_fraction=0.05,
         temperature=1000,
         cooling_rate=0.000001,
@@ -48,7 +48,8 @@ class HillClimber:
         checkpoint_file=None,
         save_interval=60,
         plot_progress=None,
-        perturb_row=False
+        perturb_row=False,
+        step_spread=1.0
     ):
         """Initialize HillClimber.
         
@@ -58,7 +59,7 @@ class HillClimber:
                           (metrics_dict, objective_value). For 2D data, receives (x, y).
                           For 3D data, receives (x, y, z), etc.
             max_time: Maximum runtime in minutes (default: 30)
-            step_size: Maximum perturbation amount (default: 0.05)
+            step_size: Mean of normal distribution for perturbations (default: 0)
             perturb_fraction: Fraction of points to perturb each step (default: 0.05)
             temperature: Initial temperature for simulated annealing (default: 1000)
             cooling_rate: Amount subtracted from 1 to get multiplicative cooling rate.
@@ -72,6 +73,7 @@ class HillClimber:
                           If None (default), no plots are drawn during optimization.
             perturb_row: If True, perturb all values in randomly selected rows.
                         If False (default), perturb individual randomly selected elements.
+            step_spread: Standard deviation of normal distribution for perturbations (default: 1.0)
             
         Raises:
             ValueError: If mode is invalid or target_value missing for target mode
@@ -112,6 +114,7 @@ class HillClimber:
         self.save_interval = save_interval
         self.plot_progress = plot_progress
         self.perturb_row = perturb_row
+        self.step_spread = step_spread
         
         # These will be set during climb
         self.best_data = None
@@ -162,7 +165,8 @@ class HillClimber:
                 'cooling_rate': self.cooling_rate_input,
                 'mode': self.mode,
                 'target_value': self.target_value,
-                'perturb_row': self.perturb_row
+                'perturb_row': self.perturb_row,
+                'step_spread': self.step_spread
             },
             'data_info': {
                 'is_dataframe': self.is_dataframe,
@@ -343,7 +347,8 @@ class HillClimber:
             mode=hyperparams['mode'],
             target_value=hyperparams['target_value'],
             checkpoint_file=new_checkpoint_file if new_checkpoint_file is not None else checkpoint_file,
-            perturb_row=hyperparams.get('perturb_row', False)  # Default to False for old checkpoints
+            perturb_row=hyperparams.get('perturb_row', False),  # Default to False for old checkpoints
+            step_spread=hyperparams.get('step_spread', 1.0)  # Default to 1.0 for old checkpoints
         )
         
         # Load the checkpoint state
@@ -399,7 +404,8 @@ class HillClimber:
                 self.step_size, 
                 self.perturb_fraction,
                 self.bounds,
-                self.perturb_row
+                self.perturb_row,
+                self.step_spread
             )
 
             self.metrics, new_objective = calculate_objective(new_data, self.objective_func)
@@ -546,7 +552,8 @@ class HillClimber:
                 data_rep, self.objective_func, self.max_time, self.step_size,
                 self.perturb_fraction, self.temperature, self.cooling_rate,
                 self.mode, self.target_value, self.is_dataframe, self.columns,
-                checkpoint_file, self.save_interval, None, self.perturb_row  # Disable plot_progress for parallel
+                checkpoint_file, self.save_interval, None, self.perturb_row,  # Disable plot_progress for parallel
+                self.step_spread
             ))
         
         # Execute in parallel
@@ -589,7 +596,8 @@ class HillClimber:
                     'mode': self.mode,
                     'target_value': self.target_value,
                     'input_size': len(self.data),
-                    'perturb_row': self.perturb_row
+                    'perturb_row': self.perturb_row,
+                    'step_spread': self.step_spread
                 }
             }
             
@@ -679,7 +687,8 @@ def _climb_wrapper(args):
     Args:
         args: Tuple of (data_numpy, objective_func, max_time, step_size, 
               perturb_fraction, temperature, cooling_rate, mode, target_value, 
-              is_dataframe, columns, checkpoint_file, save_interval, plot_progress, perturb_row)
+              is_dataframe, columns, checkpoint_file, save_interval, plot_progress, 
+              perturb_row, step_spread)
         
     Returns:
         Result from climb(): (best_data, steps_df)
@@ -687,7 +696,7 @@ def _climb_wrapper(args):
 
     (data_numpy, objective_func, max_time, step_size, perturb_fraction, 
      temperature, cooling_rate, mode, target_value, is_dataframe, columns,
-     checkpoint_file, save_interval, plot_progress, perturb_row) = args
+     checkpoint_file, save_interval, plot_progress, perturb_row, step_spread) = args
     
     # Reconstruct original data format for HillClimber
     data_input = (
@@ -708,7 +717,8 @@ def _climb_wrapper(args):
         checkpoint_file=checkpoint_file,
         save_interval=save_interval,
         plot_progress=plot_progress,
-        perturb_row=perturb_row
+        perturb_row=perturb_row,
+        step_spread=step_spread
     )
     
     return climber.climb()

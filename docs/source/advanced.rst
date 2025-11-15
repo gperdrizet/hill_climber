@@ -167,6 +167,14 @@ Choose between element-wise and row-wise perturbations:
 - Maintains row-level consistency during optimization
 - ``perturb_fraction`` controls fraction of rows modified
 
+**Perturbation distribution**:
+
+Perturbations are sampled from a normal distribution N(``step_size``, ``step_spread``):
+
+- ``step_size``: Mean of the distribution (bias direction of perturbations)
+- ``step_spread``: Standard deviation (controls magnitude variability)
+- Default (``step_size=0``, ``step_spread=1.0``): symmetric perturbations around current values
+
 Example:
 
 .. code-block:: python
@@ -176,7 +184,9 @@ Example:
        data=data,
        objective_func=my_objective,
        perturb_fraction=0.1,
-       perturb_row=False  # default
+       perturb_row=False,  # default
+       step_size=0,        # centered perturbations
+       step_spread=0.5     # moderate variability
    )
    
    # Row-wise: perturb all values in 10% of rows
@@ -184,7 +194,9 @@ Example:
        data=data,
        objective_func=my_objective,
        perturb_fraction=0.1,
-       perturb_row=True
+       perturb_row=True,
+       step_size=0.01,     # slight upward bias
+       step_spread=2.0     # high variability
    )
 
 Faster Convergence
@@ -192,7 +204,7 @@ Faster Convergence
 
 For quick convergence, use aggressive parameters:
 
-- **Large step_size** (~10%-50% of input range): Make bigger changes
+- **Large step_spread** (5.0-10.0): Allow bigger perturbations
 - **High perturb_fraction** (0.4-0.6): Modify more points
 - **Low temperature** (10-50): More greedy optimization
 - **Slower cooling** (0.0001): More exploration of suboptimal solutions
@@ -202,7 +214,7 @@ Better Exploration
 
 For thorough exploration of solution space:
 
-- **Small step_size** (~1%-10% of input range): Precise adjustments
+- **Small step_spread** (0.1-0.5): Precise adjustments
 - **Low perturb_fraction** (0.1-0.2): Subtle changes
 - **High temperature** (100-500): Accept more suboptimal moves
 - **Faster cooling** (0.01-0.001): Gradual convergence
@@ -214,7 +226,7 @@ The hill climbing process can be visualized as searching a fitness landscape.
 The algorithm:
 
 1. Starts from initial data
-2. Makes random perturbations
+2. Makes random perturbations sampled from a normal distribution N(``step_size``, ``step_spread``)
 3. Evaluates fitness via objective function
 4. Accepts improvements (always) or worsening moves (with probability based on temperature)
 5. Gradually reduces temperature to focus on local optimization
@@ -230,7 +242,7 @@ No Progress After Many Steps
 
 **Solutions**:
 
-- Increase ``step_size`` for larger perturbations
+- Increase ``step_spread`` for larger perturbations
 - Increase ``perturb_fraction`` to modify more points
 - Decrease ``temperature`` for more greedy optimization
 - Check if objective function has bugs or is too constrained
@@ -254,7 +266,7 @@ Oscillating Objective Values
 
 **Solutions**:
 
-- Decrease ``step_size`` for finer control
+- Decrease ``step_spread`` for finer control
 - Decrease ``temperature`` to be more selective
 - Check for bugs in objective function
 - Ensure objective weights are balanced
