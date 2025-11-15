@@ -109,6 +109,7 @@ def plot_results(results, plot_type='scatter', metrics=None):
     if isinstance(results, dict):
         # New dictionary format
         results_list = results['results']
+
     else:
         # Legacy list format
         results_list = results
@@ -117,6 +118,7 @@ def plot_results(results, plot_type='scatter', metrics=None):
     if len(results_list[0]) == 3:
         # Format: (noisy_initial, best_data, steps_df)
         _, _, steps_df = results_list[0]
+
     else:
         # Format: (best_data, steps_df)
         _, steps_df = results_list[0]
@@ -150,13 +152,14 @@ def _plot_results_scatter(results, metrics=None):
     n_replicates = len(results)
     fig = plt.figure(constrained_layout=True, figsize=(15, 2.5*n_replicates))
     spec = fig.add_gridspec(nrows=n_replicates, ncols=5, width_ratios=[1.1, 1, 1, 1, 1])
-    fig.suptitle('Hill climb results (Scatter plots)', fontsize=16)
+    fig.suptitle('Hill climb results', fontsize=16)
 
     for i in range(n_replicates):
 
         # Handle both old and new formats
         if len(results[i]) == 3:
             _, best_data, steps_df = results[i]
+
         else:
             best_data, steps_df = results[i]
         
@@ -177,16 +180,18 @@ def _plot_results_scatter(results, metrics=None):
 
             lines.extend(
                 ax.plot(
-                    steps_df['Step'] / 100000, steps_df[metric_name], label=metric_name
+                    steps_df['Step'], steps_df[metric_name], label=metric_name
                 )
             )
         
-        ax.set_xlabel('Step (x 100000)')
+        ax.set_xlabel('Step')
         ax.set_ylabel('Metrics', color='black')
+        ax.ticklabel_format(style='scientific', axis='x', scilimits=(0,0))
         
         ax2 = ax.twinx()
-        lines.extend(ax2.plot(steps_df['Step'] / 100000, steps_df['Objective value'], 
+        lines.extend(ax2.plot(steps_df['Step'], steps_df['Objective value'], 
                               label='Objective', color='black'))
+
         ax2.set_ylabel('Objective value', color='black')
         ax2.legend(lines, [l.get_label() for l in lines], loc='best', fontsize=7)
         
@@ -226,7 +231,7 @@ def _plot_results_scatter(results, metrics=None):
                 transform=ax.transAxes,
                 fontsize=7,
                 verticalalignment='top',
-                bbox=dict(facecolor='white', edgecolor='none', alpha=0.8)
+                bbox=dict(facecolor='white', edgecolor='black')
             )
 
     plt.show()
@@ -243,12 +248,14 @@ def _plot_results_histogram(results, metrics=None):
     n_replicates = len(results)
     fig = plt.figure(constrained_layout=True, figsize=(15, 2.5*n_replicates))
     spec = fig.add_gridspec(nrows=n_replicates, ncols=5, width_ratios=[1.1, 1, 1, 1, 1])
-    fig.suptitle('Hill climb results (KDE plots)', fontsize=16)
+    fig.suptitle('Hill climb results', fontsize=16)
 
     for i in range(n_replicates):
+
         # Handle both old and new formats
         if len(results[i]) == 3:
             _, best_data, steps_df = results[i]
+
         else:
             best_data, steps_df = results[i]
         
@@ -269,16 +276,17 @@ def _plot_results_histogram(results, metrics=None):
 
             lines.extend(
                 ax.plot(
-                    steps_df['Step'] / 100000, steps_df[metric_name], label=metric_name
+                    steps_df['Step'], steps_df[metric_name], label=metric_name
                 )
             )
         
-        ax.set_xlabel('Step (x 100000)')
+        ax.set_xlabel('Step')
         ax.set_ylabel('Metrics', color='black')
+        ax.ticklabel_format(style='scientific', axis='x', scilimits=(0,0))
         
         ax2 = ax.twinx()
 
-        lines.extend(ax2.plot(steps_df['Step'] / 100000, steps_df['Objective value'], 
+        lines.extend(ax2.plot(steps_df['Step'], steps_df['Objective value'], 
                               label='Objective', color='black'))
 
         ax2.set_ylabel('Objective value', color='black')
@@ -374,7 +382,7 @@ def _plot_results_histogram(results, metrics=None):
                 transform=ax.transAxes,
                 fontsize=7,
                 verticalalignment='top',
-                bbox=dict(facecolor='white', edgecolor='none', alpha=0.8)
+                bbox=dict(facecolor='white', edgecolor='black')
             )
 
     plt.show()
