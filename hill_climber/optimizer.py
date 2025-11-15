@@ -186,7 +186,11 @@ class HillClimber:
         Args:
             force: Plot even if plot_progress interval hasn't elapsed (default: False)
         """
+
         if self.plot_progress is None:
+            return
+        
+        if self.start_time is None:
             return
             
         current_time = time.time()
@@ -232,10 +236,11 @@ class HillClimber:
                 return f"{hours:.1f} hours"
         
         # Check if there are any steps to plot
-        if len(self.steps) == 0:
+        if len(self.steps['Step']) == 0:
             print(f"\nNo accepted steps since last progress update")
             print(f"Last progress update: {format_elapsed(last_elapsed_min)}")
             print(f"Current time: {format_elapsed(elapsed_min)}")
+
         else:
             print(f"\nPlotting progress at {format_elapsed(elapsed_min)}...")
             plot_results_func(results, plot_type='scatter')
