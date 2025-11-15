@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Topics &mdash; Hill Climber 0.1.7 documentation</title>
+  <title>Advanced Topics &mdash; Hill Climber 0.1.10 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=ca7ad2ea"></script>
+      <script src="_static/documentation_options.js?v=bafade30"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -60,8 +60,9 @@
 <li class="toctree-l3"><a class="reference internal" href="#replicate-noise-tuning">Replicate Noise Tuning</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#checkpoint-strategies">Checkpoint Strategies</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#for-very-long-runs">For Very Long Runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#progress-monitoring">Progress Monitoring</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#live-progress-plots">Live Progress Plots</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#performance-optimization">Performance Optimization</a><ul>
@@ -190,20 +191,62 @@
 </ul>
 </section>
 </section>
-<section id="checkpoint-strategies">
-<h2>Checkpoint Strategies<a class="headerlink" href="#checkpoint-strategies" title="Link to this heading"></a></h2>
-<section id="for-very-long-runs">
-<h3>For Very Long Runs<a class="headerlink" href="#for-very-long-runs" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Save every 10 minutes for 24-hour runs</span>
-<span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
+<section id="checkpointing">
+<h2>Checkpointing<a class="headerlink" href="#checkpointing" title="Link to this heading"></a></h2>
+<p>For long optimizations, save intermediate progress:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
-    <span class="n">objective_func</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
-    <span class="n">max_time</span><span class="o">=</span><span class="mi">1440</span><span class="p">,</span>  <span class="c1"># 24 hours</span>
-    <span class="n">checkpoint_file</span><span class="o">=</span><span class="s1">&#39;long_run.pkl&#39;</span><span class="p">,</span>
-    <span class="n">save_interval</span><span class="o">=</span><span class="mi">600</span>  <span class="c1"># 10 minutes</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
+    <span class="n">max_time</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+    <span class="n">checkpoint_file</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
+    <span class="n">save_interval</span><span class="o">=</span><span class="mi">300</span>  <span class="c1"># Save every 5 minutes</span>
 <span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
+<p>Resume from a checkpoint:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">resume_from_checkpoint</span><span class="p">(</span>
+    <span class="n">checkpoint_file</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
+    <span class="n">new_max_time</span><span class="o">=</span><span class="mi">30</span>  <span class="c1"># Continue for 30 more minutes</span>
+<span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="progress-monitoring">
+<h2>Progress Monitoring<a class="headerlink" href="#progress-monitoring" title="Link to this heading"></a></h2>
+<section id="live-progress-plots">
+<h3>Live Progress Plots<a class="headerlink" href="#live-progress-plots" title="Link to this heading"></a></h3>
+<p>Monitor optimization progress in real-time with automatic plotting:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
+    <span class="n">max_time</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+    <span class="n">plot_progress</span><span class="o">=</span><span class="mi">5</span>  <span class="c1"># Plot every 5 minutes</span>
+<span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This is particularly useful for:</p>
+<ul class="simple">
+<li><p>Long-running optimizations (&gt;10 minutes)</p></li>
+<li><p>Interactive Jupyter notebooks</p></li>
+<li><p>Debugging objective functions</p></li>
+<li><p>Monitoring convergence behavior</p></li>
+</ul>
+<p><strong>Important Notes</strong>:</p>
+<ul class="simple">
+<li><p>Only works with <code class="docutils literal notranslate"><span class="pre">climb()</span></code> method (single-process mode)</p></li>
+<li><p>Does <strong>not</strong> work with <code class="docutils literal notranslate"><span class="pre">climb_parallel()</span></code> because worker processes don’t
+report intermediate results</p></li>
+<li><p>If no steps are accepted between plot intervals, displays time information
+instead of plotting</p></li>
+<li><p>In Jupyter notebooks, each plot replaces the previous one for clean output</p></li>
+</ul>
 </section>
 </section>
 <section id="performance-optimization">

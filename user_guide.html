@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Guide &mdash; Hill Climber 0.1.7 documentation</title>
+  <title>User Guide &mdash; Hill Climber 0.1.10 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=ca7ad2ea"></script>
+      <script src="_static/documentation_options.js?v=bafade30"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -129,7 +129,7 @@ Use this when lower objective values are better.</p>
 </section>
 <section id="hyperparameters">
 <h2>Hyperparameters<a class="headerlink" href="#hyperparameters" title="Link to this heading"></a></h2>
-<dl class="simple">
+<dl>
 <dt><strong>step_size</strong> (default: 0.1)</dt><dd><p>Controls the magnitude of perturbations. Larger values make bigger changes
 but may overshoot optimal solutions. Smaller values are more precise but
 slower.</p>
@@ -148,6 +148,16 @@ cooling and longer exploration. For example, 0.000001 means temp <a href="#id1">
 </dd>
 <dt><strong>initial_noise</strong> (default: 0.0)</dt><dd><p>Amount of uniform noise to add when creating replicate starting points.
 Only used in <code class="docutils literal notranslate"><span class="pre">climb_parallel()</span></code>.</p>
+</dd>
+<dt><strong>plot_progress</strong> (default: None)</dt><dd><p>Interval in minutes for plotting optimization progress during a run.
+When set, creates scatter plots showing the current best solution at
+regular intervals. For example, <code class="docutils literal notranslate"><span class="pre">plot_progress=5</span></code> plots every 5 minutes.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This option only works in single-process mode (<code class="docutils literal notranslate"><span class="pre">climb()</span></code>). It does not
+work with parallel mode (<code class="docutils literal notranslate"><span class="pre">climb_parallel()</span></code>) because results from worker
+processes are not collected until the end of the run.</p>
+</div>
 </dd>
 </dl>
 </section>
