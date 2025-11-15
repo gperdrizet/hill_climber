@@ -150,7 +150,7 @@ def _plot_results_scatter(results, metrics=None):
     """
 
     n_replicates = len(results)
-    fig = plt.figure(constrained_layout=True, figsize=(15, 2.5*n_replicates))
+    fig = plt.figure(constrained_layout=True, figsize=(12, 2.4*n_replicates))
     spec = fig.add_gridspec(nrows=n_replicates, ncols=5, width_ratios=[1.1, 1, 1, 1, 1])
     fig.suptitle('Hill climb results', fontsize=16)
 
@@ -193,7 +193,7 @@ def _plot_results_scatter(results, metrics=None):
                               label='Objective', color='black'))
 
         ax2.set_ylabel('Objective value', color='black')
-        ax2.legend(lines, [l.get_label() for l in lines], loc='best', fontsize=7)
+        ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
         
         # Snapshot plots at 25%, 50%, 75%, 100%
         for j, (pct, label) in enumerate(zip([0.25, 0.50, 0.75, 1.0], ['25%', '50%', '75%', '100%'])):
@@ -226,7 +226,7 @@ def _plot_results_scatter(results, metrics=None):
                 stats_text += f'{abbrev}={steps_df[metric_name].iloc[step_idx]:.3f}\n'
             
             ax.text(
-                0.04, 0.95,
+                0.06, 0.94,
                 stats_text.strip(),
                 transform=ax.transAxes,
                 fontsize=7,
@@ -246,7 +246,7 @@ def _plot_results_histogram(results, metrics=None):
     """
 
     n_replicates = len(results)
-    fig = plt.figure(constrained_layout=True, figsize=(15, 2.5*n_replicates))
+    fig = plt.figure(constrained_layout=True, figsize=(12, 2.5*n_replicates))
     spec = fig.add_gridspec(nrows=n_replicates, ncols=5, width_ratios=[1.1, 1, 1, 1, 1])
     fig.suptitle('Hill climb results', fontsize=16)
 
@@ -290,7 +290,7 @@ def _plot_results_histogram(results, metrics=None):
                               label='Objective', color='black'))
 
         ax2.set_ylabel('Objective value', color='black')
-        ax2.legend(lines, [l.get_label() for l in lines], loc='best', fontsize=7)
+        ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
         
         # Snapshot histograms at 25%, 50%, 75%, 100%
         for j, (pct, label) in enumerate(zip([0.25, 0.50, 0.75, 1.0], ['25%', '50%', '75%', '100%'])):
@@ -377,7 +377,7 @@ def _plot_results_histogram(results, metrics=None):
                 stats_text += f'{abbrev}={steps_df[metric_name].iloc[step_idx]:.3f}\n'
             
             ax.text(
-                0.04, 0.95,
+                0.05, 0.94,
                 stats_text.strip(),
                 transform=ax.transAxes,
                 fontsize=7,
