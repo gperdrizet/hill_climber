@@ -2,15 +2,21 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
 	// Container definition for a Python 3.12 development environment
+	// Uses Microsoft's official Python devcontainer image which includes:
+	// - Python 3.12 and pip
+	// - Common development tools (git, curl, wget, etc.)
+	// - Non-root user 'vscode' for security
 	"name": "Python 3.12",
 	"image": "mcr.microsoft.com/devcontainers/python:3.12",
 
-	// Configure port forwarding
+	// Configure port forwarding for the documentation server
+	// Port 8000 is used to serve the built Sphinx documentation locally
+	// This allows viewing docs at http://localhost:8000 during development
 	"forwardPorts": [8000],
 	"portsAttributes": {
 		"8000": {
 			"label": "Documentation Server",
-			"onAutoForward": "notify"
+			"onAutoForward": "notify"  // Show a notification when port is auto-forwarded
 		}
 	},
 
@@ -22,37 +28,61 @@
 
 		// Use 'settings' to set default VS code values on container create
 		"settings": {
+			// Set the default Python interpreter to the system Python 3.12
+			// This ensures consistency across all users and sessions
 			"python.defaultInterpreterPath": "/usr/local/bin/python",
+			
+			// Exclude older Python versions from Jupyter kernel list
+			// Prevents confusion by hiding system Python versions we don't want to use
+			// The container has Python 3.12 as primary, but may have 3.13 for compatibility
 			"jupyter.kernels.excludePythonEnvironments": [
 				"/bin/python3",
 				"/bin/python3.13",
 				"/usr/bin/python3",
 				"/usr/bin/python3.13"
 			],
+			
+			// Disable automatic port forwarding to give explicit control
+			// We manually specify port 8000 above for the documentation server
 			"remote.autoForwardPorts": false,
 			"remote.restoreForwardedPorts": false
 		},
 
 		// Add the IDs of VS code extensions you want to install here
+		// These extensions provide Python development, documentation, and project management support
 		"extensions": [
-		  "-dbaeumer.vscode-eslint",
-		  "ms-python.python",
-		  "ms-toolsai.jupyter",
-		  "streetsidesoftware.code-spell-checker",
-		  "github.vscode-github-actions",
-		  "ms-vscode.makefile-tools",
-		  "github.copilot",
-		  "github.copilot-chat"
+		  "-dbaeumer.vscode-eslint",                // Explicitly exclude ESLint (not needed for Python projects)
+		  "ms-python.python",                       // Core Python language support, IntelliSense, debugging
+		  "ms-toolsai.jupyter",                     // Jupyter notebook support for interactive data science
+		  "streetsidesoftware.code-spell-checker",  // Spell checking for code and documentation
+		  "github.vscode-github-actions",           // View and manage GitHub Actions workflows
+		  "ms-vscode.makefile-tools",               // Support for Makefile editing and execution (for docs)
+		  "github.copilot",                         // AI-powered code completion
+		  "github.copilot-chat"                    // AI chat assistant for development questions
 		]
 	  }
 	},
 
 	// Use 'onCreateCommand' to run commands once when the container is created
+	// This runs only on initial container creation, not on subsequent starts/attaches
+	// Steps:
+	// 1. Update package lists and upgrade existing packages for security
+	// 2. Install gnupg2 for GPG signature verification (needed for some package managers)
+	// 3. Upgrade pip to latest version for better dependency resolution
+	// 4. Install all Python dependencies from requirements.txt to user site-packages
+	//    (--user flag avoids permission issues and keeps packages separate from system)
 	"onCreateCommand": "sudo apt update && sudo apt upgrade -y && sudo apt-get install gnupg2 -y && pip3 install --upgrade pip && pip3 install --user -r requirements.txt",
 
 	// Use 'postCreateCommand' to run commands once after the container is created
-	"postCreateCommand": "mkdir -p data && bash .devcontainer/build-and-serve-docs.sh",
+	// This runs after onCreateCommand completes
+	// Creates the 'data' directory for storing hill climbing results and checkpoints
+	// Using mkdir -p ensures no error if directory already exists
+	"postCreateCommand": "mkdir -p data",
 
 	// Use 'postAttachCommand' to run commands each time a user connects to the container
+	// This runs every time VS Code attaches/reconnects to the container
+	// Executes a script that rebuilds documentation and starts a local web server
+	// The script is separated for maintainability and better error handling
+	// See .devcontainer/build-and-serve-docs.sh for implementation details
 	"postAttachCommand": "bash .devcontainer/build-and-serve-docs.sh"
 }
