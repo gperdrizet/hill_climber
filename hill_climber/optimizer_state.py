@@ -63,7 +63,8 @@ class OptimizerState:
     # Configuration
     original_data: Optional[Any] = None  # Can be numpy array or DataFrame
     hyperparameters: Dict[str, Any] = field(default_factory=dict)
-    
+
+
     def initialize(self, data: np.ndarray, objective: float, metrics: Dict[str, Any],
                    temperature: float, target_value: Optional[float] = None,
                    mode: str = 'maximize', original_data: Optional[Any] = None,
@@ -80,6 +81,7 @@ class OptimizerState:
             original_data: Original input data before optimization (optional)
             hyperparameters: Dictionary of optimization hyperparameters (optional)
         """
+
         self.current_data = data.copy()
         self.best_data = data.copy()
         self.current_objective = objective
@@ -90,6 +92,7 @@ class OptimizerState:
         # Store configuration
         if original_data is not None:
             self.original_data = original_data
+
         if hyperparameters is not None:
             self.hyperparameters = hyperparameters.copy()
         
@@ -101,26 +104,32 @@ class OptimizerState:
         # Set best_distance for target mode
         if mode == 'target' and target_value is not None:
             self.best_distance = abs(objective - target_value)
+
         else:
             self.best_distance = None
-    
+
+
     def record_improvement(self) -> None:
         """Record current best solution in history."""
+
         self.history['Step'].append(self.step)
         self.history['Objective value'].append(self.best_objective)
         self.history['Best_data'].append(self.best_data.copy())
         
         for metric_name, metric_value in self.metrics.items():
             self.history[metric_name].append(metric_value)
-    
+
+
     def get_history_dataframe(self) -> pd.DataFrame:
         """Convert history to pandas DataFrame.
         
         Returns:
             DataFrame with all history columns
         """
+
         return pd.DataFrame(self.history)
-    
+
+
     def update_current(self, data: np.ndarray, objective: float, 
                       metrics: Dict[str, Any]) -> None:
         """Update current solution state.
@@ -130,10 +139,12 @@ class OptimizerState:
             objective: New current objective value
             metrics: New current metrics
         """
+
         self.current_data = data
         self.current_objective = objective
         self.metrics = metrics
-    
+
+
     def update_best(self, data: np.ndarray, objective: float,
                    target_value: Optional[float] = None) -> None:
         """Update best solution state.
@@ -143,18 +154,21 @@ class OptimizerState:
             objective: New best objective value
             target_value: Target value for distance calculation (optional)
         """
+
         self.best_data = data.copy()
         self.best_objective = objective
         
         if target_value is not None:
             self.best_distance = abs(objective - target_value)
-    
+
+
     def to_checkpoint_dict(self) -> Dict[str, Any]:
         """Convert state to dictionary for checkpointing.
         
         Returns:
             Dictionary containing all state data including hyperparameters
         """
+
         return {
             'current_data': self.current_data.copy() if self.current_data is not None else None,
             'best_data': self.best_data.copy() if self.best_data is not None else None,
@@ -172,7 +186,8 @@ class OptimizerState:
             'original_data': self.original_data,
             'hyperparameters': self.hyperparameters.copy() if self.hyperparameters else {}
         }
-    
+
+
     @classmethod
     def from_checkpoint_dict(cls, checkpoint_dict: Dict[str, Any]) -> 'OptimizerState':
         """Create OptimizerState from checkpoint dictionary.
@@ -183,6 +198,7 @@ class OptimizerState:
         Returns:
             New OptimizerState instance
         """
+
         state = cls()
         state.current_data = checkpoint_dict.get('current_data')
         state.best_data = checkpoint_dict.get('best_data')
@@ -204,15 +220,18 @@ class OptimizerState:
         state.hyperparameters = checkpoint_dict.get('hyperparameters', {})
         
         return state
-    
+
+
     def has_steps(self) -> bool:
         """Check if any steps have been recorded in history.
         
         Returns:
             True if history contains steps, False otherwise
         """
+
         return len(self.history.get('Step', [])) > 0
-    
+
+
     def get_results(self, is_dataframe: bool = False, 
                    columns: Optional[List[str]] = None) -> tuple:
         """Get optimization results in the appropriate format.
@@ -226,6 +245,7 @@ class OptimizerState:
                 - best_data: Best solution (DataFrame or numpy array)
                 - history_df: DataFrame with optimization history
         """
+
         best_data_output = (
             pd.DataFrame(self.best_data, columns=columns)
             if is_dataframe and columns is not None
