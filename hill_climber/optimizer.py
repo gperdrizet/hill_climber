@@ -63,7 +63,7 @@ class HillClimber:
             perturb_fraction: Fraction of points to perturb each step (default: 0.05)
             temperature: Initial temperature for simulated annealing (default: 1000)
             cooling_rate: Amount subtracted from 1 to get multiplicative cooling rate.
-                         For example, 0.000001 results in temp \*= 0.999999 each step.
+                         For example, 0.000001 results in temp *= 0.999999 each step.
                          Smaller values = slower cooling. (default: 0.000001)
             mode: 'maximize', 'minimize', or 'target' (default: 'maximize')
             target_value: Target objective value for target mode (default: None)
