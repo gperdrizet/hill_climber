@@ -54,5 +54,5 @@
 	"postCreateCommand": "mkdir -p data",
 
 	// Use 'postAttachCommand' to run commands each time a user connects to the container
-	"postAttachCommand": "cd /workspaces/hill_climber && cd docs && make clean && make html && cd /workspaces/hill_climber && nohup python -m http.server 8000 --directory docs/build/html > /tmp/docs-server.log 2>&1 & disown"
+	"postAttachCommand": "cd docs && make clean && make html && cd /workspaces/hill_climber && nohup python -m http.server 8000 --directory docs/build/html > /tmp/docs-server.log 2>&1 & disown"
 }
