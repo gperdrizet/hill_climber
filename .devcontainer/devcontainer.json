@@ -5,8 +5,19 @@
 	"name": "Python 3.12",
 	"image": "mcr.microsoft.com/devcontainers/python:3.12",
 
+	// Configure port forwarding
+	"forwardPorts": [8000],
+	"portsAttributes": {
+		"8000": {
+			"label": "Documentation Server",
+			"onAutoForward": "notify"
+		}
+	},
+
 	// Custom configuration options
 	"customizations": {
+
+	  // Configure VS code settings and extensions
 	  "vscode": {
 
 		// Use 'settings' to set default VS code values on container create
@@ -41,5 +52,5 @@
 	"postCreateCommand": "mkdir -p data",
 
 	// Use 'postAttachCommand' to run commands each time a user connects to the container
-	"postAttachCommand": ""
+	"postAttachCommand": "bash -c 'cd docs && make clean && make html && cd .. && nohup python -m http.server 8000 --directory docs/build/html > /tmp/docs-server.log 2>&1 &'"
 }
