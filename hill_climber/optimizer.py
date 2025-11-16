@@ -55,17 +55,17 @@ class HillClimber:
         """Initialize HillClimber.
         
         Args:
-            data: numpy array (N x M) or pandas DataFrame with M columns
+            data: numpy array ``(N x M)`` or pandas DataFrame with M columns
             objective_func: Function that takes M column arrays and returns 
-                          (metrics_dict, objective_value). For 2D data, receives (x, y).
-                          For 3D data, receives (x, y, z), etc.
+                          ``(metrics_dict, objective_value)``. For 2D data, receives ``(x, y)``.
+                          For 3D data, receives ``(x, y, z)``, etc.
             max_time: Maximum runtime in minutes (default: 30)
             perturb_fraction: Fraction of points to perturb each step (default: 0.05)
             temperature: Initial temperature for simulated annealing (default: 1000)
             cooling_rate: Amount subtracted from 1 to get multiplicative cooling rate.
-                         For example, 0.000001 results in temp *= 0.999999 each step.
+                         For example, 0.000001 results in ``temp *= 0.999999`` each step.
                          Smaller values = slower cooling. (default: 0.000001)
-            mode: 'maximize', 'minimize', or 'target' (default: 'maximize')
+            mode: ``'maximize'``, ``'minimize'``, or ``'target'`` (default: ``'maximize'``)
             target_value: Target objective value for target mode (default: None)
             checkpoint_file: Path to save/load checkpoints (default: None)
             save_interval: Seconds between checkpoint saves (default: 60)
