@@ -17,6 +17,9 @@ echo "Building documentation..."
 # Navigate to documentation directory
 cd /workspaces/hill_climber/docs
 
+# Create _static directory if it doesn't exist
+mkdir -p source/_static
+
 # Remove old build artifacts to ensure clean rebuild
 # This prevents stale content from previous builds
 make clean
