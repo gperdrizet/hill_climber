@@ -44,7 +44,7 @@ Features
 - **JIT Compilation**: Numba-optimized core functions for performance
 
 Python Version Support
----------------------
+----------------------
 
 - Python 3.10+
 - Tested on Python 3.10, 3.11, and 3.12
