@@ -14,26 +14,6 @@ class OptimizerState:
     coherent structure. It replaces multiple class attributes with a unified
     state object that simplifies data handling for plotting, checkpointing,
     and results reporting.
-    
-    Attributes:
-        current_data: Current candidate solution (numpy array)
-        best_data: Best solution found so far (numpy array)
-        current_objective: Objective value of current solution
-        best_objective: Objective value of best solution
-        step: Current step number
-        temperature: Current simulated annealing temperature
-        best_distance: Distance to target (only for target mode)
-        metrics: Dictionary of current metric values
-        history: Dictionary tracking optimization history with lists for:
-                 - 'Step': step numbers
-                 - 'Objective value': objective values
-                 - 'Best_data': snapshots of best data
-                 - Additional metric columns (dynamic)
-        start_time: Optimization start timestamp
-        last_save_time: Last checkpoint save timestamp
-        last_plot_time: Last progress plot timestamp
-        original_data: Original input data before optimization (numpy array or DataFrame)
-        hyperparameters: Dictionary of optimization hyperparameters
     """
     
     # Current state
