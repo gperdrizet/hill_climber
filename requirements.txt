@@ -1,11 +1,28 @@
-ipykernel
-matplotlib
-nbsphinx
-numba
-numpy
-pandas
-scikit-learn
-scipy
-sphinx
-sphinx-rtd-theme
-sphinx-autodoc-typehints
+# ==============================================================================
+# Core Hill Climber Package Dependencies
+# ==============================================================================
+# These packages are required for the hill_climber package to function
+
+numpy          # Array operations and numerical computing
+pandas         # DataFrame support for input/output data
+scipy          # Statistical functions (pearsonr, spearmanr, etc.)
+numba          # JIT compilation for performance-critical functions
+matplotlib     # Plotting and visualization
+
+# ==============================================================================
+# Documentation Dependencies
+# ==============================================================================
+# Packages required to build the Sphinx documentation
+
+sphinx                      # Documentation generation tool
+sphinx-rtd-theme            # Read the Docs theme for Sphinx
+nbsphinx                    # Jupyter notebook integration for Sphinx
+sphinx-autodoc-typehints    # Enhanced type hints in API documentation
+
+# ==============================================================================
+# Demonstration Notebooks Dependencies
+# ==============================================================================
+# Additional packages needed to run the example notebooks
+
+ipykernel      # Jupyter kernel for running notebooks
+scikit-learn   # Machine learning utilities used in some examples
