@@ -40,6 +40,7 @@
 		  "ms-toolsai.jupyter",
 		  "streetsidesoftware.code-spell-checker",
 		  "github.vscode-github-actions",
+		  "ms-vscode.makefile-tools",
 		  "github.copilot",
 		  "github.copilot-chat"
 		]
