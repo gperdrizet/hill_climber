@@ -1,7 +1,11 @@
 ipykernel
 matplotlib
+nbsphinx
 numba
 numpy
 pandas
 scikit-learn
 scipy
+sphinx
+sphinx-rtd-theme
+sphinx-autodoc-typehints
