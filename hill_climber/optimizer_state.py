@@ -32,6 +32,8 @@ class OptimizerState:
         start_time: Optimization start timestamp
         last_save_time: Last checkpoint save timestamp
         last_plot_time: Last progress plot timestamp
+        original_data: Original input data before optimization (numpy array or DataFrame)
+        hyperparameters: Dictionary of optimization hyperparameters
     """
     
     # Current state
@@ -58,9 +60,14 @@ class OptimizerState:
     last_save_time: Optional[float] = None
     last_plot_time: Optional[float] = None
     
+    # Configuration
+    original_data: Optional[Any] = None  # Can be numpy array or DataFrame
+    hyperparameters: Dict[str, Any] = field(default_factory=dict)
+    
     def initialize(self, data: np.ndarray, objective: float, metrics: Dict[str, Any],
                    temperature: float, target_value: Optional[float] = None,
-                   mode: str = 'maximize') -> None:
+                   mode: str = 'maximize', original_data: Optional[Any] = None,
+                   hyperparameters: Optional[Dict[str, Any]] = None) -> None:
         """Initialize state with starting data and metrics.
         
         Args:
@@ -70,6 +77,8 @@ class OptimizerState:
             temperature: Initial temperature
             target_value: Target value for target mode (optional)
             mode: Optimization mode ('maximize', 'minimize', or 'target')
+            original_data: Original input data before optimization (optional)
+            hyperparameters: Dictionary of optimization hyperparameters (optional)
         """
         self.current_data = data.copy()
         self.best_data = data.copy()
@@ -77,6 +86,12 @@ class OptimizerState:
         self.best_objective = objective
         self.temperature = temperature
         self.metrics = metrics.copy()
+        
+        # Store configuration
+        if original_data is not None:
+            self.original_data = original_data
+        if hyperparameters is not None:
+            self.hyperparameters = hyperparameters.copy()
         
         # Initialize history with metric columns
         for metric_name in metrics.keys():
@@ -138,7 +153,7 @@ class OptimizerState:
         """Convert state to dictionary for checkpointing.
         
         Returns:
-            Dictionary containing all state data
+            Dictionary containing all state data including hyperparameters
         """
         return {
             'current_data': self.current_data.copy() if self.current_data is not None else None,
@@ -153,7 +168,9 @@ class OptimizerState:
                        for k, v in self.history.items()},
             'start_time': self.start_time,
             'last_save_time': self.last_save_time,
-            'last_plot_time': self.last_plot_time
+            'last_plot_time': self.last_plot_time,
+            'original_data': self.original_data,
+            'hyperparameters': self.hyperparameters.copy() if self.hyperparameters else {}
         }
     
     @classmethod
@@ -183,6 +200,8 @@ class OptimizerState:
         state.start_time = checkpoint_dict.get('start_time')
         state.last_save_time = checkpoint_dict.get('last_save_time')
         state.last_plot_time = checkpoint_dict.get('last_plot_time')
+        state.original_data = checkpoint_dict.get('original_data')
+        state.hyperparameters = checkpoint_dict.get('hyperparameters', {})
         
         return state
     

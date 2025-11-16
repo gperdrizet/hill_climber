@@ -131,27 +131,20 @@ class HillClimber:
             if current_time - self.state.last_save_time < self.save_interval:
                 return
         
-        # Get state data from dataclass
+        # Get complete state data from dataclass (includes hyperparameters and original_data)
         state_dict = self.state.to_checkpoint_dict()
         
         checkpoint_data = {
             'state': state_dict,
             'elapsed_time': current_time - self.state.start_time if self.state.start_time else 0,
-            'hyperparameters': {
-                'max_time': self.max_time,
-                'perturb_fraction': self.perturb_fraction,
-                'temperature': self.temperature,
-                'cooling_rate': self.cooling_rate_input,
-                'mode': self.mode,
-                'target_value': self.target_value,
-                'step_spread': self.step_spread
-            },
+            # Keep these for backward compatibility with old checkpoints
+            'hyperparameters': state_dict.get('hyperparameters', {}),
             'data_info': {
                 'is_dataframe': self.is_dataframe,
                 'columns': self.columns,
                 'bounds': self.bounds
             },
-            'original_data': self.data.copy()
+            'original_data': state_dict.get('original_data', self.data)
         }
         
         # Create checkpoint directory if needed
@@ -259,6 +252,24 @@ class HillClimber:
             if 'state' in checkpoint_data:
                 # New format: load from dataclass
                 self.state = OptimizerState.from_checkpoint_dict(checkpoint_data['state'])
+                
+                # Restore data info (needed for HillClimber operations)
+                data_info = checkpoint_data.get('data_info', {})
+                self.is_dataframe = data_info.get('is_dataframe', False)
+                self.columns = data_info.get('columns')
+                self.bounds = data_info.get('bounds')
+                
+                # Use original_data from state if available, otherwise from checkpoint root
+                if self.state.original_data is not None:
+                    self.data = self.state.original_data
+                    self.data_numpy = self.data.values if self.is_dataframe else self.data
+                else:
+                    self.data_numpy = checkpoint_data.get('original_data')
+                    if self.is_dataframe and self.columns:
+                        self.data = pd.DataFrame(self.data_numpy, columns=self.columns)
+                    else:
+                        self.data = self.data_numpy
+                        
             else:
                 # Old format: migrate to dataclass
                 self.state = OptimizerState()
@@ -271,13 +282,18 @@ class HillClimber:
                 self.state.step = checkpoint_data['step']
                 self.state.temperature = checkpoint_data['temp']
                 self.state.start_time = checkpoint_data['start_time']
-            
-            # Restore data info
-            data_info = checkpoint_data['data_info']
-            self.is_dataframe = data_info['is_dataframe']
-            self.columns = data_info['columns']
-            self.bounds = data_info['bounds']
-            self.data_numpy = checkpoint_data['original_data']
+                
+                # Store hyperparameters and original data in state for consistency
+                self.state.hyperparameters = checkpoint_data.get('hyperparameters', {})
+                self.state.original_data = checkpoint_data.get('original_data')
+                
+                # Restore data info
+                data_info = checkpoint_data['data_info']
+                self.is_dataframe = data_info['is_dataframe']
+                self.columns = data_info['columns']
+                self.bounds = data_info['bounds']
+                self.data_numpy = checkpoint_data['original_data']
+                self.data = self.state.original_data
             
             # Adjust start time to account for elapsed time
             elapsed_time = checkpoint_data['elapsed_time']
@@ -359,6 +375,20 @@ class HillClimber:
                 self.data_numpy, self.objective_func
             )
             
+            # Prepare hyperparameters dictionary
+            hyperparameters = {
+                'max_time': self.max_time,
+                'perturb_fraction': self.perturb_fraction,
+                'temperature': self.temperature,
+                'cooling_rate': self.cooling_rate_input,
+                'mode': self.mode,
+                'target_value': self.target_value,
+                'step_spread': self.step_spread,
+                'checkpoint_file': self.checkpoint_file,
+                'save_interval': self.save_interval,
+                'plot_progress': self.plot_progress
+            }
+            
             # Initialize state
             self.state.initialize(
                 data=self.data_numpy,
@@ -366,7 +396,9 @@ class HillClimber:
                 metrics=metrics,
                 temperature=self.temperature,
                 target_value=self.target_value,
-                mode=self.mode
+                mode=self.mode,
+                original_data=self.data,
+                hyperparameters=hyperparameters
             )
         
         # Set or update start time
