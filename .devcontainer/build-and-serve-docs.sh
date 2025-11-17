@@ -39,8 +39,9 @@ echo "Starting documentation server on port 8000..."
 # Return to project root for consistent working directory
 cd "$REPO_ROOT"
 
-# Kill any existing server on port 8000
-pkill -f "python -m http.server 8000" 2>/dev/null || true
+# Kill any existing process on port 8000
+# Using lsof to target only processes bound to this specific port
+lsof -ti:8000 | xargs kill -9 2>/dev/null || true
 
 # Start HTTP server to serve the built documentation:
 # - setsid: Start in a new session to detach from parent
