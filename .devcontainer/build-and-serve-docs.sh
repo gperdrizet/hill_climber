@@ -34,14 +34,20 @@ echo "Starting documentation server on port 8000..."
 # Return to project root for consistent working directory
 cd /workspaces/hill_climber
 
+# Kill any existing server on port 8000
+pkill -f "python -m http.server 8000" 2>/dev/null || true
+
 # Start HTTP server to serve the built documentation:
-# - nohup: Continue running even if terminal closes
+# - setsid: Start in a new session to detach from parent
 # - python -m http.server 8000: Simple HTTP server on port 8000
 # - --directory docs/build/html: Serve from the Sphinx output directory
 # - > /tmp/docs-server.log 2>&1: Redirect stdout and stderr to log file
 # - &: Run process in background
-# - disown: Detach from shell to survive shell termination
-nohup python -m http.server 8000 --directory docs/build/html > /tmp/docs-server.log 2>&1 & disown
+# Using setsid ensures the process survives when the parent script exits
+setsid python -m http.server 8000 --directory docs/build/html > /tmp/docs-server.log 2>&1 &
+
+# Give the server a moment to start
+sleep 1
 
 echo "Documentation server started. Access it at http://localhost:8000"
 echo "Server logs are available at /tmp/docs-server.log"
