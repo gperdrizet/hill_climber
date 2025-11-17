@@ -137,14 +137,11 @@ class HillClimber:
         checkpoint_data = {
             'state': state_dict,
             'elapsed_time': current_time - self.state.start_time if self.state.start_time else 0,
-            # Keep these for backward compatibility with old checkpoints
-            'hyperparameters': state_dict.get('hyperparameters', {}),
             'data_info': {
                 'is_dataframe': self.is_dataframe,
                 'columns': self.columns,
                 'bounds': self.bounds
-            },
-            'original_data': state_dict.get('original_data', self.data)
+            }
         }
         
         # Create checkpoint directory if needed
@@ -259,16 +256,13 @@ class HillClimber:
                 self.columns = data_info.get('columns')
                 self.bounds = data_info.get('bounds')
                 
-                # Use original_data from state if available, otherwise from checkpoint root
+                # Restore original data from state
                 if self.state.original_data is not None:
                     self.data = self.state.original_data
                     self.data_numpy = self.data.values if self.is_dataframe else self.data
                 else:
-                    self.data_numpy = checkpoint_data.get('original_data')
-                    if self.is_dataframe and self.columns:
-                        self.data = pd.DataFrame(self.data_numpy, columns=self.columns)
-                    else:
-                        self.data = self.data_numpy
+                    # This should not happen with properly saved checkpoints
+                    raise ValueError("Checkpoint missing original_data in state")
                         
             else:
                 # Old format: migrate to dataclass
