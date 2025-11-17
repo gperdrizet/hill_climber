@@ -81,8 +81,8 @@ Hyperparameters
 
 **cooling_rate** (default: 0.000001)
    Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
-   is multiplied by (1 - cooling_rate) each iteration. Smaller values result in slower
-   cooling and longer exploration. For example, 0.000001 means temp \*= 0.999999 each step.
+   is multiplied by ``(1 - cooling_rate)`` each iteration. Smaller values result in slower
+   cooling and longer exploration. For example, ``0.000001`` means ``temp *= 0.999999`` each step.
 
 **max_time** (default: 30)
    Maximum optimization time in minutes.

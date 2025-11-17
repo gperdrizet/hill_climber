@@ -40,10 +40,10 @@ Here's a simple example that creates a 2D dataset with high Pearson correlation:
    )
 
    # Run optimization
-   result = climber.climb()
+   best_data, steps_df = climber.climb()
 
    # View results
-   print(f"Final correlation: {result['Pearson correlation']:.3f}")
+   print(f"Final correlation: {steps_df['Pearson correlation'].iloc[-1]:.3f}")
 
 Monitoring Progress
 -------------------
