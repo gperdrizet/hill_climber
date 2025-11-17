@@ -6,7 +6,7 @@ A Python package for hill climbing optimization of user-supplied objective funct
 
 ## 1. Documentation
 
-**[View Full Documentation on GitHub Pages](https://gperdrizet.github.io/hill_climber)**
+**<a href="https://gperdrizet.github.io/hill_climber" target="_blank">View Full Documentation on GitHub Pages</a>**
 
 ## 2. Features
 
@@ -29,7 +29,7 @@ Install the package directly from PyPI to use it in your own projects:
 pip install parallel-hill-climber
 ```
 
-For detailed usage, configuration options, and advanced features, see the [full documentation](https://gperdrizet.github.io/hill_climber).
+For detailed usage, configuration options, and advanced features, see the <a href="https://gperdrizet.github.io/hill_climber" target="_blank">full documentation</a>.
 
 ### 3.2. Example climb
 
@@ -51,7 +51,6 @@ data = pd.DataFrame({
 def my_objective(x, y):
     correlation = pd.Series(x).corr(pd.Series(y))
     metrics = {'correlation': correlation}
-
     return metrics, correlation
 
 # Create optimizer
@@ -59,7 +58,6 @@ climber = HillClimber(
     data=data,
     objective_func=my_objective,
     max_time=1,  # minutes
-    step_size=0.5,
     mode='maximize'
 )
 
@@ -74,12 +72,13 @@ climber.plot_results(results, plot_type='histogram')
 
 The `notebooks/` directory contains demonstration of key concepts and complete worked examples demonstrating various use cases:
 
-1. **[Simulated Annealing](https://github.com/gperdrizet/hill_climber/blob/main/notebooks/01-simulated_annealing.ipynb)**: Introduction to simulated annealing algorithm
-2. **[Pearson & Spearman](https://github.com/gperdrizet/hill_climber/blob/main/notebooks/02-pearson_spearman.ipynb)**: Optimizing for different correlation measures
-3. **[Mean & Std](https://github.com/gperdrizet/hill_climber/blob/main/notebooks/03-mean_std.ipynb)**: Creating distributions with matching statistics but diverse structures
-4. **[Entropy & Correlation](https://github.com/gperdrizet/hill_climber/blob/main/notebooks/04-entropy_pearson.ipynb)**: Low correlation with internal structure
-5. **[Feature Interactions](https://github.com/gperdrizet/hill_climber/blob/main/notebooks/05-feature_interactions.ipynb)**: Machine learning feature engineering demonstrations
-6. **[Checkpointing](https://github.com/gperdrizet/hill_climber/blob/main/notebooks/06-checkpoint_example.ipynb)**: Long-running optimization with save/resume
+1. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/01-simulated_annealing.ipynb" target="_blank">Simulated Annealing</a>**: Introduction to simulated annealing algorithm
+2. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/02-pearson_spearman.ipynb" target="_blank">Pearson & Spearman</a>**: Optimizing for different correlation measures
+3. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/03-mean_std.ipynb" target="_blank">Mean & Std</a>**: Creating distributions with matching statistics but diverse structures
+4. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/04-entropy_pearson.ipynb" target="_blank">Entropy & Correlation</a>**: Low correlation with internal structure
+5. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/05-feature_interactions.ipynb" target="_blank">Feature Interactions</a>**: Machine learning feature engineering demonstrations
+6. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/06-checkpoint_example.ipynb" target="_blank">Checkpointing</a>**: Long-running optimization with save/resume
+
 
 ## 4. Development Environment Setup
 
