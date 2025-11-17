@@ -3,13 +3,13 @@ Quick Start
 
 This guide will get you started with Hill Climber in just a few minutes.
 
-Hill Climber supports n-dimensional data - you can optimize datasets with any number
-of columns (x, y, z, etc.).
+Hill Climber works with multi-column datasets. Your objective function receives
+one argument for each column/feature in your data.
 
 Basic Example
 -------------
 
-Here's a simple example that creates a 2D dataset with high Pearson correlation:
+Here's a simple example that optimizes a 2-column dataset for high Pearson correlation:
 
 .. code-block:: python
 

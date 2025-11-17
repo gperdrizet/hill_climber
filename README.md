@@ -2,7 +2,7 @@
 
 [![PyPI Package](https://github.com/gperdrizet/hill_climber/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/publish-to-pypi.yml) [![Documentation](https://github.com/gperdrizet/hill_climber/actions/workflows/docs.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/docs.yml) [![PR Validation](https://github.com/gperdrizet/hill_climber/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/pr-validation.yml)
 
-A Python package for hill climbing optimization of user-supplied objective functions with simulated annealing. Designed for flexible multi-objective optimization with support for N-dimensional data.
+A Python package for hill climbing optimization of user-supplied objective functions with simulated annealing. Designed for flexible multi-objective optimization with support for multi-column datasets.
 
 ## 1. Documentation
 
@@ -13,7 +13,7 @@ A Python package for hill climbing optimization of user-supplied objective funct
 - **Simulated Annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
 - **Parallel Execution**: Run multiple replicates simultaneously for diverse solutions
 - **Flexible Objectives**: Support for any objective function with multiple metrics
-- **N-Dimensional Support**: Optimize distributions with any number of dimensions
+- **Multi-Column Support**: Optimize datasets with any number of features/columns
 - **Checkpoint/Resume**: Save and resume long-running optimizations
 - **Boundary Handling**: Reflection-based strategy prevents point accumulation at boundaries
 - **Visualization**: Built-in plotting for both input data and optimization results

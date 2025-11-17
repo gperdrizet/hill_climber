@@ -35,13 +35,26 @@ Features
 
 - **Flexible objective functions**: Define custom objectives for any statistical property
 - **Simulated annealing**: Escape local optima and find global solutions
-- **N-dimensional data**: Optimize datasets with any number of variables (x, y, z, ...)
+- **Multi-column data**: Optimize datasets with any number of features
 - **Parallel replicates**: Run multiple optimizations simultaneously
 - **Unified state management**: Clean dataclass architecture for internal state tracking
 - **Checkpointing**: Save and resume long-running optimizations
 - **Progress monitoring**: Live plotting during optimization runs
 - **Rich visualization**: Built-in plotting for results analysis
 - **JIT Compilation**: Numba-optimized core functions for performance
+
+Data Format
+-----------
+
+Hill Climber works with tabular data in the following format:
+
+- **Input shape**: ``(N, M)`` where N = number of samples (rows), M = number of features (columns)
+- **Accepted formats**: NumPy arrays or pandas DataFrames
+- **Objective functions**: Receive M separate 1D arrays (one per feature column)
+  
+  - For 2 features: ``objective_func(x, y)``
+  - For 3 features: ``objective_func(x, y, z)``
+  - For M features: ``objective_func(col1, col2, ..., colM)``
 
 Python Version Support
 ----------------------

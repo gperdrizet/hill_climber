@@ -96,18 +96,18 @@ def perturb_vectors(data, perturb_fraction=0.1, bounds=None, step_spread=1.0):
 def extract_columns(data):
     """Extract columns from numpy array.
     
-    Works with n-dimensional data by returning each column separately.
+    Works with multi-column data by returning each column separately.
     
     Args:
-        data: numpy array (N x M) where N is number of samples, M is number of features
+        data: numpy array with shape (N, M) where N = samples, M = features
         
     Returns:
         Tuple of 1D numpy arrays, one for each column
         
     Examples:
-        For 2D data (N x 2): returns (x, y)
-        For 3D data (N x 3): returns (x, y, z)
-        For nD data (N x M): returns (col0, col1, ..., colM-1)
+        For 2-column data (N, 2): returns (x, y)
+        For 3-column data (N, 3): returns (x, y, z)
+        For M-column data (N, M): returns (col0, col1, ..., colM-1)
     """
 
     return tuple(data[:, i] for i in range(data.shape[1]))
@@ -117,10 +117,10 @@ def calculate_objective(data, objective_func):
     """Calculate objective value using provided objective function.
     
     Extracts columns from data and passes them to the objective function.
-    Supports n-dimensional data.
+    Supports multi-column data.
     
     Args:
-        data: Input data as numpy array (N x M)
+        data: Input data as numpy array with shape (N, M)
         objective_func: Function that takes M column arrays and returns 
                        (metrics_dict, objective_value)
         
@@ -128,9 +128,9 @@ def calculate_objective(data, objective_func):
         Tuple of (metrics_dict, objective_value)
         
     Examples:
-        For 2D data: objective_func(x, y) is called
-        For 3D data: objective_func(x, y, z) is called
-        For nD data: objective_func(col0, col1, ...) is called
+        For 2-column data: objective_func(x, y) is called
+        For 3-column data: objective_func(x, y, z) is called
+        For M-column data: objective_func(col0, col1, ...) is called
     """
 
     columns = extract_columns(data)

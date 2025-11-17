@@ -3,6 +3,33 @@ User Guide
 
 This guide explains the key concepts and parameters of Hill Climber.
 
+Data Format and Terminology
+----------------------------
+
+Hill Climber works with tabular data:
+
+**Data Shape**
+   Input data has shape ``(N, M)`` where:
+   
+   - ``N`` = number of samples (rows/data points)
+   - ``M`` = number of features (columns)
+
+**Accepted Formats**
+   - NumPy arrays: ``np.ndarray`` with shape ``(N, M)``
+   - Pandas DataFrames: ``pd.DataFrame`` with M columns
+
+**Objective Function Signature**
+   Your objective function receives M separate 1D arrays (one per column):
+   
+   - For M=2: ``objective_func(x, y)``
+   - For M=3: ``objective_func(x, y, z)``
+   - For M=4: ``objective_func(w, x, y, z)``
+
+.. note::
+   The term "2D data" in this documentation refers to data with 2 features (M=2),
+   not the numpy array dimensionality. All input data are 2D numpy arrays with
+   shape ``(N, M)``.
+
 Optimization Modes
 ------------------
 
@@ -24,15 +51,15 @@ An objective function takes the data columns as arguments and returns:
 1. A dictionary of metrics to track
 2. A single objective value to optimize
 
-Hill Climber supports n-dimensional data. Your objective function should accept
-as many arguments as you have columns in your input data.
+Your objective function should accept as many arguments as you have columns
+in your input data.
 
 Examples:
 
 .. code-block:: python
 
-   # For 2D data (two columns)
-   def objective_2d(x, y):
+   # For 2-column data (M=2)
+   def objective_2col(x, y):
        # Calculate metrics
        mean_x = np.mean(x)
        mean_y = np.mean(y)
@@ -48,8 +75,8 @@ Examples:
        }
        return metrics, objective
 
-   # For 3D data (three columns)
-   def objective_3d(x, y, z):
+   # For 3-column data (M=3)
+   def objective_3col(x, y, z):
        correlation_xy = pearsonr(x, y)[0]
        correlation_xz = pearsonr(x, z)[0]
        

@@ -7,13 +7,13 @@ Custom Objective Functions
 Complex Multi-Objective Optimization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Hill Climber supports n-dimensional data. Your objective function should accept
+Hill Climber supports multi-column data. Your objective function should accept
 as many arguments as you have columns. Combine multiple objectives with different weights:
 
 .. code-block:: python
 
    def multi_objective(w, x, y, z):
-       """Optimize multiple properties simultaneously for 4D data."""
+       """Optimize multiple properties simultaneously for 4-column data."""
        
        # Calculate individual objectives
        mean_similarity = calculate_mean_penalty(w, x, y, z)
