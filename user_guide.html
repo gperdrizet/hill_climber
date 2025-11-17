@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Guide &mdash; Hill Climber 0.1.10 documentation</title>
+  <title>User Guide &mdash; Hill Climber 0.1.13 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=bafade30"></script>
+      <script src="_static/documentation_options.js?v=8d02545a"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -48,6 +48,7 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">User Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data-format-and-terminology">Data Format and Terminology</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#optimization-modes">Optimization Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#objective-functions">Objective Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hyperparameters">Hyperparameters</a></li>
@@ -55,6 +56,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#replicate-noise">Replicate Noise</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#results-structure">Results Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#internal-architecture">Internal Architecture</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
@@ -89,6 +91,36 @@
   <section id="user-guide">
 <h1>User Guide<a class="headerlink" href="#user-guide" title="Link to this heading"></a></h1>
 <p>This guide explains the key concepts and parameters of Hill Climber.</p>
+<section id="data-format-and-terminology">
+<h2>Data Format and Terminology<a class="headerlink" href="#data-format-and-terminology" title="Link to this heading"></a></h2>
+<p>Hill Climber works with tabular data:</p>
+<dl class="simple">
+<dt><strong>Data Shape</strong></dt><dd><p>Input data has shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">M)</span></code> where:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">N</span></code> = number of samples (rows/data points)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">M</span></code> = number of features (columns)</p></li>
+</ul>
+</dd>
+<dt><strong>Accepted Formats</strong></dt><dd><ul class="simple">
+<li><p>NumPy arrays: <code class="docutils literal notranslate"><span class="pre">np.ndarray</span></code> with shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">M)</span></code></p></li>
+<li><p>Pandas DataFrames: <code class="docutils literal notranslate"><span class="pre">pd.DataFrame</span></code> with M columns</p></li>
+</ul>
+</dd>
+<dt><strong>Objective Function Signature</strong></dt><dd><p>Your objective function receives M separate 1D arrays (one per column):</p>
+<ul class="simple">
+<li><p>For M=2: <code class="docutils literal notranslate"><span class="pre">objective_func(x,</span> <span class="pre">y)</span></code></p></li>
+<li><p>For M=3: <code class="docutils literal notranslate"><span class="pre">objective_func(x,</span> <span class="pre">y,</span> <span class="pre">z)</span></code></p></li>
+<li><p>For M=4: <code class="docutils literal notranslate"><span class="pre">objective_func(w,</span> <span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">z)</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The term “2D data” in this documentation refers to data with 2 features (M=2),
+not the numpy array dimensionality. All input data are 2D numpy arrays with
+shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">M)</span></code>.</p>
+</div>
+</section>
 <section id="optimization-modes">
 <h2>Optimization Modes<a class="headerlink" href="#optimization-modes" title="Link to this heading"></a></h2>
 <p>Hill Climber supports two modes:</p>
@@ -108,8 +140,11 @@ Use this when lower objective values are better.</p>
 <li><p>A dictionary of metrics to track</p></li>
 <li><p>A single objective value to optimize</p></li>
 </ol>
-<p>Example:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">my_objective</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<p>Your objective function should accept as many arguments as you have columns
+in your input data.</p>
+<p>Examples:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># For 2-column data (M=2)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">objective_2col</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
     <span class="c1"># Calculate metrics</span>
     <span class="n">mean_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="n">mean_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
@@ -124,15 +159,30 @@ Use this when lower objective values are better.</p>
         <span class="s1">&#39;Difference&#39;</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">mean_x</span> <span class="o">-</span> <span class="n">mean_y</span><span class="p">)</span>
     <span class="p">}</span>
     <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span>
+
+<span class="c1"># For 3-column data (M=3)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">objective_3col</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+    <span class="n">correlation_xy</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">correlation_xz</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">objective</span> <span class="o">=</span> <span class="n">correlation_xy</span> <span class="o">+</span> <span class="n">correlation_xz</span>
+
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Corr XY&#39;</span><span class="p">:</span> <span class="n">correlation_xy</span><span class="p">,</span>
+        <span class="s1">&#39;Corr XZ&#39;</span><span class="p">:</span> <span class="n">correlation_xz</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span>
 </pre></div>
 </div>
 </section>
 <section id="hyperparameters">
 <h2>Hyperparameters<a class="headerlink" href="#hyperparameters" title="Link to this heading"></a></h2>
 <dl>
-<dt><strong>step_size</strong> (default: 0.1)</dt><dd><p>Controls the magnitude of perturbations. Larger values make bigger changes
-but may overshoot optimal solutions. Smaller values are more precise but
-slower.</p>
+<dt><strong>step_spread</strong> (default: 1.0)</dt><dd><p>Standard deviation of the normal distribution used for perturbations. Controls
+the variability and typical magnitude of changes. Perturbations are sampled
+from a normal distribution with mean 0 and this standard deviation. Larger
+values create more dramatic perturbations, smaller values make more subtle
+adjustments.</p>
 </dd>
 <dt><strong>perturb_fraction</strong> (default: 0.1)</dt><dd><p>Fraction of data points to modify in each iteration (0.0 to 1.0).
 Higher values create more dramatic changes per step.</p>
@@ -141,8 +191,8 @@ Higher values create more dramatic changes per step.</p>
 more exploration of suboptimal solutions early on.</p>
 </dd>
 <dt><strong>cooling_rate</strong> (default: 0.000001)</dt><dd><p>Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
-is multiplied by (1 - cooling_rate) each iteration. Smaller values result in slower
-cooling and longer exploration. For example, 0.000001 means temp <a href="#id1"><span class="problematic" id="id2">*</span></a>= 0.999999 each step.</p>
+is multiplied by <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">-</span> <span class="pre">cooling_rate)</span></code> each iteration. Smaller values result in slower
+cooling and longer exploration. For example, <code class="docutils literal notranslate"><span class="pre">0.000001</span></code> means <code class="docutils literal notranslate"><span class="pre">temp</span> <span class="pre">*=</span> <span class="pre">0.999999</span></code> each step.</p>
 </dd>
 <dt><strong>max_time</strong> (default: 30)</dt><dd><p>Maximum optimization time in minutes.</p>
 </dd>
@@ -216,12 +266,27 @@ back into the valid range</p></li>
 </section>
 <section id="results-structure">
 <h2>Results Structure<a class="headerlink" href="#results-structure" title="Link to this heading"></a></h2>
-<dl class="simple">
-<dt><strong>Single climb</strong> returns:</dt><dd><p>The optimized DataFrame and metrics history.</p>
-</dd>
-</dl>
+<p><strong>Single climb</strong> returns a tuple of:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Where:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">best_data</span></code>: Optimized data (DataFrame or numpy array, same format as input)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">steps_df</span></code>: DataFrame tracking optimization progress with columns:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Step</span></code>: Step number when improvement was accepted</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Objective</span> <span class="pre">value</span></code>: Objective value at that step</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Best_data</span></code>: Snapshot of best data at that step</p></li>
+<li><p>Additional metric columns (defined by your objective function)</p></li>
+</ul>
+</li>
+</ul>
 <p><strong>Parallel climbs</strong> returns a dictionary:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb_parallel</span><span class="p">(</span><span class="n">replicates</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+<span class="c1"># Structure:</span>
+<span class="p">{</span>
     <span class="s1">&#39;input_data&#39;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">original</span> <span class="n">DataFrame</span><span class="o">&gt;</span><span class="p">,</span>
     <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[</span>
         <span class="p">(</span><span class="n">initial_data_1</span><span class="p">,</span> <span class="n">best_data_1</span><span class="p">,</span> <span class="n">steps_df_1</span><span class="p">),</span>
@@ -233,10 +298,25 @@ back into the valid range</p></li>
 </div>
 <p>Where:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">initial_data</span></code>: Data after noise addition</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">best_data</span></code>: Final optimized data</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">steps_df</span></code>: DataFrame tracking metrics at each step</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">input_data</span></code>: Original data before any noise was added</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initial_data</span></code>: Data for this replicate after noise addition</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">best_data</span></code>: Final optimized data for this replicate</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">steps_df</span></code>: Optimization history for this replicate</p></li>
 </ul>
+</section>
+<section id="internal-architecture">
+<h2>Internal Architecture<a class="headerlink" href="#internal-architecture" title="Link to this heading"></a></h2>
+<p>Hill Climber uses a unified <code class="docutils literal notranslate"><span class="pre">OptimizerState</span></code> dataclass to manage all optimization
+progress internally. This provides:</p>
+<ul class="simple">
+<li><p><strong>Clean separation</strong>: Hyperparameters stay in <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code>, runtime state in <code class="docutils literal notranslate"><span class="pre">OptimizerState</span></code></p></li>
+<li><p><strong>Easy checkpointing</strong>: State can be serialized/deserialized as a unit</p></li>
+<li><p><strong>Better organization</strong>: All tracking data (current/best solutions, metrics, history, timing) in one place</p></li>
+<li><p><strong>Type safety</strong>: Dataclass provides clear typing for all state attributes</p></li>
+</ul>
+<p>You don’t need to interact with <code class="docutils literal notranslate"><span class="pre">OptimizerState</span></code> directly - it’s used internally
+by the <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code> class. However, if you’re extending or debugging the code,
+you can access it via <code class="docutils literal notranslate"><span class="pre">climber.state</span></code>.</p>
 </section>
 </section>
 

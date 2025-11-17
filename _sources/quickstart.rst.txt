@@ -3,10 +3,13 @@ Quick Start
 
 This guide will get you started with Hill Climber in just a few minutes.
 
+Hill Climber works with multi-column datasets. Your objective function receives
+one argument for each column/feature in your data.
+
 Basic Example
 -------------
 
-Here's a simple example that creates a dataset with high Pearson correlation:
+Here's a simple example that optimizes a 2-column dataset for high Pearson correlation:
 
 .. code-block:: python
 
@@ -37,10 +40,10 @@ Here's a simple example that creates a dataset with high Pearson correlation:
    )
 
    # Run optimization
-   result = climber.climb()
+   best_data, steps_df = climber.climb()
 
    # View results
-   print(f"Final correlation: {result['Pearson correlation']:.3f}")
+   print(f"Final correlation: {steps_df['Pearson correlation'].iloc[-1]:.3f}")
 
 Monitoring Progress
 -------------------
@@ -65,7 +68,11 @@ For longer runs, monitor progress with live plots:
 Understanding the Results
 --------------------------
 
-The ``climb()`` method returns the optimized data and a history of metrics at each step.
+The ``climb()`` method returns a tuple of ``(best_data, steps_df)``:
+
+- ``best_data``: The optimized data (same format as input - DataFrame or numpy array)
+- ``steps_df``: A DataFrame tracking the optimization history at each accepted step,
+  including the objective value and all metrics you defined
 
 Parallel Replicates
 -------------------

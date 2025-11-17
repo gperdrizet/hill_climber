@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Reference &mdash; Hill Climber 0.1.10 documentation</title>
+  <title>API Reference &mdash; Hill Climber 0.1.13 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=bafade30"></script>
+      <script src="_static/documentation_options.js?v=8d02545a"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -54,12 +54,13 @@
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.data"><code class="docutils literal notranslate"><span class="pre">HillClimber.data</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.objective_func"><code class="docutils literal notranslate"><span class="pre">HillClimber.objective_func</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.max_time"><code class="docutils literal notranslate"><span class="pre">HillClimber.max_time</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.step_size"><code class="docutils literal notranslate"><span class="pre">HillClimber.step_size</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.perturb_fraction"><code class="docutils literal notranslate"><span class="pre">HillClimber.perturb_fraction</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.step_spread"><code class="docutils literal notranslate"><span class="pre">HillClimber.step_spread</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.temperature"><code class="docutils literal notranslate"><span class="pre">HillClimber.temperature</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.cooling_rate"><code class="docutils literal notranslate"><span class="pre">HillClimber.cooling_rate</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.mode"><code class="docutils literal notranslate"><span class="pre">HillClimber.mode</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.target_value"><code class="docutils literal notranslate"><span class="pre">HillClimber.target_value</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.state"><code class="docutils literal notranslate"><span class="pre">HillClimber.state</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.__init__"><code class="docutils literal notranslate"><span class="pre">HillClimber.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.save_checkpoint"><code class="docutils literal notranslate"><span class="pre">HillClimber.save_checkpoint()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.plot_progress_check"><code class="docutils literal notranslate"><span class="pre">HillClimber.plot_progress_check()</span></code></a></li>
@@ -69,6 +70,36 @@
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.climb_parallel"><code class="docutils literal notranslate"><span class="pre">HillClimber.climb_parallel()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.plot_input"><code class="docutils literal notranslate"><span class="pre">HillClimber.plot_input()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#hill_climber.HillClimber.plot_results"><code class="docutils literal notranslate"><span class="pre">HillClimber.plot_results()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#optimizerstate">OptimizerState</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState"><code class="docutils literal notranslate"><span class="pre">OptimizerState</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.current_data"><code class="docutils literal notranslate"><span class="pre">OptimizerState.current_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.best_data"><code class="docutils literal notranslate"><span class="pre">OptimizerState.best_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.current_objective"><code class="docutils literal notranslate"><span class="pre">OptimizerState.current_objective</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.best_objective"><code class="docutils literal notranslate"><span class="pre">OptimizerState.best_objective</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.step"><code class="docutils literal notranslate"><span class="pre">OptimizerState.step</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.temperature"><code class="docutils literal notranslate"><span class="pre">OptimizerState.temperature</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.best_distance"><code class="docutils literal notranslate"><span class="pre">OptimizerState.best_distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.metrics"><code class="docutils literal notranslate"><span class="pre">OptimizerState.metrics</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.history"><code class="docutils literal notranslate"><span class="pre">OptimizerState.history</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.start_time"><code class="docutils literal notranslate"><span class="pre">OptimizerState.start_time</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.last_save_time"><code class="docutils literal notranslate"><span class="pre">OptimizerState.last_save_time</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.last_plot_time"><code class="docutils literal notranslate"><span class="pre">OptimizerState.last_plot_time</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.original_data"><code class="docutils literal notranslate"><span class="pre">OptimizerState.original_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.hyperparameters"><code class="docutils literal notranslate"><span class="pre">OptimizerState.hyperparameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.initialize"><code class="docutils literal notranslate"><span class="pre">OptimizerState.initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.record_improvement"><code class="docutils literal notranslate"><span class="pre">OptimizerState.record_improvement()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.get_history_dataframe"><code class="docutils literal notranslate"><span class="pre">OptimizerState.get_history_dataframe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.update_current"><code class="docutils literal notranslate"><span class="pre">OptimizerState.update_current()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.update_best"><code class="docutils literal notranslate"><span class="pre">OptimizerState.update_best()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.to_checkpoint_dict"><code class="docutils literal notranslate"><span class="pre">OptimizerState.to_checkpoint_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.from_checkpoint_dict"><code class="docutils literal notranslate"><span class="pre">OptimizerState.from_checkpoint_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.has_steps"><code class="docutils literal notranslate"><span class="pre">OptimizerState.has_steps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.get_results"><code class="docutils literal notranslate"><span class="pre">OptimizerState.get_results()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState.__init__"><code class="docutils literal notranslate"><span class="pre">OptimizerState.__init__()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -121,14 +152,15 @@
 <h2>HillClimber<a class="headerlink" href="#hillclimber" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="hill_climber.HillClimber">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hill_climber.</span></span><span class="sig-name descname"><span class="pre">HillClimber</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/optimizer.html#HillClimber"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.HillClimber" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hill_climber.</span></span><span class="sig-name descname"><span class="pre">HillClimber</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_spread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/optimizer.html#HillClimber"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.HillClimber" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Hill climbing optimizer with optional simulated annealing.</p>
 <p>Performs optimization using hill climbing with optional simulated annealing
 for escaping local optima. Supports three optimization modes: maximize,
 minimize, or target a specific value.</p>
-<p>Supports n-dimensional data where objective function receives each column
-as a separate argument.</p>
+<p>Works with multi-column datasets where the objective function receives each
+column as a separate argument. Uses a unified OptimizerState dataclass to
+manage all optimization progress tracking internally.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="hill_climber.HillClimber.data">
 <span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#hill_climber.HillClimber.data" title="Link to this definition"></a></dt>
@@ -148,15 +180,15 @@ as a separate argument.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="hill_climber.HillClimber.step_size">
-<span class="sig-name descname"><span class="pre">step_size</span></span><a class="headerlink" href="#hill_climber.HillClimber.step_size" title="Link to this definition"></a></dt>
-<dd><p>Maximum perturbation amount for each step</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="hill_climber.HillClimber.perturb_fraction">
 <span class="sig-name descname"><span class="pre">perturb_fraction</span></span><a class="headerlink" href="#hill_climber.HillClimber.perturb_fraction" title="Link to this definition"></a></dt>
 <dd><p>Fraction of points to perturb at each step</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.HillClimber.step_spread">
+<span class="sig-name descname"><span class="pre">step_spread</span></span><a class="headerlink" href="#hill_climber.HillClimber.step_spread" title="Link to this definition"></a></dt>
+<dd><p>Standard deviation of normal distribution for perturbations</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -168,7 +200,7 @@ as a separate argument.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="hill_climber.HillClimber.cooling_rate">
 <span class="sig-name descname"><span class="pre">cooling_rate</span></span><a class="headerlink" href="#hill_climber.HillClimber.cooling_rate" title="Link to this definition"></a></dt>
-<dd><p>Amount subtracted from 1 to get multiplicative cooling factor</p>
+<dd><p>Multiplicative cooling factor (computed from input parameter)</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -183,30 +215,36 @@ as a separate argument.</p>
 <dd><p>Target objective value when mode=’target’</p>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.HillClimber.state">
+<span class="sig-name descname"><span class="pre">state</span></span><a class="headerlink" href="#hill_climber.HillClimber.state" title="Link to this definition"></a></dt>
+<dd><p>OptimizerState instance managing all optimization progress</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="hill_climber.HillClimber.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/optimizer.html#HillClimber.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.HillClimber.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_spread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/optimizer.html#HillClimber.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.HillClimber.__init__" title="Link to this definition"></a></dt>
 <dd><p>Initialize HillClimber.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – numpy array (N x M) or pandas DataFrame with M columns</p></li>
+<li><p><strong>data</strong> – numpy array <code class="docutils literal notranslate"><span class="pre">(N</span> <span class="pre">x</span> <span class="pre">M)</span></code> or pandas DataFrame with M columns</p></li>
 <li><p><strong>objective_func</strong> – Function that takes M column arrays and returns
-(metrics_dict, objective_value). For 2D data, receives (x, y).
-For 3D data, receives (x, y, z), etc.</p></li>
+<code class="docutils literal notranslate"><span class="pre">(metrics_dict,</span> <span class="pre">objective_value)</span></code>. For 2-column data, receives <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code>.
+For 3-column data, receives <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">z)</span></code>, etc.</p></li>
 <li><p><strong>max_time</strong> – Maximum runtime in minutes (default: 30)</p></li>
-<li><p><strong>step_size</strong> – Maximum perturbation amount (default: 0.05)</p></li>
 <li><p><strong>perturb_fraction</strong> – Fraction of points to perturb each step (default: 0.05)</p></li>
 <li><p><strong>temperature</strong> – Initial temperature for simulated annealing (default: 1000)</p></li>
 <li><p><strong>cooling_rate</strong> – Amount subtracted from 1 to get multiplicative cooling rate.
-For example, 0.000001 results in temp <a href="#id1"><span class="problematic" id="id2">*</span></a>= 0.999999 each step.
+For example, <code class="docutils literal notranslate"><span class="pre">0.000001</span></code> results in <code class="docutils literal notranslate"><span class="pre">temp</span> <span class="pre">*=</span> <span class="pre">0.999999</span></code> each step.
 Smaller values = slower cooling. (default: 0.000001)</p></li>
-<li><p><strong>mode</strong> – ‘maximize’, ‘minimize’, or ‘target’ (default: ‘maximize’)</p></li>
+<li><p><strong>mode</strong> – <code class="docutils literal notranslate"><span class="pre">'maximize'</span></code>, <code class="docutils literal notranslate"><span class="pre">'minimize'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'target'</span></code> (default: <code class="docutils literal notranslate"><span class="pre">'maximize'</span></code>)</p></li>
 <li><p><strong>target_value</strong> – Target objective value for target mode (default: None)</p></li>
 <li><p><strong>checkpoint_file</strong> – Path to save/load checkpoints (default: None)</p></li>
 <li><p><strong>save_interval</strong> – Seconds between checkpoint saves (default: 60)</p></li>
 <li><p><strong>plot_progress</strong> – Plot results every N minutes during optimization.
 If None (default), no plots are drawn during optimization.</p></li>
+<li><p><strong>step_spread</strong> – Standard deviation of normal distribution for perturbations (default: 1.0)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -343,23 +381,240 @@ If None (default), no plots are drawn during optimization.</p></li>
 </dd></dl>
 
 </section>
+<section id="optimizerstate">
+<h2>OptimizerState<a class="headerlink" href="#optimizerstate" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hill_climber.optimizer_state.</span></span><span class="sig-name descname"><span class="pre">OptimizerState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_data:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_data:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_objective:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_objective:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_distance:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_time:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_save_time:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_plot_time:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_data:</span> <span class="pre">~typing.Any</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperparameters:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Unified state management for hill climbing optimization.</p>
+<p>This dataclass consolidates all optimization tracking data into a single,
+coherent structure. It replaces multiple class attributes with a unified
+state object that simplifies data handling for plotting, checkpointing,
+and results reporting.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.current_data">
+<span class="sig-name descname"><span class="pre">current_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.current_data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.best_data">
+<span class="sig-name descname"><span class="pre">best_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.best_data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.current_objective">
+<span class="sig-name descname"><span class="pre">current_objective</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.current_objective" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.best_objective">
+<span class="sig-name descname"><span class="pre">best_objective</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.best_objective" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.step">
+<span class="sig-name descname"><span class="pre">step</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.step" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.temperature">
+<span class="sig-name descname"><span class="pre">temperature</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.temperature" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.best_distance">
+<span class="sig-name descname"><span class="pre">best_distance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.best_distance" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.metrics">
+<span class="sig-name descname"><span class="pre">metrics</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.metrics" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.history">
+<span class="sig-name descname"><span class="pre">history</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.history" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.start_time">
+<span class="sig-name descname"><span class="pre">start_time</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.start_time" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.last_save_time">
+<span class="sig-name descname"><span class="pre">last_save_time</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.last_save_time" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.last_plot_time">
+<span class="sig-name descname"><span class="pre">last_plot_time</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.last_plot_time" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.original_data">
+<span class="sig-name descname"><span class="pre">original_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.original_data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.hyperparameters">
+<span class="sig-name descname"><span class="pre">hyperparameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.hyperparameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperparameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState.initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.initialize" title="Link to this definition"></a></dt>
+<dd><p>Initialize state with starting data and metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Initial data (numpy array)</p></li>
+<li><p><strong>objective</strong> – Initial objective value</p></li>
+<li><p><strong>metrics</strong> – Dictionary of initial metric values</p></li>
+<li><p><strong>temperature</strong> – Initial temperature</p></li>
+<li><p><strong>target_value</strong> – Target value for target mode (optional)</p></li>
+<li><p><strong>mode</strong> – Optimization mode (‘maximize’, ‘minimize’, or ‘target’)</p></li>
+<li><p><strong>original_data</strong> – Original input data before optimization (optional)</p></li>
+<li><p><strong>hyperparameters</strong> – Dictionary of optimization hyperparameters (optional)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.record_improvement">
+<span class="sig-name descname"><span class="pre">record_improvement</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState.record_improvement"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.record_improvement" title="Link to this definition"></a></dt>
+<dd><p>Record current best solution in history.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.get_history_dataframe">
+<span class="sig-name descname"><span class="pre">get_history_dataframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState.get_history_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.get_history_dataframe" title="Link to this definition"></a></dt>
+<dd><p>Convert history to pandas DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame with all history columns</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.update_current">
+<span class="sig-name descname"><span class="pre">update_current</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState.update_current"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.update_current" title="Link to this definition"></a></dt>
+<dd><p>Update current solution state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – New current data</p></li>
+<li><p><strong>objective</strong> – New current objective value</p></li>
+<li><p><strong>metrics</strong> – New current metrics</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.update_best">
+<span class="sig-name descname"><span class="pre">update_best</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState.update_best"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.update_best" title="Link to this definition"></a></dt>
+<dd><p>Update best solution state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – New best data</p></li>
+<li><p><strong>objective</strong> – New best objective value</p></li>
+<li><p><strong>target_value</strong> – Target value for distance calculation (optional)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.to_checkpoint_dict">
+<span class="sig-name descname"><span class="pre">to_checkpoint_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState.to_checkpoint_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.to_checkpoint_dict" title="Link to this definition"></a></dt>
+<dd><p>Convert state to dictionary for checkpointing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary containing all state data including hyperparameters</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.from_checkpoint_dict">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_checkpoint_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkpoint_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hill_climber.optimizer_state.OptimizerState" title="hill_climber.optimizer_state.OptimizerState"><span class="pre">OptimizerState</span></a></span></span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState.from_checkpoint_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.from_checkpoint_dict" title="Link to this definition"></a></dt>
+<dd><p>Create OptimizerState from checkpoint dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>checkpoint_dict</strong> – Dictionary containing state data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>New OptimizerState instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.has_steps">
+<span class="sig-name descname"><span class="pre">has_steps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState.has_steps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.has_steps" title="Link to this definition"></a></dt>
+<dd><p>Check if any steps have been recorded in history.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if history contains steps, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.get_results">
+<span class="sig-name descname"><span class="pre">get_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_dataframe</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#OptimizerState.get_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.get_results" title="Link to this definition"></a></dt>
+<dd><p>Get optimization results in the appropriate format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>is_dataframe</strong> – Whether to return data as DataFrame</p></li>
+<li><p><strong>columns</strong> – Column names for DataFrame (if is_dataframe=True)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>best_data: Best solution (DataFrame or numpy array)</p></li>
+<li><p>history_df: DataFrame with optimization history</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple of (best_data, history_df) where</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hill_climber.optimizer_state.OptimizerState.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_data:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_data:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_objective:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_objective:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_distance:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_time:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_save_time:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_plot_time:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_data:</span> <span class="pre">~typing.Any</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperparameters:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#hill_climber.optimizer_state.OptimizerState.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="module-hill_climber.climber_functions">
 <span id="core-functions"></span><h2>Core Functions<a class="headerlink" href="#module-hill_climber.climber_functions" title="Link to this heading"></a></h2>
 <p>Helper functions for hill climbing optimization.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="hill_climber.climber_functions.perturb_vectors">
-<span class="sig-prename descclassname"><span class="pre">hill_climber.climber_functions.</span></span><span class="sig-name descname"><span class="pre">perturb_vectors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/climber_functions.html#perturb_vectors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.climber_functions.perturb_vectors" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">hill_climber.climber_functions.</span></span><span class="sig-name descname"><span class="pre">perturb_vectors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_spread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/climber_functions.html#perturb_vectors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.climber_functions.perturb_vectors" title="Link to this definition"></a></dt>
 <dd><p>Randomly perturb a fraction of elements in the data.</p>
 <p>This function uses JIT-compiled core logic for performance.
-Works directly with numpy arrays - no DataFrame conversions.</p>
+Works directly with numpy arrays - no DataFrame conversions.
+Perturbations are sampled from a normal distribution with mean 0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> – Input data as numpy array</p></li>
-<li><p><strong>step_size</strong> – Half-width of uniform distribution for perturbations</p></li>
 <li><p><strong>perturb_fraction</strong> – Fraction of total elements to perturb (default: 0.1)</p></li>
 <li><p><strong>bounds</strong> – Tuple of (min_bounds, max_bounds) arrays for each column.
 If None, uses data min/max (default: None)</p></li>
+<li><p><strong>step_spread</strong> – Standard deviation of normal distribution for perturbations (default: 1.0)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -372,19 +627,19 @@ If None, uses data min/max (default: None)</p></li>
 <dt class="sig sig-object py" id="hill_climber.climber_functions.extract_columns">
 <span class="sig-prename descclassname"><span class="pre">hill_climber.climber_functions.</span></span><span class="sig-name descname"><span class="pre">extract_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/climber_functions.html#extract_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.climber_functions.extract_columns" title="Link to this definition"></a></dt>
 <dd><p>Extract columns from numpy array.</p>
-<p>Works with n-dimensional data by returning each column separately.</p>
+<p>Works with multi-column data by returning each column separately.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>data</strong> – numpy array (N x M) where N is number of samples, M is number of features</p>
+<dd class="field-odd"><p><strong>data</strong> – numpy array with shape (N, M) where N = samples, M = features</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Tuple of 1D numpy arrays, one for each column</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<p>For 2D data (N x 2): returns (x, y)
-For 3D data (N x 3): returns (x, y, z)
-For nD data (N x M): returns (col0, col1, …, colM-1)</p>
+<p>For 2-column data (N, 2): returns (x, y)
+For 3-column data (N, 3): returns (x, y, z)
+For M-column data (N, M): returns (col0, col1, …, colM-1)</p>
 </dd></dl>
 
 <dl class="py function">
@@ -392,11 +647,11 @@ For nD data (N x M): returns (col0, col1, …, colM-1)</p>
 <span class="sig-prename descclassname"><span class="pre">hill_climber.climber_functions.</span></span><span class="sig-name descname"><span class="pre">calculate_objective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/climber_functions.html#calculate_objective"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.climber_functions.calculate_objective" title="Link to this definition"></a></dt>
 <dd><p>Calculate objective value using provided objective function.</p>
 <p>Extracts columns from data and passes them to the objective function.
-Supports n-dimensional data.</p>
+Supports multi-column data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – Input data as numpy array (N x M)</p></li>
+<li><p><strong>data</strong> – Input data as numpy array with shape (N, M)</p></li>
 <li><p><strong>objective_func</strong> – Function that takes M column arrays and returns
 (metrics_dict, objective_value)</p></li>
 </ul>
@@ -406,9 +661,9 @@ Supports n-dimensional data.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<p>For 2D data: objective_func(x, y) is called
-For 3D data: objective_func(x, y, z) is called
-For nD data: objective_func(col0, col1, …) is called</p>
+<p>For 2-column data: objective_func(x, y) is called
+For 3-column data: objective_func(x, y, z) is called
+For M-column data: objective_func(col0, col1, …) is called</p>
 </dd></dl>
 
 <dl class="py function">
@@ -416,11 +671,11 @@ For nD data: objective_func(col0, col1, …) is called</p>
 <span class="sig-prename descclassname"><span class="pre">hill_climber.climber_functions.</span></span><span class="sig-name descname"><span class="pre">calculate_correlation_objective</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hill_climber.climber_functions.calculate_correlation_objective" title="Link to this definition"></a></dt>
 <dd><p>Calculate objective value using provided objective function.</p>
 <p>Extracts columns from data and passes them to the objective function.
-Supports n-dimensional data.</p>
+Supports multi-column data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – Input data as numpy array (N x M)</p></li>
+<li><p><strong>data</strong> – Input data as numpy array with shape (N, M)</p></li>
 <li><p><strong>objective_func</strong> – Function that takes M column arrays and returns
 (metrics_dict, objective_value)</p></li>
 </ul>
@@ -430,9 +685,9 @@ Supports n-dimensional data.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<p>For 2D data: objective_func(x, y) is called
-For 3D data: objective_func(x, y, z) is called
-For nD data: objective_func(col0, col1, …) is called</p>
+<p>For 2-column data: objective_func(x, y) is called
+For 3-column data: objective_func(x, y, z) is called
+For M-column data: objective_func(col0, col1, …) is called</p>
 </dd></dl>
 
 </section>
@@ -466,8 +721,9 @@ For nD data: objective_func(col0, col1, …) is called</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>results</strong> – Results from climb_parallel(). Can be:
-- Dictionary with ‘input_data’ and ‘results’ keys (current format)
+<li><p><strong>results</strong> – Results from climb() or climb_parallel(). Can be:
+- Tuple (best_data, steps_df) from climb()
+- Dictionary with ‘input_data’ and ‘results’ keys from climb_parallel()
 - List of (noisy_initial, best_data, steps_df) tuples (legacy)
 - List of (best_data, steps_df) tuples (older legacy)</p></li>
 <li><p><strong>plot_type</strong> – Type of snapshot plots - ‘scatter’ or ‘histogram’ (default: ‘scatter’)

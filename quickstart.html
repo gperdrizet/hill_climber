@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quick Start &mdash; Hill Climber 0.1.10 documentation</title>
+  <title>Quick Start &mdash; Hill Climber 0.1.13 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=bafade30"></script>
+      <script src="_static/documentation_options.js?v=8d02545a"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -88,9 +88,11 @@
   <section id="quick-start">
 <h1>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h1>
 <p>This guide will get you started with Hill Climber in just a few minutes.</p>
+<p>Hill Climber works with multi-column datasets. Your objective function receives
+one argument for each column/feature in your data.</p>
 <section id="basic-example">
 <h2>Basic Example<a class="headerlink" href="#basic-example" title="Link to this heading"></a></h2>
-<p>Here’s a simple example that creates a dataset with high Pearson correlation:</p>
+<p>Here’s a simple example that optimizes a 2-column dataset for high Pearson correlation:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">HillClimber</span>
@@ -118,10 +120,10 @@
 <span class="p">)</span>
 
 <span class="c1"># Run optimization</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+<span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 
 <span class="c1"># View results</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final correlation: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;Pearson correlation&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final correlation: </span><span class="si">{</span><span class="n">steps_df</span><span class="p">[</span><span class="s1">&#39;Pearson correlation&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -146,7 +148,12 @@
 </section>
 <section id="understanding-the-results">
 <h2>Understanding the Results<a class="headerlink" href="#understanding-the-results" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">climb()</span></code> method returns the optimized data and a history of metrics at each step.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">climb()</span></code> method returns a tuple of <code class="docutils literal notranslate"><span class="pre">(best_data,</span> <span class="pre">steps_df)</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">best_data</span></code>: The optimized data (same format as input - DataFrame or numpy array)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">steps_df</span></code>: A DataFrame tracking the optimization history at each accepted step,
+including the objective value and all metrics you defined</p></li>
+</ul>
 </section>
 <section id="parallel-replicates">
 <h2>Parallel Replicates<a class="headerlink" href="#parallel-replicates" title="Link to this heading"></a></h2>

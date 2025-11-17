@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hill Climber Documentation &mdash; Hill Climber 0.1.10 documentation</title>
+  <title>Hill Climber Documentation &mdash; Hill Climber 0.1.13 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=bafade30"></script>
+      <script src="_static/documentation_options.js?v=8d02545a"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -99,8 +99,6 @@
 <li class="toctree-l2"><a class="reference internal" href="installation.html#requirements">Requirements</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-pypi">Install from PyPI</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#development-installation">Development Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#verify-installation">Verify Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#running-tests">Running Tests</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a><ul>
@@ -113,6 +111,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#data-format-and-terminology">Data Format and Terminology</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user_guide.html#optimization-modes">Optimization Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user_guide.html#objective-functions">Objective Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user_guide.html#hyperparameters">Hyperparameters</a></li>
@@ -120,10 +119,12 @@
 <li class="toctree-l2"><a class="reference internal" href="user_guide.html#replicate-noise">Replicate Noise</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user_guide.html#checkpointing">Checkpointing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user_guide.html#results-structure">Results Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#internal-architecture">Internal Architecture</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api.html#hillclimber">HillClimber</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#optimizerstate">OptimizerState</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#module-hill_climber.climber_functions">Core Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api.html#module-hill_climber.plotting_functions">Plotting Functions</a></li>
 </ul>
@@ -151,11 +152,28 @@
 <ul class="simple">
 <li><p><strong>Flexible objective functions</strong>: Define custom objectives for any statistical property</p></li>
 <li><p><strong>Simulated annealing</strong>: Escape local optima and find global solutions</p></li>
+<li><p><strong>Multi-column data</strong>: Optimize datasets with any number of features</p></li>
 <li><p><strong>Parallel replicates</strong>: Run multiple optimizations simultaneously</p></li>
+<li><p><strong>Unified state management</strong>: Clean dataclass architecture for internal state tracking</p></li>
 <li><p><strong>Checkpointing</strong>: Save and resume long-running optimizations</p></li>
+<li><p><strong>Progress monitoring</strong>: Live plotting during optimization runs</p></li>
 <li><p><strong>Rich visualization</strong>: Built-in plotting for results analysis</p></li>
-<li><p><strong>N-dimensional support</strong>: Optimize datasets with any number of variables</p></li>
 <li><p><strong>JIT Compilation</strong>: Numba-optimized core functions for performance</p></li>
+</ul>
+</section>
+<section id="data-format">
+<h2>Data Format<a class="headerlink" href="#data-format" title="Link to this heading"></a></h2>
+<p>Hill Climber works with tabular data in the following format:</p>
+<ul class="simple">
+<li><p><strong>Input shape</strong>: <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">M)</span></code> where N = number of samples (rows), M = number of features (columns)</p></li>
+<li><p><strong>Accepted formats</strong>: NumPy arrays or pandas DataFrames</p></li>
+<li><p><strong>Objective functions</strong>: Receive M separate 1D arrays (one per feature column)</p>
+<ul>
+<li><p>For 2 features: <code class="docutils literal notranslate"><span class="pre">objective_func(x,</span> <span class="pre">y)</span></code></p></li>
+<li><p>For 3 features: <code class="docutils literal notranslate"><span class="pre">objective_func(x,</span> <span class="pre">y,</span> <span class="pre">z)</span></code></p></li>
+<li><p>For M features: <code class="docutils literal notranslate"><span class="pre">objective_func(col1,</span> <span class="pre">col2,</span> <span class="pre">...,</span> <span class="pre">colM)</span></code></p></li>
+</ul>
+</li>
 </ul>
 </section>
 <section id="python-version-support">
@@ -168,11 +186,15 @@
 <section id="links">
 <h2>Links<a class="headerlink" href="#links" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><strong>PyPI Package</strong>: <a class="reference external" href="https://pypi.org/project/parallel-hill-climber/">https://pypi.org/project/parallel-hill-climber/</a></p></li>
-<li><p><strong>GitHub Repository</strong>: <a class="reference external" href="https://github.com/gperdrizet/hill_climber">https://github.com/gperdrizet/hill_climber</a></p></li>
-<li><p><strong>Issue Tracker</strong>: <a class="reference external" href="https://github.com/gperdrizet/hill_climber/issues">https://github.com/gperdrizet/hill_climber/issues</a></p></li>
+<li><p><strong>PyPI Package</strong>: <a class="reference external" href="https://pypi.org/project/parallel-hill-climber/">parallel-hill-climber</a></p></li>
+<li><p><strong>GitHub Repository</strong>: <a class="reference external" href="https://github.com/gperdrizet/hill_climber">hill_climber</a></p></li>
+<li><p><strong>Issue Tracker</strong>: <a class="reference external" href="https://github.com/gperdrizet/hill_climber/issues">Issues</a></p></li>
 </ul>
-</section>
+<script>
+document.querySelectorAll('a[href*="github.com"], a[href*="pypi.org"]').forEach(function(link) {
+    link.setAttribute('target', '_blank');
+});
+</script></section>
 </section>
 <section id="indices-and-tables">
 <h1>Indices and Tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
