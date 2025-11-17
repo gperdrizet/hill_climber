@@ -101,7 +101,7 @@ To explore the examples, modify the code, or contribute:
 
 2. Create and activate a virtual environment:
    ```bash
-   python -m venv .venv
+   python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
