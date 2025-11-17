@@ -41,7 +41,7 @@ Example:
     >>> climber.plot_results(results, plot_type='histogram')
 """
 
-__version__ = '0.1.12'
+__version__ = '0.1.13'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber
