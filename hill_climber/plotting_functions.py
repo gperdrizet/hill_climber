@@ -87,8 +87,9 @@ def plot_results(results, plot_type='scatter', metrics=None):
     - Snapshot plots at 25%, 50%, 75%, and 100% completion
     
     Args:
-        results: Results from climb_parallel(). Can be:
-                 - Dictionary with 'input_data' and 'results' keys (current format)
+        results: Results from climb() or climb_parallel(). Can be:
+                 - Tuple (best_data, steps_df) from climb()
+                 - Dictionary with 'input_data' and 'results' keys from climb_parallel()
                  - List of (noisy_initial, best_data, steps_df) tuples (legacy)
                  - List of (best_data, steps_df) tuples (older legacy)
         plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
@@ -107,9 +108,12 @@ def plot_results(results, plot_type='scatter', metrics=None):
     
     # Handle different result formats for backward compatibility
     if isinstance(results, dict):
-        # New dictionary format
+        # Dictionary format from climb_parallel()
         results_list = results['results']
-
+    elif isinstance(results, tuple) and len(results) == 2:
+        # Single result tuple from climb(): (best_data, steps_df)
+        # Wrap in list to make it compatible with the plotting functions
+        results_list = [results]
     else:
         # Legacy list format
         results_list = results
@@ -118,7 +122,6 @@ def plot_results(results, plot_type='scatter', metrics=None):
     if len(results_list[0]) == 3:
         # Format: (noisy_initial, best_data, steps_df)
         _, _, steps_df = results_list[0]
-
     else:
         # Format: (best_data, steps_df)
         _, steps_df = results_list[0]
