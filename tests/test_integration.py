@@ -78,9 +78,6 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         self.assertIsNotNone(best_data)
         self.assertGreater(len(steps_df), 0)
     
-    # climb_parallel removed in v2.0 (replaced by replica exchange in climb())
-    # def test_climb_parallel_with_real_objective(self):
-    
     def test_minimize_mode_with_real_objective(self):
         """Test minimize mode with real objective function."""
         climber = HillClimber(
@@ -181,9 +178,6 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
         self.assertIsInstance(best_data, np.ndarray)
         self.assertEqual(best_data.shape[1], 4)
         self.assertIn('total_variance', steps_df.columns)
-    
-    # climb_parallel removed in v2.0 (replaced by replica exchange in climb())
-    # def test_climb_parallel_with_3d_data(self):
 
 
 if __name__ == '__main__':

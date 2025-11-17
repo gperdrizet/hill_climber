@@ -87,11 +87,10 @@ def plot_results(results, plot_type='scatter', metrics=None):
     - Snapshot plots at 25%, 50%, 75%, and 100% completion
     
     Args:
-        results: Results from climb() or climb_parallel(). Can be:
-                 - Tuple (best_data, steps_df) from climb()
-                 - Dictionary with 'input_data' and 'results' keys from climb_parallel()
-                 - List of (noisy_initial, best_data, steps_df) tuples (legacy)
-                 - List of (best_data, steps_df) tuples (older legacy)
+        results: Results from climb(). Can be:
+                 - Tuple (best_data, steps_df) from single climb() call
+                 - Dictionary with 'input_data' and 'results' keys (legacy format)
+                 - List of result tuples for multi-replica visualization
         plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
                    Note: 'histogram' uses KDE (Kernel Density Estimation) plots
         metrics: List of metric names to display in progress plots and snapshots.
@@ -108,7 +107,7 @@ def plot_results(results, plot_type='scatter', metrics=None):
     
     # Handle different result formats for backward compatibility
     if isinstance(results, dict):
-        # Dictionary format from climb_parallel()
+        # Dictionary format with 'input_data' and 'results' keys
         results_list = results['results']
     elif isinstance(results, tuple) and len(results) == 2:
         # Single result tuple from climb(): (best_data, steps_df)
@@ -148,7 +147,7 @@ def _plot_results_scatter(results, metrics=None):
     """Internal function: Visualize results with scatter plots.
     
     Args:
-        results: List of tuples from climb_parallel() - handles both formats
+        results: List of result tuples - handles both (data, df) and (_, data, df) formats
         metrics: List of metric names to display, or None for all metrics
     """
 
@@ -244,7 +243,7 @@ def _plot_results_histogram(results, metrics=None):
     """Internal function: Visualize results with KDE plots.
     
     Args:
-        results: List of tuples from climb_parallel() - handles both formats
+        results: List of result tuples - handles both (data, df) and (_, data, df) formats
         metrics: List of metric names to display, or None for all metrics
     """
 

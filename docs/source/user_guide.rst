@@ -91,6 +91,35 @@ Examples:
 Hyperparameters
 ---------------
 
+**n_replicas** (default: 4)
+   Number of replicas for parallel tempering (replica exchange). More replicas
+   provide better exploration but use more memory. Each replica runs at a different
+   temperature from the temperature ladder.
+
+**temperature** (default: 1000)
+   Minimum temperature (T_min) for the coldest replica in the temperature ladder.
+   Also used as the base temperature for simulated annealing. Higher temperatures
+   allow more exploration of suboptimal solutions.
+
+**T_max** (default: 10000)
+   Maximum temperature for the hottest replica in the temperature ladder. Should
+   be significantly higher than T_min for effective replica exchange.
+
+**temperature_scheme** (default: 'geometric')
+   How to space temperatures in the ladder: 'geometric' or 'linear'. Geometric
+   spacing typically provides better exchange acceptance rates.
+
+**exchange_interval** (default: 100)
+   Number of optimization steps between replica exchange attempts. Smaller values
+   attempt exchanges more frequently.
+
+**exchange_strategy** (default: 'even_odd')
+   Strategy for selecting replica pairs for exchange:
+   
+   - 'even_odd': Alternates between even and odd neighboring pairs
+   - 'random': Random pair selection
+   - 'all_neighbors': All neighboring pairs
+
 **step_spread** (default: 1.0)
    Standard deviation of the normal distribution used for perturbations. Controls
    the variability and typical magnitude of changes. Perturbations are sampled
@@ -102,10 +131,6 @@ Hyperparameters
    Fraction of data points to modify in each iteration (0.0 to 1.0). 
    Higher values create more dramatic changes per step.
 
-**temperature** (default: 1000)
-   Initial temperature for simulated annealing. Higher temperatures allow
-   more exploration of suboptimal solutions early on.
-
 **cooling_rate** (default: 0.000001)
    Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
    is multiplied by ``(1 - cooling_rate)`` each iteration. Smaller values result in slower
@@ -114,19 +139,10 @@ Hyperparameters
 **max_time** (default: 30)
    Maximum optimization time in minutes.
 
-**initial_noise** (default: 0.0)
-   Amount of uniform noise to add when creating replicate starting points.
-   Only used in ``climb_parallel()``.
-
 **plot_progress** (default: None)
    Interval in minutes for plotting optimization progress during a run.
    When set, creates scatter plots showing the current best solution at
    regular intervals. For example, ``plot_progress=5`` plots every 5 minutes.
-   
-   .. note::
-      This option only works in single-process mode (``climb()``). It does not
-      work with parallel mode (``climb_parallel()``) because results from worker
-      processes are not collected until the end of the run.
 
 Boundary Handling
 -----------------
@@ -141,22 +157,54 @@ data bounds:
 
 Example: If minimum is 5 and a perturbation creates 4.5, it reflects to 5.5.
 
-Replicate Noise
----------------
+Replica Exchange (Parallel Tempering)
+--------------------------------------
 
-When running parallel replicates, ``initial_noise`` adds diversity:
+Hill Climber 2.0 uses replica exchange to improve global optimization. Multiple
+replicas run simultaneously at different temperatures:
+
+**How it works:**
+
+1. Each replica has its own temperature from a ladder (e.g., 1000, 2154, 4641, 10000)
+2. All replicas perform optimization steps independently
+3. Periodically, replicas attempt to exchange configurations
+4. Exchanges use Metropolis criterion: better solutions move to cooler temperatures
+5. The coldest replica typically finds the best solution
+
+**Temperature Ladder:**
 
 .. code-block:: python
 
-   results = climber.climb_parallel(
-       replicates=8,
-       initial_noise=0.5  # Add ±50% uniform noise to starting data
-   )
+   from hill_climber import TemperatureLadder
+   
+   # Geometric spacing (default, recommended)
+   ladder = TemperatureLadder.geometric(n_replicas=4, T_min=1000, T_max=10000)
+   print(ladder.temperatures)  # [1000, 2154, 4641, 10000]
+   
+   # Linear spacing
+   ladder = TemperatureLadder.linear(n_replicas=4, T_min=1000, T_max=10000)
+   print(ladder.temperatures)  # [1000, 4000, 7000, 10000]
 
-- Each replicate starts from a slightly different position
-- Helps explore different regions of the solution space
-- Increases chances of finding global optima
-- Generates diverse solutions for comparison
+**Exchange Statistics:**
+
+After optimization, check exchange acceptance rates:
+
+.. code-block:: python
+
+   best_data, history_df = climber.climb()
+   
+   # Exchange statistics are printed during optimization
+   # Exchange acceptance rate: 15.4%
+   
+   # For detailed analysis, access the climber's exchange statistics:
+   # climber.exchange_stats.get_acceptance_matrix()
+
+**Benefits:**
+
+- Better global optimization compared to single-temperature annealing
+- Hotter replicas explore broadly, cooler replicas exploit locally
+- Exchanges allow good solutions to refine at low temperatures
+- More robust than independent parallel runs
 
 Checkpointing
 -------------
@@ -179,18 +227,18 @@ Resume from a checkpoint:
 
 .. code-block:: python
 
-   resumed = HillClimber.resume_from_checkpoint(
+   resumed = HillClimber.load_checkpoint(
        checkpoint_file='optimization.pkl',
-       objective_func=my_objective,
-       new_max_time=30  # Continue for 30 more minutes
+       objective_func=my_objective
    )
    
-   result = resumed.climb()
+   # Continue optimizing
+   best_data, history_df = resumed.climb()
 
 Results Structure
 -----------------
 
-**Single climb** returns a tuple of:
+The ``climb()`` method returns a tuple:
 
 .. code-block:: python
 
@@ -206,28 +254,7 @@ Where:
   - ``Best_data``: Snapshot of best data at that step
   - Additional metric columns (defined by your objective function)
 
-**Parallel climbs** returns a dictionary:
-
-.. code-block:: python
-
-   results = climber.climb_parallel(replicates=4)
-   
-   # Structure:
-   {
-       'input_data': <original DataFrame>,
-       'results': [
-           (initial_data_1, best_data_1, steps_df_1),
-           (initial_data_2, best_data_2, steps_df_2),
-           ...
-       ]
-   }
-
-Where:
-
-- ``input_data``: Original data before any noise was added
-- ``initial_data``: Data for this replicate after noise addition
-- ``best_data``: Final optimized data for this replicate
-- ``steps_df``: Optimization history for this replicate
+The best result is automatically selected from the replica with the best objective value.
 
 Internal Architecture
 ---------------------

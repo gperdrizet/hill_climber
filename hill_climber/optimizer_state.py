@@ -42,7 +42,6 @@ class OptimizerState:
     original_data: Optional[np.ndarray] = None
     hyperparameters: Dict[str, Any] = field(default_factory=dict)
     start_time: float = field(default_factory=time.time)
-    start_time: float = field(default_factory=time.time)
     
     def record_step(self, metrics_dict: Dict, objective_value: float):
         """Record a step in the optimization.

@@ -12,7 +12,34 @@ HillClimber
 OptimizerState
 --------------
 
-.. autoclass:: hill_climber.optimizer_state.OptimizerState
+.. autoclass:: hill_climber.OptimizerState
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Replica Exchange Components
+----------------------------
+
+TemperatureLadder
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: hill_climber.TemperatureLadder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ExchangeStatistics
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: hill_climber.ExchangeStatistics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ExchangeScheduler
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: hill_climber.ExchangeScheduler
    :members:
    :undoc-members:
    :show-inheritance:
@@ -31,3 +58,5 @@ Plotting Functions
    :members:
    :undoc-members:
 
+
+```

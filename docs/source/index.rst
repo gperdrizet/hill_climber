@@ -33,10 +33,10 @@ See :doc:`installation` for more options including development setup.
 Features
 --------
 
+- **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
 - **Flexible objective functions**: Define custom objectives for any statistical property
 - **Simulated annealing**: Escape local optima and find global solutions
 - **Multi-column data**: Optimize datasets with any number of features
-- **Parallel replicates**: Run multiple optimizations simultaneously
 - **Unified state management**: Clean dataclass architecture for internal state tracking
 - **Checkpointing**: Save and resume long-running optimizations
 - **Progress monitoring**: Live plotting during optimization runs

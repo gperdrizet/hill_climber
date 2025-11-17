@@ -5,7 +5,6 @@ import pandas as pd
 import pickle
 import time
 import os
-from multiprocessing import cpu_count
 from typing import Callable, Optional, Dict, Any, Tuple, List
 import matplotlib.pyplot as plt
 
@@ -92,7 +91,7 @@ class HillClimber:
         self.step_spread = step_spread
         
         # Replica exchange parameters
-        self.n_replicas = n_replicas or cpu_count()
+        self.n_replicas = n_replicas or 4  # Default to 4 replicas
         self.T_min = temperature
         self.T_max = T_max or (temperature * 10)
         self.exchange_interval = exchange_interval
