@@ -1,11 +1,13 @@
-"""Hill Climber - Optimization package with simulated annealing.
+"""Hill Climber - Parallel optimization with replica exchange.
 
-This package provides hill climbing optimization with simulated annealing,
-supporting flexible multi-objective optimization and parallel execution.
+This package provides hill climbing optimization using replica exchange 
+(parallel tempering) for improved global optimization performance.
 
 Main Components:
-    HillClimber: Main optimization class
-    OptimizerState: State management dataclass (typically not used directly)
+    HillClimber: Main optimization class with replica exchange
+    OptimizerState: Replica state management dataclass
+    TemperatureLadder: Temperature ladder for replica exchange
+    ExchangeStatistics: Track exchange acceptance rates
     Helper functions: Data manipulation and objective calculation utilities
     Plotting functions: Visualization tools for input data and results
 
@@ -25,31 +27,35 @@ Example:
     ...     correlation = pd.Series(x).corr(pd.Series(y))
     ...     return {'correlation': correlation}, correlation
     >>> 
-    >>> # Create and run optimizer
+    >>> # Create and run optimizer with replica exchange
     >>> climber = HillClimber(
     ...     data=data,
     ...     objective_func=my_objective,
     ...     max_time=1,
-    ...     mode='maximize'
+    ...     mode='maximize',
+    ...     n_replicas=4
     ... )
     >>> best_data, steps_df = climber.climb()
     >>> 
-    >>> # Or run parallel replicates
-    >>> results = climber.climb_parallel(replicates=4)
-    >>> 
     >>> # Visualize results
-    >>> climber.plot_results(results, plot_type='histogram')
+    >>> climber.plot_results((best_data, steps_df), plot_type='histogram')
 """
 
-__version__ = '0.1.13'
+__version__ = '2.0.0'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber
 from .optimizer_state import OptimizerState
+from .replica_exchange import (
+    TemperatureLadder,
+    ExchangeStatistics,
+    ExchangeScheduler
+)
 from .climber_functions import (
     perturb_vectors,
     extract_columns,
-    calculate_correlation_objective
+    calculate_correlation_objective,
+    evaluate_objective
 )
 from .plotting_functions import (
     plot_input_data,
@@ -59,9 +65,13 @@ from .plotting_functions import (
 __all__ = [
     'HillClimber',
     'OptimizerState',
+    'TemperatureLadder',
+    'ExchangeStatistics',
+    'ExchangeScheduler',
     'perturb_vectors',
     'extract_columns',
     'calculate_correlation_objective',
+    'evaluate_objective',
     'plot_input_data',
     'plot_results',
 ]

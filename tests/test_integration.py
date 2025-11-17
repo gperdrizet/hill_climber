@@ -78,31 +78,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         self.assertIsNotNone(best_data)
         self.assertGreater(len(steps_df), 0)
     
-    def test_climb_parallel_with_real_objective(self):
-        """Test climb_parallel() with real objective function."""
-        climber = HillClimber(
-            data=self.data,
-            objective_func=objective_spearman_large_pearson_small,
-            max_time=0.02,
-            step_spread=0.1,
-            temperature=5.0,
-            cooling_rate=0.001,
-            mode='maximize'
-        )
-        
-        results = climber.climb_parallel(replicates=2, initial_noise=0.05)
-        
-        # Check dictionary structure
-        self.assertIsInstance(results, dict)
-        self.assertEqual(len(results['results']), 2)
-        
-        for noisy_initial, best_data, steps_df in results['results']:
-            self.assertIsInstance(best_data, pd.DataFrame)
-            self.assertIsInstance(steps_df, pd.DataFrame)
-            self.assertIn('Pearson coefficient', steps_df.columns)
-            self.assertIn('Spearman coefficient', steps_df.columns)
-            # Check noisy_initial is returned
-            self.assertIsNotNone(noisy_initial)
+    # climb_parallel removed in v2.0 (replaced by replica exchange in climb())
+    # def test_climb_parallel_with_real_objective(self):
     
     def test_minimize_mode_with_real_objective(self):
         """Test minimize mode with real objective function."""
@@ -205,28 +182,8 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
         self.assertEqual(best_data.shape[1], 4)
         self.assertIn('total_variance', steps_df.columns)
     
-    def test_climb_parallel_with_3d_data(self):
-        """Test climb_parallel() with 3D data."""
-        climber = HillClimber(
-            data=self.data_3d,
-            objective_func=objective_3d_simple,
-            max_time=0.02,
-            step_spread=0.1,
-            mode='maximize'
-        )
-        
-        results = climber.climb_parallel(replicates=2)
-        
-        # Check dictionary structure
-        self.assertIsInstance(results, dict)
-        self.assertEqual(len(results['results']), 2)
-        
-        for noisy_initial, best_data, steps_df in results['results']:
-            self.assertIsInstance(best_data, pd.DataFrame)
-            self.assertEqual(best_data.shape[1], 3)
-            self.assertIn('total_mean', steps_df.columns)
-            # Check noisy_initial is returned
-            self.assertIsNotNone(noisy_initial)
+    # climb_parallel removed in v2.0 (replaced by replica exchange in climb())
+    # def test_climb_parallel_with_3d_data(self):
 
 
 if __name__ == '__main__':
