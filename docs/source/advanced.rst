@@ -73,7 +73,7 @@ Choosing Number of Replicates
 
 - **4-8 replicates**: Good balance for most problems
 - **More replicates**: Better exploration, find more diverse solutions
-- **CPU resource limit**: Not recommended to run more replicates than one less than avalible CPU threads
+- **CPU resource limit**: Not recommended to run more replicates than one less than available CPU threads
 
 Replicate Noise Tuning
 ~~~~~~~~~~~~~~~~~~~~~~~

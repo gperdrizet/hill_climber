@@ -27,14 +27,20 @@ Development Installation
 
 To explore the examples, modify the code, or contribute:
 
-**Option 1: GitHub Codespaces (No local setup required)**
+Option 1: GitHub Codespaces
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+No local setup required:
 
 1. Fork the repository on GitHub
 2. Open in GitHub Codespaces
 3. The development environment will be configured automatically
 4. Documentation will be built and served at http://localhost:8000 automatically
 
-**Option 2: Local Development**
+Option 2: Local Development
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Clone and install locally:
 
 1. Clone or fork the repository:
 
@@ -56,35 +62,29 @@ To explore the examples, modify the code, or contribute:
 
       pip install -r requirements.txt
 
-Building Documentation
-^^^^^^^^^^^^^^^^^^^^^^
+4. Build documentation (optional):
 
-You can build and view a local copy of the documentation as follows:
+   .. code-block:: bash
 
-.. code-block:: bash
+      cd docs
+      make html
+      # View docs by opening docs/build/html/index.html in a browser
+      # Or serve locally with: python -m http.server 8000 --directory build/html
 
-   cd docs
-   make html
-   # View docs by opening docs/build/html/index.html in a browser
-   # Or serve locally with: python -m http.server 8000 --directory build/html
+5. Run tests to verify installation:
 
-Running Tests
-^^^^^^^^^^^^^
+   .. code-block:: bash
 
-After installation, verify everything works by running the test suite:
+      # Run all tests
+      python -m pytest tests/
 
-.. code-block:: bash
+      # Run specific test file
+      python -m pytest tests/test_hill_climber.py
 
-   # Run all tests
-   python -m pytest tests/
+      # Run with coverage
+      python -m pytest tests/ --cov=hill_climber
 
-   # Run specific test file
-   python -m pytest tests/test_hill_climber.py
-
-   # Run with coverage
-   python -m pytest tests/ --cov=hill_climber
-
-All tests should pass.
+   All tests should pass.
 
 Verifying Installation
 ^^^^^^^^^^^^^^^^^^^^^^
