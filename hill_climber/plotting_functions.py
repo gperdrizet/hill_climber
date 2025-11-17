@@ -87,8 +87,9 @@ def plot_results(results, plot_type='scatter', metrics=None):
     - Snapshot plots at 25%, 50%, 75%, and 100% completion
     
     Args:
-        results: Results from climb_parallel(). Can be:
-                 - Dictionary with 'input_data' and 'results' keys (current format)
+        results: Results from climb() or climb_parallel(). Can be:
+                 - Tuple (best_data, steps_df) from climb()
+                 - Dictionary with 'input_data' and 'results' keys from climb_parallel()
                  - List of (noisy_initial, best_data, steps_df) tuples (legacy)
                  - List of (best_data, steps_df) tuples (older legacy)
         plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
@@ -107,8 +108,12 @@ def plot_results(results, plot_type='scatter', metrics=None):
     
     # Handle different result formats for backward compatibility
     if isinstance(results, dict):
-        # New dictionary format
+        # Dictionary format from climb_parallel()
         results_list = results['results']
+    elif isinstance(results, tuple) and len(results) == 2:
+        # Single result tuple from climb(): (best_data, steps_df)
+        # Wrap in list to make it compatible with the plotting functions
+        results_list = [results]
     else:
         # Legacy list format
         results_list = results
@@ -148,15 +153,16 @@ def _plot_results_scatter(results, metrics=None):
     """
 
     n_replicates = len(results)
-    fig = plt.figure(constrained_layout=True, figsize=(15, 2.5*n_replicates))
+    fig = plt.figure(constrained_layout=True, figsize=(12, 2.4*n_replicates))
     spec = fig.add_gridspec(nrows=n_replicates, ncols=5, width_ratios=[1.1, 1, 1, 1, 1])
-    fig.suptitle('Hill climb results (Scatter plots)', fontsize=16)
+    fig.suptitle('Hill climb results', fontsize=16)
 
     for i in range(n_replicates):
 
         # Handle both old and new formats
         if len(results[i]) == 3:
             _, best_data, steps_df = results[i]
+
         else:
             best_data, steps_df = results[i]
         
@@ -177,18 +183,20 @@ def _plot_results_scatter(results, metrics=None):
 
             lines.extend(
                 ax.plot(
-                    steps_df['Step'] / 100000, steps_df[metric_name], label=metric_name
+                    steps_df['Step'], steps_df[metric_name], label=metric_name
                 )
             )
         
-        ax.set_xlabel('Step (x 100000)')
+        ax.set_xlabel('Step')
         ax.set_ylabel('Metrics', color='black')
+        ax.ticklabel_format(style='scientific', axis='x', scilimits=(0,0))
         
         ax2 = ax.twinx()
-        lines.extend(ax2.plot(steps_df['Step'] / 100000, steps_df['Objective value'], 
+        lines.extend(ax2.plot(steps_df['Step'], steps_df['Objective value'], 
                               label='Objective', color='black'))
+
         ax2.set_ylabel('Objective value', color='black')
-        ax2.legend(lines, [l.get_label() for l in lines], loc='best', fontsize=7)
+        ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
         
         # Snapshot plots at 25%, 50%, 75%, 100%
         for j, (pct, label) in enumerate(zip([0.25, 0.50, 0.75, 1.0], ['25%', '50%', '75%', '100%'])):
@@ -221,12 +229,12 @@ def _plot_results_scatter(results, metrics=None):
                 stats_text += f'{abbrev}={steps_df[metric_name].iloc[step_idx]:.3f}\n'
             
             ax.text(
-                0.04, 0.95,
+                0.06, 0.94,
                 stats_text.strip(),
                 transform=ax.transAxes,
                 fontsize=7,
                 verticalalignment='top',
-                bbox=dict(facecolor='white', edgecolor='none', alpha=0.8)
+                bbox=dict(facecolor='white', edgecolor='black')
             )
 
     plt.show()
@@ -241,14 +249,16 @@ def _plot_results_histogram(results, metrics=None):
     """
 
     n_replicates = len(results)
-    fig = plt.figure(constrained_layout=True, figsize=(15, 2.5*n_replicates))
+    fig = plt.figure(constrained_layout=True, figsize=(12, 2.5*n_replicates))
     spec = fig.add_gridspec(nrows=n_replicates, ncols=5, width_ratios=[1.1, 1, 1, 1, 1])
-    fig.suptitle('Hill climb results (KDE plots)', fontsize=16)
+    fig.suptitle('Hill climb results', fontsize=16)
 
     for i in range(n_replicates):
+
         # Handle both old and new formats
         if len(results[i]) == 3:
             _, best_data, steps_df = results[i]
+
         else:
             best_data, steps_df = results[i]
         
@@ -269,20 +279,21 @@ def _plot_results_histogram(results, metrics=None):
 
             lines.extend(
                 ax.plot(
-                    steps_df['Step'] / 100000, steps_df[metric_name], label=metric_name
+                    steps_df['Step'], steps_df[metric_name], label=metric_name
                 )
             )
         
-        ax.set_xlabel('Step (x 100000)')
+        ax.set_xlabel('Step')
         ax.set_ylabel('Metrics', color='black')
+        ax.ticklabel_format(style='scientific', axis='x', scilimits=(0,0))
         
         ax2 = ax.twinx()
 
-        lines.extend(ax2.plot(steps_df['Step'] / 100000, steps_df['Objective value'], 
+        lines.extend(ax2.plot(steps_df['Step'], steps_df['Objective value'], 
                               label='Objective', color='black'))
 
         ax2.set_ylabel('Objective value', color='black')
-        ax2.legend(lines, [l.get_label() for l in lines], loc='best', fontsize=7)
+        ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
         
         # Snapshot histograms at 25%, 50%, 75%, 100%
         for j, (pct, label) in enumerate(zip([0.25, 0.50, 0.75, 1.0], ['25%', '50%', '75%', '100%'])):
@@ -369,12 +380,12 @@ def _plot_results_histogram(results, metrics=None):
                 stats_text += f'{abbrev}={steps_df[metric_name].iloc[step_idx]:.3f}\n'
             
             ax.text(
-                0.04, 0.95,
+                0.05, 0.94,
                 stats_text.strip(),
                 transform=ax.transAxes,
                 fontsize=7,
                 verticalalignment='top',
-                bbox=dict(facecolor='white', edgecolor='none', alpha=0.8)
+                bbox=dict(facecolor='white', edgecolor='black')
             )
 
     plt.show()

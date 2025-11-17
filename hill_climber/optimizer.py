@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 from .climber_functions import perturb_vectors, calculate_objective
 from .plotting_functions import plot_input_data, plot_results as plot_results_func
+from .optimizer_state import OptimizerState
 
 
 class HillClimber:
@@ -19,19 +20,21 @@ class HillClimber:
     for escaping local optima. Supports three optimization modes: maximize,
     minimize, or target a specific value.
     
-    Supports n-dimensional data where objective function receives each column
-    as a separate argument.
+    Works with multi-column datasets where the objective function receives each
+    column as a separate argument. Uses a unified OptimizerState dataclass to
+    manage all optimization progress tracking internally.
     
     Attributes:
         data: Initial data (numpy array or pandas DataFrame)
         objective_func: Objective function returning (metrics_dict, objective_value)
         max_time: Maximum runtime in minutes
-        step_size: Maximum perturbation amount for each step
         perturb_fraction: Fraction of points to perturb at each step
+        step_spread: Standard deviation of normal distribution for perturbations
         temperature: Initial temperature for simulated annealing (0 disables)
-        cooling_rate: Amount subtracted from 1 to get multiplicative cooling factor
+        cooling_rate: Multiplicative cooling factor (computed from input parameter)
         mode: Optimization mode ('maximize', 'minimize', or 'target')
         target_value: Target objective value when mode='target'
+        state: OptimizerState instance managing all optimization progress
     """
     
     def __init__(
@@ -39,7 +42,6 @@ class HillClimber:
         data,
         objective_func,
         max_time=30,
-        step_size=0.05,
         perturb_fraction=0.05,
         temperature=1000,
         cooling_rate=0.000001,
@@ -47,28 +49,29 @@ class HillClimber:
         target_value=None,
         checkpoint_file=None,
         save_interval=60,
-        plot_progress=None
+        plot_progress=None,
+        step_spread=1.0
     ):
         """Initialize HillClimber.
         
         Args:
-            data: numpy array (N x M) or pandas DataFrame with M columns
+            data: numpy array ``(N x M)`` or pandas DataFrame with M columns
             objective_func: Function that takes M column arrays and returns 
-                          (metrics_dict, objective_value). For 2D data, receives (x, y).
-                          For 3D data, receives (x, y, z), etc.
+                          ``(metrics_dict, objective_value)``. For 2-column data, receives ``(x, y)``.
+                          For 3-column data, receives ``(x, y, z)``, etc.
             max_time: Maximum runtime in minutes (default: 30)
-            step_size: Maximum perturbation amount (default: 0.05)
             perturb_fraction: Fraction of points to perturb each step (default: 0.05)
             temperature: Initial temperature for simulated annealing (default: 1000)
             cooling_rate: Amount subtracted from 1 to get multiplicative cooling rate.
-                         For example, 0.000001 results in temp *= 0.999999 each step.
+                         For example, ``0.000001`` results in ``temp *= 0.999999`` each step.
                          Smaller values = slower cooling. (default: 0.000001)
-            mode: 'maximize', 'minimize', or 'target' (default: 'maximize')
+            mode: ``'maximize'``, ``'minimize'``, or ``'target'`` (default: ``'maximize'``)
             target_value: Target objective value for target mode (default: None)
             checkpoint_file: Path to save/load checkpoints (default: None)
             save_interval: Seconds between checkpoint saves (default: 60)
             plot_progress: Plot results every N minutes during optimization. 
                           If None (default), no plots are drawn during optimization.
+            step_spread: Standard deviation of normal distribution for perturbations (default: 1.0)
             
         Raises:
             ValueError: If mode is invalid or target_value missing for target mode
@@ -95,7 +98,6 @@ class HillClimber:
         
         self.objective_func = objective_func
         self.max_time = max_time
-        self.step_size = step_size
         self.perturb_fraction = perturb_fraction
         self.temperature = temperature
 
@@ -108,20 +110,10 @@ class HillClimber:
         self.checkpoint_file = checkpoint_file
         self.save_interval = save_interval
         self.plot_progress = plot_progress
+        self.step_spread = step_spread
         
-        # These will be set during climb
-        self.best_data = None
-        self.current_data = None
-        self.best_objective = None
-        self.current_objective = None
-        self.best_distance = None
-        self.steps = None
-        self.metrics = None
-        self.step = 0
-        self.temp = temperature
-        self.start_time = None
-        self.last_save_time = None
-        self.last_plot_time = None
+        # Unified state management via dataclass
+        self.state = OptimizerState()
 
 
     def save_checkpoint(self, force=False):
@@ -135,36 +127,21 @@ class HillClimber:
             
         current_time = time.time()
         
-        if not force and self.last_save_time is not None:
-            if current_time - self.last_save_time < self.save_interval:
+        if not force and self.state.last_save_time is not None:
+            if current_time - self.state.last_save_time < self.save_interval:
                 return
         
+        # Get complete state data from dataclass (includes hyperparameters and original_data)
+        state_dict = self.state.to_checkpoint_dict()
+        
         checkpoint_data = {
-            'best_data': self.best_data.copy() if self.best_data is not None else None,
-            'current_data': self.current_data.copy() if self.current_data is not None else None,
-            'best_objective': self.best_objective,
-            'current_objective': self.current_objective,
-            'best_distance': self.best_distance,
-            'steps': self.steps.copy() if self.steps is not None else None,
-            'step': self.step,
-            'temp': self.temp,
-            'start_time': self.start_time,
-            'elapsed_time': current_time - self.start_time if self.start_time else 0,
-            'hyperparameters': {
-                'max_time': self.max_time,
-                'step_size': self.step_size,
-                'perturb_fraction': self.perturb_fraction,
-                'temperature': self.temperature,
-                'cooling_rate': self.cooling_rate_input,
-                'mode': self.mode,
-                'target_value': self.target_value
-            },
+            'state': state_dict,
+            'elapsed_time': current_time - self.state.start_time if self.state.start_time else 0,
             'data_info': {
                 'is_dataframe': self.is_dataframe,
                 'columns': self.columns,
                 'bounds': self.bounds
-            },
-            'original_data': self.data_numpy.copy()
+            }
         }
         
         # Create checkpoint directory if needed
@@ -176,7 +153,7 @@ class HillClimber:
         with open(self.checkpoint_file, 'wb') as f:
             pickle.dump(checkpoint_data, f)
         
-        self.last_save_time = current_time
+        self.state.last_save_time = current_time
         print(f"Checkpoint saved: {self.checkpoint_file}")
 
 
@@ -190,13 +167,13 @@ class HillClimber:
         if self.plot_progress is None:
             return
         
-        if self.start_time is None:
+        if self.state.start_time is None:
             return
             
         current_time = time.time()
         
-        if not force and self.last_plot_time is not None:
-            if (current_time - self.last_plot_time) / 60 < self.plot_progress:
+        if not force and self.state.last_plot_time is not None:
+            if (current_time - self.state.last_plot_time) / 60 < self.plot_progress:
                 return
         
         # Clear any existing plots
@@ -211,32 +188,34 @@ class HillClimber:
             # Not in IPython/Jupyter environment
             pass
         
-        # Create a result structure for single climb
-        best_data_output = (
-            pd.DataFrame(self.best_data, columns=self.columns) 
-            if self.is_dataframe else self.best_data
+        # Get results from state
+        best_data_output, history_df = self.state.get_results(
+            is_dataframe=self.is_dataframe,
+            columns=self.columns
         )
         
         # Format as expected by plot_results (single replicate)
         results = {
             'input_data': self.data,
-            'results': [(self.data, best_data_output, pd.DataFrame(self.steps))]
+            'results': [(self.data, best_data_output, history_df)]
         }
         
         # Plot current progress
-        elapsed_min = (current_time - self.start_time) / 60
-        last_elapsed_min = (self.last_plot_time - self.start_time) / 60 if self.last_plot_time else 0
+        elapsed_min = (current_time - self.state.start_time) / 60
+        last_elapsed_min = (self.state.last_plot_time - self.state.start_time) / 60 if self.state.last_plot_time else 0
         
         # Format elapsed time based on duration
         def format_elapsed(minutes):
+
             if minutes < 60:
                 return f"{int(minutes)} minutes"
+
             else:
                 hours = minutes / 60
                 return f"{hours:.1f} hours"
         
         # Check if there are any steps to plot
-        if len(self.steps['Step']) == 0:
+        if not self.state.has_steps():
             print(f"\nNo accepted steps since last progress update")
             print(f"Last progress update: {format_elapsed(last_elapsed_min)}")
             print(f"Current time: {format_elapsed(elapsed_min)}")
@@ -245,7 +224,7 @@ class HillClimber:
             print(f"\nPlotting progress at {format_elapsed(elapsed_min)}...")
             plot_results_func(results, plot_type='scatter')
         
-        self.last_plot_time = current_time
+        self.state.last_plot_time = current_time
 
 
     def load_checkpoint(self, checkpoint_file):
@@ -257,6 +236,7 @@ class HillClimber:
         Returns:
             True if checkpoint was loaded successfully, False otherwise
         """
+
         if not os.path.exists(checkpoint_file):
             print(f"Checkpoint file not found: {checkpoint_file}")
             return False
@@ -265,30 +245,56 @@ class HillClimber:
             with open(checkpoint_file, 'rb') as f:
                 checkpoint_data = pickle.load(f)
             
-            # Restore optimization state
-            self.best_data = checkpoint_data['best_data']
-            self.current_data = checkpoint_data['current_data']
-            self.best_objective = checkpoint_data['best_objective']
-            self.current_objective = checkpoint_data['current_objective']
-            self.best_distance = checkpoint_data['best_distance']
-            self.steps = checkpoint_data['steps']
-            self.step = checkpoint_data['step']
-            self.temp = checkpoint_data['temp']
-            self.start_time = checkpoint_data['start_time']
-            
-            # Restore data info
-            data_info = checkpoint_data['data_info']
-            self.is_dataframe = data_info['is_dataframe']
-            self.columns = data_info['columns']
-            self.bounds = data_info['bounds']
-            self.data_numpy = checkpoint_data['original_data']
+            # Check if this is a new-format checkpoint with 'state' key
+            if 'state' in checkpoint_data:
+                # New format: load from dataclass
+                self.state = OptimizerState.from_checkpoint_dict(checkpoint_data['state'])
+                
+                # Restore data info (needed for HillClimber operations)
+                data_info = checkpoint_data.get('data_info', {})
+                self.is_dataframe = data_info.get('is_dataframe', False)
+                self.columns = data_info.get('columns')
+                self.bounds = data_info.get('bounds')
+                
+                # Restore original data from state
+                if self.state.original_data is not None:
+                    self.data = self.state.original_data
+                    self.data_numpy = self.data.values if self.is_dataframe else self.data
+                else:
+                    # This should not happen with properly saved checkpoints
+                    raise ValueError("Checkpoint missing original_data in state")
+                        
+            else:
+                # Old format: migrate to dataclass
+                self.state = OptimizerState()
+                self.state.best_data = checkpoint_data['best_data']
+                self.state.current_data = checkpoint_data['current_data']
+                self.state.best_objective = checkpoint_data['best_objective']
+                self.state.current_objective = checkpoint_data['current_objective']
+                self.state.best_distance = checkpoint_data['best_distance']
+                self.state.history = checkpoint_data['steps']
+                self.state.step = checkpoint_data['step']
+                self.state.temperature = checkpoint_data['temp']
+                self.state.start_time = checkpoint_data['start_time']
+                
+                # Store hyperparameters and original data in state for consistency
+                self.state.hyperparameters = checkpoint_data.get('hyperparameters', {})
+                self.state.original_data = checkpoint_data.get('original_data')
+                
+                # Restore data info
+                data_info = checkpoint_data['data_info']
+                self.is_dataframe = data_info['is_dataframe']
+                self.columns = data_info['columns']
+                self.bounds = data_info['bounds']
+                self.data_numpy = checkpoint_data['original_data']
+                self.data = self.state.original_data
             
             # Adjust start time to account for elapsed time
             elapsed_time = checkpoint_data['elapsed_time']
-            self.start_time = time.time() - elapsed_time
+            self.state.start_time = time.time() - elapsed_time
             
             print(f"Checkpoint loaded: {checkpoint_file}")
-            print(f"Resuming from step {self.step}, elapsed time: {elapsed_time:.1f}s")
+            print(f"Resuming from step {self.state.step}, elapsed time: {elapsed_time:.1f}s")
             
             return True
             
@@ -323,6 +329,7 @@ class HillClimber:
         
         # Reconstruct original data
         original_data = checkpoint_data['original_data']
+
         if data_info['is_dataframe']:
             original_data = pd.DataFrame(original_data, columns=data_info['columns'])
         
@@ -331,13 +338,13 @@ class HillClimber:
             data=original_data,
             objective_func=objective_func,
             max_time=new_max_time if new_max_time is not None else hyperparams['max_time'],
-            step_size=hyperparams['step_size'],
             perturb_fraction=hyperparams['perturb_fraction'],
             temperature=hyperparams['temperature'],
             cooling_rate=hyperparams['cooling_rate'],
             mode=hyperparams['mode'],
             target_value=hyperparams['target_value'],
-            checkpoint_file=new_checkpoint_file if new_checkpoint_file is not None else checkpoint_file
+            checkpoint_file=new_checkpoint_file if new_checkpoint_file is not None else checkpoint_file,
+            step_spread=hyperparams['step_spread']
         )
         
         # Load the checkpoint state
@@ -355,83 +362,82 @@ class HillClimber:
                 - steps_df: DataFrame tracking optimization progress
         """
 
-        # Initialize tracking structures if not resuming
-        if self.steps is None:
-            self.steps = {'Step': [], 'Objective value': [], 'Best_data': []}
-            self.best_data = self.current_data = self.data_numpy.copy()
-            
-            # Get initial objective and dynamically create metric columns
-            self.metrics, self.best_objective = calculate_objective(
+        # Initialize state if not resuming
+        if self.state.current_data is None:
+            # Get initial objective and metrics
+            metrics, objective = calculate_objective(
                 self.data_numpy, self.objective_func
             )
-
-            for metric_name in self.metrics.keys():
-                self.steps[metric_name] = []
             
-            self.current_objective = self.best_objective
-
-            self.best_distance = (
-                abs(self.best_objective - self.target_value) 
-                if self.mode == 'target' else None
+            # Prepare hyperparameters dictionary
+            hyperparameters = {
+                'max_time': self.max_time,
+                'perturb_fraction': self.perturb_fraction,
+                'temperature': self.temperature,
+                'cooling_rate': self.cooling_rate_input,
+                'mode': self.mode,
+                'target_value': self.target_value,
+                'step_spread': self.step_spread,
+                'checkpoint_file': self.checkpoint_file,
+                'save_interval': self.save_interval,
+                'plot_progress': self.plot_progress
+            }
+            
+            # Initialize state
+            self.state.initialize(
+                data=self.data_numpy,
+                objective=objective,
+                metrics=metrics,
+                temperature=self.temperature,
+                target_value=self.target_value,
+                mode=self.mode,
+                original_data=self.data,
+                hyperparameters=hyperparameters
             )
-            
-            self.step = 0
-            self.temp = self.temperature
         
         # Set or update start time
-        if self.start_time is None:
-            self.start_time = time.time()
+        if self.state.start_time is None:
+            self.state.start_time = time.time()
         
         # Main optimization loop
-        while time.time() - self.start_time < self.max_time * 60:
+        while time.time() - self.state.start_time < self.max_time * 60:
 
-            self.step += 1
+            self.state.step += 1
             
             # Generate and evaluate new candidate solution
             new_data = perturb_vectors(
-                self.current_data, 
-                self.step_size, 
+                self.state.current_data, 
                 self.perturb_fraction,
-                self.bounds
+                self.bounds,
+                self.step_spread
             )
 
-            self.metrics, new_objective = calculate_objective(new_data, self.objective_func)
+            metrics, new_objective = calculate_objective(new_data, self.objective_func)
             
             # Determine if we accept the new solution
             if self.temperature > 0:
 
                 # Simulated annealing: accept worse solutions probabilistically
                 delta = self._calculate_delta(new_objective)
-                accept = delta >= 0 or np.random.random() < np.exp(delta / max(self.temp, 1e-10))
+                accept = delta >= 0 or np.random.random() < np.exp(delta / max(self.state.temperature, 1e-10))
                 
                 if accept:
-
-                    self.current_data = new_data
-                    self.current_objective = new_objective
+                    self.state.update_current(new_data, new_objective, metrics)
                     
                     # Update best if this is an improvement
                     if self._is_improvement(new_objective):
-
-                        self.best_data = new_data.copy()
-                        self.best_objective = new_objective
-
-                        if self.mode == 'target':
-                            self.best_distance = abs(new_objective - self.target_value)
-
-                        self._record_improvement()
+                        self.state.update_best(new_data, new_objective, self.target_value)
+                        self.state.record_improvement()
                 
-                self.temp *= self.cooling_rate
+                self.state.temperature *= self.cooling_rate
 
             else:
                 # Standard hill climbing: only accept improvements
                 if self._is_improvement(new_objective):
-                    self.best_data = self.current_data = new_data
-                    self.best_objective = self.current_objective = new_objective
-
-                    if self.mode == 'target':
-                        self.best_distance = abs(new_objective - self.target_value)
-
-                    self._record_improvement()
+                    # Update both current and best
+                    self.state.update_current(new_data, new_objective, metrics)
+                    self.state.update_best(new_data, new_objective, self.target_value)
+                    self.state.record_improvement()
             
             # Save checkpoint periodically
             self.save_checkpoint()
@@ -445,13 +451,11 @@ class HillClimber:
         # Plot final results
         self.plot_progress_check(force=True)
         
-        # Convert back to DataFrame if input was DataFrame
-        best_data_output = (
-            pd.DataFrame(self.best_data, columns=self.columns) 
-            if self.is_dataframe else self.best_data
+        # Return results
+        return self.state.get_results(
+            is_dataframe=self.is_dataframe,
+            columns=self.columns
         )
-        
-        return best_data_output, pd.DataFrame(self.steps)
 
 
     def climb_parallel(self, replicates=4, initial_noise=0.0, output_file=None, 
@@ -536,10 +540,11 @@ class HillClimber:
                 checkpoint_file = os.path.join(checkpoint_dir, f'replicate_{i:03d}.pkl')
             
             args_list.append((
-                data_rep, self.objective_func, self.max_time, self.step_size,
+                data_rep, self.objective_func, self.max_time,
                 self.perturb_fraction, self.temperature, self.cooling_rate,
                 self.mode, self.target_value, self.is_dataframe, self.columns,
-                checkpoint_file, self.save_interval, None  # Disable plot_progress for parallel
+                checkpoint_file, self.save_interval, None,  # Disable plot_progress for parallel
+                self.step_spread
             ))
         
         # Execute in parallel
@@ -572,7 +577,6 @@ class HillClimber:
                 'results': results_list,
                 'hyperparameters': {
                     'max_time': self.max_time,
-                    'step_size': self.step_size,
                     'perturb_fraction': self.perturb_fraction,
                     'replicates': replicates,
                     'initial_noise': initial_noise,
@@ -581,7 +585,8 @@ class HillClimber:
                     'objective_function': self.objective_func.__name__,
                     'mode': self.mode,
                     'target_value': self.target_value,
-                    'input_size': len(self.data)
+                    'input_size': len(self.data),
+                    'step_spread': self.step_spread
                 }
             }
             
@@ -624,13 +629,13 @@ class HillClimber:
             True if new_obj improves on current best
         """
         if self.mode == 'maximize':
-            return new_obj > self.best_objective
+            return new_obj > self.state.best_objective
 
         elif self.mode == 'minimize':
-            return new_obj < self.best_objective
+            return new_obj < self.state.best_objective
 
         else:  # target mode
-            return abs(new_obj - self.target_value) < self.best_distance
+            return abs(new_obj - self.target_value) < self.state.best_distance
 
     def _calculate_delta(self, new_obj):
         """Calculate delta for simulated annealing acceptance.
@@ -643,43 +648,34 @@ class HillClimber:
         """
 
         if self.mode == 'maximize':
-            return new_obj - self.current_objective
+            return new_obj - self.state.current_objective
 
         elif self.mode == 'minimize':
-            return self.current_objective - new_obj
+            return self.state.current_objective - new_obj
 
         else:  # target mode
-            curr_dist = abs(self.current_objective - self.target_value)
+            curr_dist = abs(self.state.current_objective - self.target_value)
             new_dist = abs(new_obj - self.target_value)
 
             return curr_dist - new_dist
-
-    def _record_improvement(self):
-        """Record current best solution in steps history."""
-
-        self.steps['Step'].append(self.step)
-        self.steps['Objective value'].append(self.best_objective)
-        self.steps['Best_data'].append(self.best_data.copy())
-        
-        for metric_name, metric_value in self.metrics.items():
-            self.steps[metric_name].append(metric_value)
 
 
 def _climb_wrapper(args):
     """Wrapper for parallel execution of HillClimber.climb().
     
     Args:
-        args: Tuple of (data_numpy, objective_func, max_time, step_size, 
+        args: Tuple of (data_numpy, objective_func, max_time, 
               perturb_fraction, temperature, cooling_rate, mode, target_value, 
-              is_dataframe, columns, checkpoint_file, save_interval, plot_progress)
+              is_dataframe, columns, checkpoint_file, save_interval, plot_progress, 
+              step_spread)
         
     Returns:
         Result from climb(): (best_data, steps_df)
     """
 
-    (data_numpy, objective_func, max_time, step_size, perturb_fraction, 
+    (data_numpy, objective_func, max_time, perturb_fraction, 
      temperature, cooling_rate, mode, target_value, is_dataframe, columns,
-     checkpoint_file, save_interval, plot_progress) = args
+     checkpoint_file, save_interval, plot_progress, step_spread) = args
     
     # Reconstruct original data format for HillClimber
     data_input = (
@@ -691,7 +687,6 @@ def _climb_wrapper(args):
         data=data_input,
         objective_func=objective_func,
         max_time=max_time,
-        step_size=step_size,
         perturb_fraction=perturb_fraction,
         temperature=temperature,
         cooling_rate=cooling_rate,
@@ -699,7 +694,8 @@ def _climb_wrapper(args):
         target_value=target_value,
         checkpoint_file=checkpoint_file,
         save_interval=save_interval,
-        plot_progress=plot_progress
+        plot_progress=plot_progress,
+        step_spread=step_spread
     )
     
     return climber.climb()

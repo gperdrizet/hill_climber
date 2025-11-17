@@ -1,18 +1,15 @@
 """Hill Climber - Optimization package with simulated annealing.
 
-This package provides tools for hill climbing optimization with optional
-simulated annealing, supporting multiple optimization modes and parallel
-execution.
+This package provides hill climbing optimization with simulated annealing,
+supporting flexible multi-objective optimization and parallel execution.
 
 Main Components:
     HillClimber: Main optimization class
+    OptimizerState: State management dataclass (typically not used directly)
     Helper functions: Data manipulation and objective calculation utilities
     Plotting functions: Visualization tools for input data and results
 
 Example:
-    >>> import sys
-    >>> sys.path.insert(0, 'path/to/hill_climber/src')
-    >>> 
     >>> from hill_climber import HillClimber
     >>> import pandas as pd
     >>> import numpy as np
@@ -35,31 +32,20 @@ Example:
     ...     max_time=1,
     ...     mode='maximize'
     ... )
+    >>> best_data, steps_df = climber.climb()
+    >>> 
+    >>> # Or run parallel replicates
     >>> results = climber.climb_parallel(replicates=4)
     >>> 
-    >>> # Visualize input data
-    >>> climber.plot_input()  # Default scatter plot
-    >>> climber.plot_input(plot_type='kde')  # KDE plot
-    >>> 
-    >>> # Plot results with scatter plots (default)
-    >>> climber.plot_results(results)
-    >>> 
-    >>> # Or plot results with KDE (Kernel Density Estimation) plots
+    >>> # Visualize results
     >>> climber.plot_results(results, plot_type='histogram')
-    >>> 
-    >>> # Or select specific metrics to display
-    >>> climber.plot_results(results, metrics=['correlation'])
-
-Module Contents:
-    - optimizer: Main HillClimber class module
-    - climber_functions: Helper functions for data manipulation
-    - plotting_functions: Visualization utilities
 """
 
-__version__ = '0.1.10'
+__version__ = '0.1.13'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber
+from .optimizer_state import OptimizerState
 from .climber_functions import (
     perturb_vectors,
     extract_columns,
@@ -72,6 +58,7 @@ from .plotting_functions import (
 
 __all__ = [
     'HillClimber',
+    'OptimizerState',
     'perturb_vectors',
     'extract_columns',
     'calculate_correlation_objective',

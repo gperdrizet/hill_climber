@@ -33,21 +33,21 @@ class TestPerturbVectors(unittest.TestCase):
     def test_perturb_array_returns_array(self):
         """Test that perturbing an array returns an array."""
 
-        result = perturb_vectors(self.array_data_2d, step_size=0.1)
+        result = perturb_vectors(self.array_data_2d, step_spread=0.1)
         self.assertIsInstance(result, np.ndarray)
 
 
     def test_perturb_preserves_shape(self):
         """Test that perturbation preserves data shape."""
 
-        result = perturb_vectors(self.array_data_2d, step_size=0.1)
+        result = perturb_vectors(self.array_data_2d, step_spread=0.1)
         self.assertEqual(result.shape, self.array_data_2d.shape)
 
 
     def test_perturb_works_with_3d_data(self):
         """Test that perturbation works with 3D data."""
 
-        result = perturb_vectors(self.array_data_3d, step_size=0.1)
+        result = perturb_vectors(self.array_data_3d, step_spread=0.1)
         self.assertEqual(result.shape, self.array_data_3d.shape)
         self.assertIsInstance(result, np.ndarray)
 
@@ -55,7 +55,7 @@ class TestPerturbVectors(unittest.TestCase):
     def test_perturb_works_with_4d_data(self):
         """Test that perturbation works with 4D data."""
 
-        result = perturb_vectors(self.array_data_4d, step_size=0.1)
+        result = perturb_vectors(self.array_data_4d, step_spread=0.1)
         self.assertEqual(result.shape, self.array_data_4d.shape)
         self.assertIsInstance(result, np.ndarray)
 
@@ -67,7 +67,7 @@ class TestPerturbVectors(unittest.TestCase):
 
         # Use larger data with more room for perturbation
         large_data = np.random.uniform(0.2, 0.8, (100, 2))
-        result = perturb_vectors(large_data, step_size=0.1, perturb_fraction=0.5)
+        result = perturb_vectors(large_data, step_spread=0.1, perturb_fraction=0.5)
 
         # At least one value should be different
         self.assertFalse(np.array_equal(result, large_data))
@@ -83,7 +83,7 @@ class TestPerturbVectors(unittest.TestCase):
         
         for _ in range(100):  # Test multiple times due to randomness
 
-            result = perturb_vectors(data, step_size=1.0, bounds=bounds)
+            result = perturb_vectors(data, step_spread=1.0, bounds=bounds)
             self.assertTrue(np.all(result >= min_bounds), "Values should not go below min bounds")
             self.assertTrue(np.all(result <= max_bounds), "Values should not go above max bounds")
 
@@ -95,7 +95,7 @@ class TestPerturbVectors(unittest.TestCase):
 
         for _ in range(100):  # Test multiple times due to randomness
 
-            result = perturb_vectors(small_data, step_size=0.05)
+            result = perturb_vectors(small_data, step_spread=0.05)
             self.assertTrue(np.all(result > 0), "All values should remain positive")
 
 
@@ -103,7 +103,7 @@ class TestPerturbVectors(unittest.TestCase):
         """Test that original data is not modified."""
 
         original = self.array_data_2d.copy()
-        perturb_vectors(self.array_data_2d, step_size=0.1)
+        perturb_vectors(self.array_data_2d, step_spread=0.1)
         np.testing.assert_array_equal(self.array_data_2d, original)
 
 

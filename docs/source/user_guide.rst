@@ -3,6 +3,33 @@ User Guide
 
 This guide explains the key concepts and parameters of Hill Climber.
 
+Data Format and Terminology
+----------------------------
+
+Hill Climber works with tabular data:
+
+**Data Shape**
+   Input data has shape ``(N, M)`` where:
+   
+   - ``N`` = number of samples (rows/data points)
+   - ``M`` = number of features (columns)
+
+**Accepted Formats**
+   - NumPy arrays: ``np.ndarray`` with shape ``(N, M)``
+   - Pandas DataFrames: ``pd.DataFrame`` with M columns
+
+**Objective Function Signature**
+   Your objective function receives M separate 1D arrays (one per column):
+   
+   - For M=2: ``objective_func(x, y)``
+   - For M=3: ``objective_func(x, y, z)``
+   - For M=4: ``objective_func(w, x, y, z)``
+
+.. note::
+   The term "2D data" in this documentation refers to data with 2 features (M=2),
+   not the numpy array dimensionality. All input data are 2D numpy arrays with
+   shape ``(N, M)``.
+
 Optimization Modes
 ------------------
 
@@ -24,11 +51,15 @@ An objective function takes the data columns as arguments and returns:
 1. A dictionary of metrics to track
 2. A single objective value to optimize
 
-Example:
+Your objective function should accept as many arguments as you have columns
+in your input data.
+
+Examples:
 
 .. code-block:: python
 
-   def my_objective(x, y):
+   # For 2-column data (M=2)
+   def objective_2col(x, y):
        # Calculate metrics
        mean_x = np.mean(x)
        mean_y = np.mean(y)
@@ -44,16 +75,31 @@ Example:
        }
        return metrics, objective
 
+   # For 3-column data (M=3)
+   def objective_3col(x, y, z):
+       correlation_xy = pearsonr(x, y)[0]
+       correlation_xz = pearsonr(x, z)[0]
+       
+       objective = correlation_xy + correlation_xz
+       
+       metrics = {
+           'Corr XY': correlation_xy,
+           'Corr XZ': correlation_xz
+       }
+       return metrics, objective
+
 Hyperparameters
 ---------------
 
-**step_size** (default: 0.1)
-   Controls the magnitude of perturbations. Larger values make bigger changes
-   but may overshoot optimal solutions. Smaller values are more precise but
-   slower.
+**step_spread** (default: 1.0)
+   Standard deviation of the normal distribution used for perturbations. Controls
+   the variability and typical magnitude of changes. Perturbations are sampled
+   from a normal distribution with mean 0 and this standard deviation. Larger 
+   values create more dramatic perturbations, smaller values make more subtle 
+   adjustments.
 
 **perturb_fraction** (default: 0.1)
-   Fraction of data points to modify in each iteration (0.0 to 1.0).
+   Fraction of data points to modify in each iteration (0.0 to 1.0). 
    Higher values create more dramatic changes per step.
 
 **temperature** (default: 1000)
@@ -62,8 +108,8 @@ Hyperparameters
 
 **cooling_rate** (default: 0.000001)
    Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
-   is multiplied by (1 - cooling_rate) each iteration. Smaller values result in slower
-   cooling and longer exploration. For example, 0.000001 means temp *= 0.999999 each step.
+   is multiplied by ``(1 - cooling_rate)`` each iteration. Smaller values result in slower
+   cooling and longer exploration. For example, ``0.000001`` means ``temp *= 0.999999`` each step.
 
 **max_time** (default: 30)
    Maximum optimization time in minutes.
@@ -144,13 +190,29 @@ Resume from a checkpoint:
 Results Structure
 -----------------
 
-**Single climb** returns:
-   The optimized DataFrame and metrics history.
+**Single climb** returns a tuple of:
+
+.. code-block:: python
+
+   best_data, steps_df = climber.climb()
+
+Where:
+
+- ``best_data``: Optimized data (DataFrame or numpy array, same format as input)
+- ``steps_df``: DataFrame tracking optimization progress with columns:
+  
+  - ``Step``: Step number when improvement was accepted
+  - ``Objective value``: Objective value at that step
+  - ``Best_data``: Snapshot of best data at that step
+  - Additional metric columns (defined by your objective function)
 
 **Parallel climbs** returns a dictionary:
 
 .. code-block:: python
 
+   results = climber.climb_parallel(replicates=4)
+   
+   # Structure:
    {
        'input_data': <original DataFrame>,
        'results': [
@@ -162,6 +224,22 @@ Results Structure
 
 Where:
 
-- ``initial_data``: Data after noise addition
-- ``best_data``: Final optimized data
-- ``steps_df``: DataFrame tracking metrics at each step
+- ``input_data``: Original data before any noise was added
+- ``initial_data``: Data for this replicate after noise addition
+- ``best_data``: Final optimized data for this replicate
+- ``steps_df``: Optimization history for this replicate
+
+Internal Architecture
+---------------------
+
+Hill Climber uses a unified ``OptimizerState`` dataclass to manage all optimization
+progress internally. This provides:
+
+- **Clean separation**: Hyperparameters stay in ``HillClimber``, runtime state in ``OptimizerState``
+- **Easy checkpointing**: State can be serialized/deserialized as a unit
+- **Better organization**: All tracking data (current/best solutions, metrics, history, timing) in one place
+- **Type safety**: Dataclass provides clear typing for all state attributes
+
+You don't need to interact with ``OptimizerState`` directly - it's used internally
+by the ``HillClimber`` class. However, if you're extending or debugging the code,
+you can access it via ``climber.state``.

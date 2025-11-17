@@ -7,12 +7,13 @@ Custom Objective Functions
 Complex Multi-Objective Optimization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Combine multiple objectives with different weights:
+Hill Climber supports multi-column data. Your objective function should accept
+as many arguments as you have columns. Combine multiple objectives with different weights:
 
 .. code-block:: python
 
    def multi_objective(w, x, y, z):
-       """Optimize multiple properties simultaneously."""
+       """Optimize multiple properties simultaneously for 4-column data."""
        
        # Calculate individual objectives
        mean_similarity = calculate_mean_penalty(w, x, y, z)
@@ -72,14 +73,14 @@ Choosing Number of Replicates
 
 - **4-8 replicates**: Good balance for most problems
 - **More replicates**: Better exploration, find more diverse solutions
-- **Fewer replicates**: Faster completion, use when solutions are similar
+- **CPU resource limit**: Not recommended to run more replicates than one less than available CPU threads
 
 Replicate Noise Tuning
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-- **Low noise (0.1-0.3)**: When starting data is already close to solutions
-- **Medium noise (0.3-0.7)**: General purpose exploration
-- **High noise (0.7-1.5)**: When you need very diverse starting points
+- **Low noise** (~1%-10% of input range): When starting data is already close to solutions
+- **Medium noise** (~10%-50% of input range): General purpose exploration
+- **High noise** (~50%-150% of input range): When you need very diverse starting points
 
 Checkpointing
 -------------
@@ -148,25 +149,47 @@ This is particularly useful for:
 Performance Optimization
 ------------------------
 
+Perturbation Strategies
+~~~~~~~~~~~~~~~~~~~~~~~
+
+**Perturbation distribution**:
+
+Perturbations are sampled from a normal distribution N(0, ``step_spread``):
+
+- Mean is always 0 (symmetric perturbations around current values)
+- ``step_spread``: Standard deviation (controls magnitude variability)
+- Default ``step_spread=1.0`` provides moderate-sized perturbations
+
+Example:
+
+.. code-block:: python
+
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       perturb_fraction=0.1,  # perturb 10% of elements
+       step_spread=0.5        # moderate variability
+   )
+
 Faster Convergence
 ~~~~~~~~~~~~~~~~~~
 
 For quick convergence, use aggressive parameters:
 
-- **Large step_size** (2.0-5.0): Make bigger changes
+- **Large step_spread** (5.0-10.0): Allow bigger perturbations
 - **High perturb_fraction** (0.4-0.6): Modify more points
 - **Low temperature** (10-50): More greedy optimization
-- **Slower cooling** (0.9999): More iterations
+- **Slower cooling** (0.0001): More exploration of suboptimal solutions
 
 Better Exploration
 ~~~~~~~~~~~~~~~~~~
 
 For thorough exploration of solution space:
 
-- **Small step_size** (0.1-1.0): Precise adjustments
+- **Small step_spread** (0.1-0.5): Precise adjustments
 - **Low perturb_fraction** (0.1-0.2): Subtle changes
 - **High temperature** (100-500): Accept more suboptimal moves
-- **Faster cooling** (0.999-0.9995): Gradual convergence
+- **Faster cooling** (0.01-0.001): Gradual convergence
 
 Algorithm Visualization
 -----------------------
@@ -175,7 +198,7 @@ The hill climbing process can be visualized as searching a fitness landscape.
 The algorithm:
 
 1. Starts from initial data
-2. Makes random perturbations
+2. Makes random perturbations sampled from a normal distribution N(0, ``step_spread``)
 3. Evaluates fitness via objective function
 4. Accepts improvements (always) or worsening moves (with probability based on temperature)
 5. Gradually reduces temperature to focus on local optimization
@@ -191,7 +214,7 @@ No Progress After Many Steps
 
 **Solutions**:
 
-- Increase ``step_size`` for larger perturbations
+- Increase ``step_spread`` for larger perturbations
 - Increase ``perturb_fraction`` to modify more points
 - Decrease ``temperature`` for more greedy optimization
 - Check if objective function has bugs or is too constrained
@@ -215,7 +238,7 @@ Oscillating Objective Values
 
 **Solutions**:
 
-- Decrease ``step_size`` for finer control
+- Decrease ``step_spread`` for finer control
 - Decrease ``temperature`` to be more selective
 - Check for bugs in objective function
 - Ensure objective weights are balanced
@@ -246,6 +269,14 @@ Citation
 ~~~~~~~~
 
 If you use this package in your research, please cite it appropriately.
-Visit the `GitHub repository <https://github.com/gperdrizet/hill_climber>`_
+Visit the `GitHub repository <https://github.com/gperdrizet/hill_climber>`__ (opens in new tab)
 and click the "Cite this repository" button for properly formatted citations
 in APA, BibTeX, or other formats.
+
+.. raw:: html
+
+   <script>
+   document.querySelectorAll('a[href="https://github.com/gperdrizet/hill_climber"]').forEach(function(link) {
+       link.setAttribute('target', '_blank');
+   });
+   </script>

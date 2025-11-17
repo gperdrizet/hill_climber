@@ -39,7 +39,7 @@ class TestHillClimberInitialization(unittest.TestCase):
             objective_func=self.objective_func
         )
         self.assertEqual(climber.max_time, 30)
-        self.assertEqual(climber.step_size, 0.05)
+        self.assertEqual(climber.step_spread, 1.0)
         self.assertEqual(climber.temperature, 1000)
         self.assertEqual(climber.cooling_rate, 1 - 0.000001)
         self.assertEqual(climber.mode, 'maximize')
@@ -51,13 +51,13 @@ class TestHillClimberInitialization(unittest.TestCase):
             data=self.data,
             objective_func=self.objective_func,
             max_time=5,
-            step_size=0.2,
+            step_spread=0.2,
             temperature=10.0,
             cooling_rate=0.01,
             mode='minimize'
         )
         self.assertEqual(climber.max_time, 5)
-        self.assertEqual(climber.step_size, 0.2)
+        self.assertEqual(climber.step_spread, 0.2)
         self.assertEqual(climber.temperature, 10.0)
         self.assertEqual(climber.cooling_rate, 1 - 0.01)
         self.assertEqual(climber.mode, 'minimize')
@@ -122,7 +122,7 @@ class TestHillClimberPrivateMethods(unittest.TestCase):
             objective_func=self.objective_func,
             mode='maximize'
         )
-        climber.best_objective = 5.0
+        climber.state.best_objective = 5.0
         self.assertTrue(climber._is_improvement(6.0))
         self.assertFalse(climber._is_improvement(4.0))
     
@@ -133,7 +133,7 @@ class TestHillClimberPrivateMethods(unittest.TestCase):
             objective_func=self.objective_func,
             mode='minimize'
         )
-        climber.best_objective = 5.0
+        climber.state.best_objective = 5.0
         self.assertTrue(climber._is_improvement(4.0))
         self.assertFalse(climber._is_improvement(6.0))
     
@@ -145,8 +145,8 @@ class TestHillClimberPrivateMethods(unittest.TestCase):
             mode='target',
             target_value=10.0
         )
-        climber.best_objective = 7.0  # distance = 3.0
-        climber.best_distance = 3.0
+        climber.state.best_objective = 7.0  # distance = 3.0
+        climber.state.best_distance = 3.0
         self.assertTrue(climber._is_improvement(8.0))  # distance = 2.0
         self.assertFalse(climber._is_improvement(5.0))  # distance = 5.0
     
@@ -157,7 +157,7 @@ class TestHillClimberPrivateMethods(unittest.TestCase):
             objective_func=self.objective_func,
             mode='maximize'
         )
-        climber.current_objective = 5.0
+        climber.state.current_objective = 5.0
         self.assertEqual(climber._calculate_delta(6.0), 1.0)
         self.assertEqual(climber._calculate_delta(4.0), -1.0)
     
@@ -168,7 +168,7 @@ class TestHillClimberPrivateMethods(unittest.TestCase):
             objective_func=self.objective_func,
             mode='minimize'
         )
-        climber.current_objective = 5.0
+        climber.state.current_objective = 5.0
         self.assertEqual(climber._calculate_delta(4.0), 1.0)
         self.assertEqual(climber._calculate_delta(6.0), -1.0)
     
@@ -180,25 +180,25 @@ class TestHillClimberPrivateMethods(unittest.TestCase):
             mode='target',
             target_value=10.0
         )
-        climber.current_objective = 7.0  # distance = 3.0
+        climber.state.current_objective = 7.0  # distance = 3.0
         delta = climber._calculate_delta(8.0)  # new distance = 2.0
         self.assertEqual(delta, 1.0)
     
     def test_record_improvement(self):
-        """Test _record_improvement method."""
+        """Test record_improvement method via state."""
         climber = HillClimber(data=self.data, objective_func=self.objective_func)
-        climber.steps = {'Step': [], 'Objective value': [], 'Best_data': [], 'mean': []}
-        climber.step = 1
-        climber.best_objective = 5.0
-        climber.best_data = np.array([[1.0, 2.0], [3.0, 4.0]])
-        climber.metrics = {'mean': 2.5}
+        climber.state.step = 1
+        climber.state.best_objective = 5.0
+        climber.state.best_data = np.array([[1.0, 2.0], [3.0, 4.0]])
+        climber.state.metrics = {'mean': 2.5}
+        climber.state.history = {'Step': [], 'Objective value': [], 'Best_data': [], 'mean': []}
         
-        climber._record_improvement()
+        climber.state.record_improvement()
         
-        self.assertEqual(len(climber.steps['Step']), 1)
-        self.assertEqual(climber.steps['Step'][0], 1)
-        self.assertEqual(climber.steps['Objective value'][0], 5.0)
-        self.assertEqual(climber.steps['mean'][0], 2.5)
+        self.assertEqual(len(climber.state.history['Step']), 1)
+        self.assertEqual(climber.state.history['Step'][0], 1)
+        self.assertEqual(climber.state.history['Objective value'][0], 5.0)
+        self.assertEqual(climber.state.history['mean'][0], 2.5)
 
 
 class TestHillClimberClimb(unittest.TestCase):
