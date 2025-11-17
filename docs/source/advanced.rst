@@ -269,6 +269,14 @@ Citation
 ~~~~~~~~
 
 If you use this package in your research, please cite it appropriately.
-Visit the `GitHub repository <https://github.com/gperdrizet/hill_climber>`_
+Visit the `GitHub repository <https://github.com/gperdrizet/hill_climber>`__ (opens in new tab)
 and click the "Cite this repository" button for properly formatted citations
 in APA, BibTeX, or other formats.
+
+.. raw:: html
+
+   <script>
+   document.querySelectorAll('a[href="https://github.com/gperdrizet/hill_climber"]').forEach(function(link) {
+       link.setAttribute('target', '_blank');
+   });
+   </script>

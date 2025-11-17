@@ -52,9 +52,17 @@ Python Version Support
 Links
 -----
 
-- **PyPI Package**: https://pypi.org/project/parallel-hill-climber/
-- **GitHub Repository**: https://github.com/gperdrizet/hill_climber
-- **Issue Tracker**: https://github.com/gperdrizet/hill_climber/issues
+- **PyPI Package**: `parallel-hill-climber <https://pypi.org/project/parallel-hill-climber/>`__
+- **GitHub Repository**: `hill_climber <https://github.com/gperdrizet/hill_climber>`__
+- **Issue Tracker**: `Issues <https://github.com/gperdrizet/hill_climber/issues>`__
+
+.. raw:: html
+
+   <script>
+   document.querySelectorAll('a[href*="github.com"], a[href*="pypi.org"]').forEach(function(link) {
+       link.setAttribute('target', '_blank');
+   });
+   </script>
 
 Indices and Tables
 ==================
