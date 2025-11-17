@@ -12,10 +12,15 @@
 # Exit immediately if any command fails (prevents partial builds)
 set -e
 
+# Determine the repository root dynamically
+# This works regardless of where the repository is cloned
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 echo "Building documentation..."
 
 # Navigate to documentation directory
-cd /workspaces/hill_climber/docs
+cd "$REPO_ROOT/docs"
 
 # Create _static directory if it doesn't exist
 mkdir -p source/_static
@@ -32,7 +37,7 @@ make html
 echo "Starting documentation server on port 8000..."
 
 # Return to project root for consistent working directory
-cd /workspaces/hill_climber
+cd "$REPO_ROOT"
 
 # Kill any existing server on port 8000
 pkill -f "python -m http.server 8000" 2>/dev/null || true
