@@ -50,7 +50,7 @@ class OptimizerState:
             metrics_dict: Dictionary of metric values
             objective_value: Current objective value
         """
-        self.metrics_history.append((self.step, metrics_dict, objective_value))
+        self.metrics_history.append((self.step, metrics_dict, objective_value, self.best_data.copy()))
         self.step += 1
     
     def record_improvement(self, new_data: np.ndarray, new_objective: float, 
@@ -107,16 +107,17 @@ class OptimizerState:
         """Convert history to DataFrame.
         
         Returns:
-            DataFrame with step, objective, and metric columns
+            DataFrame with step, objective, metric columns, and best_data snapshots
         """
         if not self.metrics_history:
             return pd.DataFrame()
         
-        steps, metrics_dicts, objectives = zip(*self.metrics_history)
+        steps, metrics_dicts, objectives, best_data_snapshots = zip(*self.metrics_history)
         
         df_data = {
             'Step': steps,
             'Objective value': objectives,
+            'Best_data': best_data_snapshots,
         }
         
         # Add metric columns

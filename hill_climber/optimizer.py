@@ -37,6 +37,7 @@ class HillClimber:
         checkpoint_file: Path to save checkpoints
         save_interval: Checkpoint save interval in seconds
         plot_progress: Plot results every N minutes (None to disable)
+        plot_metrics: List of metric names to plot (None to plot all metrics)
         step_spread: Standard deviation for perturbation distribution
         n_replicas: Number of replicas for parallel tempering
         T_max: Maximum temperature (hottest replica)
@@ -58,6 +59,7 @@ class HillClimber:
         checkpoint_file: Optional[str] = None,
         save_interval: float = 60,
         plot_progress: Optional[float] = None,
+        plot_metrics: Optional[List[str]] = None,
         step_spread: float = 1.0,
         n_replicas: Optional[int] = None,
         T_max: Optional[float] = None,
@@ -88,6 +90,7 @@ class HillClimber:
         self.checkpoint_file = checkpoint_file
         self.save_interval = save_interval
         self.plot_progress = plot_progress
+        self.plot_metrics = plot_metrics
         self.step_spread = step_spread
         
         # Replica exchange parameters
@@ -335,8 +338,11 @@ class HillClimber:
         Args:
             results: Tuple of (best_data, steps_df)
             plot_type: 'scatter' or 'histogram'
-            metrics: List of metric names to plot
+            metrics: List of metric names to plot (overrides plot_metrics from __init__)
         """
+        # Use provided metrics, or fall back to instance plot_metrics
+        metrics_to_plot = metrics if metrics is not None else self.plot_metrics
+        
         # Wrap single result for compatibility with plot_results function
         if isinstance(results, tuple) and len(results) == 2:
             best_data, steps_df = results
@@ -354,7 +360,7 @@ class HillClimber:
         else:
             wrapped_results = results
         
-        plot_results_func(wrapped_results, plot_type, metrics)
+        plot_results_func(wrapped_results, plot_type, metrics_to_plot)
     
     def save_checkpoint(self, filepath: str):
         """Save current state to checkpoint file."""
@@ -370,7 +376,8 @@ class HillClimber:
             'hyperparameters': self.replicas[0].hyperparameters,
             'is_dataframe': self.is_dataframe,
             'column_names': self.column_names,
-            'bounds': self.bounds
+            'bounds': self.bounds,
+            'plot_metrics': self.plot_metrics
         }
         
         # Create checkpoint directory if needed
@@ -436,7 +443,8 @@ class HillClimber:
             mode=hyperparams['mode'],
             target_value=hyperparams.get('target_value'),
             step_spread=hyperparams['step_spread'],
-            n_replicas=len(checkpoint['replicas'])
+            n_replicas=len(checkpoint['replicas']),
+            plot_metrics=checkpoint.get('plot_metrics')
         )
         
         # Restore states
