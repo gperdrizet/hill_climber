@@ -32,6 +32,12 @@ def objective_3d_simple(x, y, z):
     return {'total_mean': total}, total
 
 
+def objective_4d_simple(a, b, c, d):
+    """Simple 4D objective: maximize sum of variances."""
+    variance = np.var(a) + np.var(b) + np.var(c) + np.var(d)
+    return {'total_variance': variance}, variance
+
+
 class TestIntegrationWithRealObjective(unittest.TestCase):
     """Integration tests using real objective functions."""
     
@@ -161,13 +167,9 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
     
     def test_climb_with_4d_numpy_array(self):
         """Test climb() with 4D numpy array data."""
-        def objective_4d(a, b, c, d):
-            variance = np.var(a) + np.var(b) + np.var(c) + np.var(d)
-            return {'total_variance': variance}, variance
-        
         climber = HillClimber(
             data=self.data_4d,
-            objective_func=objective_4d,
+            objective_func=objective_4d_simple,
             max_time=0.02,
             step_spread=0.1,
             mode='maximize'

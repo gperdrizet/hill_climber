@@ -7,6 +7,8 @@ import time
 import os
 from typing import Callable, Optional, Dict, Any, Tuple, List
 import matplotlib.pyplot as plt
+from multiprocessing import Pool, cpu_count
+from functools import partial
 
 from .optimizer_state import OptimizerState
 from .climber_functions import perturb_vectors, evaluate_objective
@@ -15,6 +17,7 @@ from .replica_exchange import (
     TemperatureLadder, ExchangeScheduler, ExchangeStatistics,
     should_exchange
 )
+from .replica_worker import run_replica_steps
 
 
 class HillClimber:
@@ -44,6 +47,7 @@ class HillClimber:
         exchange_interval: Steps between exchange attempts
         temperature_scheme: 'geometric' or 'linear' temperature spacing
         exchange_strategy: 'even_odd', 'random', or 'all_neighbors'
+        n_workers: Number of worker processes (None = n_replicas, 0 = sequential)
     """
     
     def __init__(
@@ -65,7 +69,8 @@ class HillClimber:
         T_max: Optional[float] = None,
         exchange_interval: int = 100,
         temperature_scheme: str = 'geometric',
-        exchange_strategy: str = 'even_odd'
+        exchange_strategy: str = 'even_odd',
+        n_workers: Optional[int] = None
     ):
         # Convert data to numpy if needed
         if isinstance(data, pd.DataFrame):
@@ -101,13 +106,23 @@ class HillClimber:
         self.temperature_scheme = temperature_scheme
         self.exchange_strategy = exchange_strategy
         
+        # Parallel processing parameters
+        # None = use n_replicas workers, 0 = sequential mode, >0 = specified number
+        if n_workers is None:
+            self.n_workers = self.n_replicas
+        elif n_workers == 0:
+            self.n_workers = 0  # Sequential mode
+        else:
+            self.n_workers = min(n_workers, cpu_count())
+        
         # Will be initialized in climb()
         self.replicas: List[OptimizerState] = []
         self.temperature_ladder: Optional[TemperatureLadder] = None
         self.exchange_stats: Optional[ExchangeStatistics] = None
         self.last_save_time: Optional[float] = None
         self.last_plot_time: Optional[float] = None
-    
+
+
     def climb(self) -> Tuple[np.ndarray, pd.DataFrame]:
         """Run replica exchange optimization.
         
@@ -116,7 +131,8 @@ class HillClimber:
                 best_data: Best configuration found across all replicas
                 steps_df: DataFrame with optimization history from best replica
         """
-        print(f"Starting replica exchange with {self.n_replicas} replicas...")
+        mode_str = f"parallel ({self.n_workers} workers)" if self.n_workers > 0 else "sequential"
+        print(f"Starting replica exchange with {self.n_replicas} replicas ({mode_str})...")
         
         # Initialize temperature ladder
         if self.temperature_scheme == 'geometric':
@@ -137,6 +153,14 @@ class HillClimber:
         scheduler = ExchangeScheduler(self.n_replicas, self.exchange_strategy)
         self.exchange_stats = ExchangeStatistics(self.n_replicas)
         
+        # Choose execution path
+        if self.n_workers > 0:
+            return self._climb_parallel(scheduler)
+        else:
+            return self._climb_sequential(scheduler)
+    
+    def _climb_sequential(self, scheduler: ExchangeScheduler) -> Tuple[np.ndarray, pd.DataFrame]:
+        """Run optimization sequentially (original single-threaded approach)."""
         # Main optimization loop
         start_time = time.time()
         self.last_save_time = start_time
@@ -162,6 +186,61 @@ class HillClimber:
                 self._plot_progress()
                 self.last_plot_time = time.time()
         
+        return self._finalize_results()
+    
+    def _climb_parallel(self, scheduler: ExchangeScheduler) -> Tuple[np.ndarray, pd.DataFrame]:
+        """Run optimization with parallel workers."""
+        start_time = time.time()
+        self.last_save_time = start_time
+        self.last_plot_time = start_time
+        
+        # Create worker pool
+        with Pool(processes=self.n_workers) as pool:
+            while (time.time() - start_time) < (self.max_time * 60):
+                
+                # Run batch of steps in parallel
+                self._parallel_step_batch(pool, self.exchange_interval)
+                
+                # Attempt exchanges
+                self._exchange_round(scheduler)
+                
+                # Checkpointing
+                if self.checkpoint_file and (time.time() - self.last_save_time >= self.save_interval):
+                    self.save_checkpoint(self.checkpoint_file)
+                    self.last_save_time = time.time()
+                
+                # Progress plotting
+                if self.plot_progress and (time.time() - self.last_plot_time >= self.plot_progress * 60):
+                    self._plot_progress()
+                    self.last_plot_time = time.time()
+        
+        return self._finalize_results()
+    
+    def _parallel_step_batch(self, pool: Pool, n_steps: int):
+        """Execute n_steps for all replicas in parallel."""
+        # Serialize current replica states
+        state_dicts = [self._serialize_state(r) for r in self.replicas]
+        
+        # Create partial function with fixed parameters
+        worker_func = partial(
+            run_replica_steps,
+            objective_func=self.objective_func,
+            bounds=self.bounds,
+            column_names=self.column_names,
+            n_steps=n_steps,
+            mode=self.mode,
+            target_value=self.target_value
+        )
+        
+        # Execute in parallel
+        updated_states = pool.map(worker_func, state_dicts)
+        
+        # Deserialize results back into replica objects
+        for i, state_dict in enumerate(updated_states):
+            self.replicas[i] = OptimizerState(**state_dict)
+    
+    def _finalize_results(self) -> Tuple[np.ndarray, pd.DataFrame]:
+        """Complete optimization and return results."""
         # Final checkpoint and plot
         if self.checkpoint_file:
             self.save_checkpoint(self.checkpoint_file)
@@ -377,7 +456,8 @@ class HillClimber:
             'is_dataframe': self.is_dataframe,
             'column_names': self.column_names,
             'bounds': self.bounds,
-            'plot_metrics': self.plot_metrics
+            'plot_metrics': self.plot_metrics,
+            'n_workers': self.n_workers
         }
         
         # Create checkpoint directory if needed
@@ -391,7 +471,7 @@ class HillClimber:
         print(f"Checkpoint saved: {filepath}")
     
     @staticmethod
-    def _serialize_state(state: OptimizerState) -> Dict:
+    def _serialize_state(state: OptimizerState) -> Dict[str, Any]:
         """Convert OptimizerState to dictionary for pickling."""
         return {
             'replica_id': state.replica_id,
@@ -444,7 +524,8 @@ class HillClimber:
             target_value=hyperparams.get('target_value'),
             step_spread=hyperparams['step_spread'],
             n_replicas=len(checkpoint['replicas']),
-            plot_metrics=checkpoint.get('plot_metrics')
+            plot_metrics=checkpoint.get('plot_metrics'),
+            n_workers=checkpoint.get('n_workers')
         )
         
         # Restore states
