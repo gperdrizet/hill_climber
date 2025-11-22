@@ -13,8 +13,7 @@ OptimizerState
 --------------
 
 .. autoclass:: hill_climber.OptimizerState
-   :members:
-   :undoc-members:
+   :members: record_step, record_improvement, record_exchange, get_history_dataframe, get_acceptance_rate
    :show-inheritance:
 
 Replica Exchange Components
@@ -24,16 +23,14 @@ TemperatureLadder
 ~~~~~~~~~~~~~~~~~
 
 .. autoclass:: hill_climber.TemperatureLadder
-   :members:
-   :undoc-members:
+   :members: n_replicas, geometric, linear, custom
    :show-inheritance:
 
 ExchangeStatistics
 ~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: hill_climber.ExchangeStatistics
-   :members:
-   :undoc-members:
+   :members: record_attempt, get_acceptance_rate, get_overall_acceptance_rate, get_pair_acceptance_rate
    :show-inheritance:
 
 ExchangeScheduler
@@ -57,6 +54,3 @@ Plotting Functions
 .. automodule:: hill_climber.plotting_functions
    :members:
    :undoc-members:
-
-
-```

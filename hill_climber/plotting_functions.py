@@ -11,10 +11,11 @@ def plot_input_data(data, plot_type='scatter'):
     
     Args:
         data: numpy array (Nx2) or pandas DataFrame with 2 columns
-        plot_type: 'scatter' or 'kde' (default: 'scatter')
+        plot_type: Type of plot, either ``'scatter'`` or ``'kde'``
+                   (default is ``'scatter'``)
     
     Raises:
-        ValueError: If plot_type is not 'scatter' or 'kde'
+        ValueError: If plot_type is not ``'scatter'`` or ``'kde'``
     """
 
     if plot_type not in ['scatter', 'kde']:
@@ -90,14 +91,15 @@ def plot_results(results, plot_type='scatter', metrics=None):
         results: Results from climb(). Can be:
                  - Tuple (best_data, steps_df) from single climb() call
                  - List of result tuples for multi-replica visualization
-        plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
-                   Note: 'histogram' uses KDE (Kernel Density Estimation) plots
+        plot_type: Type of snapshot plots, either ``'scatter'`` or ``'histogram'``
+                   (default is ``'scatter'``).
+                   Note: ``'histogram'`` uses KDE (Kernel Density Estimation) plots
         metrics: List of metric names to display in progress plots and snapshots.
                  If None (default), all available metrics are shown.
-                 Example: ['Pearson', 'Spearman'] or ['Mean X', 'Std X']
+                 Example: ``['Pearson', 'Spearman']`` or ``['Mean X', 'Std X']``
     
     Raises:
-        ValueError: If plot_type is not 'scatter' or 'histogram'
+        ValueError: If plot_type is not ``'scatter'`` or ``'histogram'``
         ValueError: If any specified metric is not found in the results
     """
 

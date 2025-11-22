@@ -11,21 +11,9 @@ import time
 class OptimizerState:
     """State for a single replica in replica exchange optimization.
     
-    Attributes:
-        replica_id: Unique identifier for this replica
-        temperature: Current temperature for this replica
-        current_data: Current state of the data
-        current_objective: Current objective value
-        best_data: Best data found by this replica
-        best_objective: Best objective value found
-        step: Current step number
-        metrics_history: List of (step, metrics_dict, objective) tuples
-        exchange_attempts: Number of exchange attempts
-        exchange_acceptances: Number of successful exchanges
-        partner_history: List of replica IDs this replica exchanged with
-        original_data: The original input data
-        hyperparameters: Dictionary of optimization hyperparameters
-        start_time: When optimization started
+    This dataclass manages the state and history for a single optimization replica,
+    including current configuration, best found solution, metrics history, and 
+    exchange statistics.
     """
     
     replica_id: int

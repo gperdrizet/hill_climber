@@ -42,8 +42,8 @@ class HillClimber:
         plot_progress: Plot results every N minutes (None to disable)
         plot_metrics: List of metric names to plot (None to plot all metrics)
         step_spread: Standard deviation for perturbation distribution
-        n_replicas: Number of replicas for parallel tempering
-        T_max: Maximum temperature (hottest replica)
+        n_replicas: Number of replicas for parallel tempering (default: 4)
+        T_max: Maximum temperature for hottest replica (default: 10 * temperature)
         exchange_interval: Steps between exchange attempts
         temperature_scheme: 'geometric' or 'linear' temperature spacing
         exchange_strategy: 'even_odd', 'random', or 'all_neighbors'
@@ -65,7 +65,7 @@ class HillClimber:
         plot_progress: Optional[float] = None,
         plot_metrics: Optional[List[str]] = None,
         step_spread: float = 1.0,
-        n_replicas: Optional[int] = None,
+        n_replicas: int = 4,
         T_max: Optional[float] = None,
         exchange_interval: int = 1000,
         temperature_scheme: str = 'geometric',
@@ -85,6 +85,14 @@ class HillClimber:
         # Store bounds for boundary reflection
         self.bounds = (np.min(self.data, axis=0), np.max(self.data, axis=0))
         
+        # Validate mode
+        if mode not in ['maximize', 'minimize', 'target']:
+            raise ValueError(f"mode must be 'maximize', 'minimize', or 'target', got '{mode}'")
+        
+        # Validate target_value when mode is 'target'
+        if mode == 'target' and target_value is None:
+            raise ValueError("target_value must be specified when mode='target'")
+        
         self.objective_func = objective_func
         self.max_time = max_time
         self.perturb_fraction = perturb_fraction
@@ -99,7 +107,7 @@ class HillClimber:
         self.step_spread = step_spread
         
         # Replica exchange parameters
-        self.n_replicas = n_replicas or 4  # Default to 4 replicas
+        self.n_replicas = n_replicas
         self.T_min = temperature
         self.T_max = T_max or (temperature * 10)
         self.exchange_interval = exchange_interval
@@ -313,8 +321,8 @@ class HillClimber:
         
         if accept:
             replica.record_improvement(perturbed, objective, metrics)
-        else:
-            replica.record_step(metrics, replica.current_objective)
+        # Note: We only record accepted steps to avoid misleading history
+        # where rejected steps would show the old objective with a new step number
         
         # Cool temperature
         replica.temperature *= (1 - self.cooling_rate)
@@ -530,6 +538,21 @@ class HillClimber:
         # Restore bounds
         climber.bounds = checkpoint.get('bounds', (np.min(climber.data, axis=0), np.max(climber.data, axis=0)))
         
-        print(f"Resumed from checkpoint: {checkpoint['elapsed_time']/60:.1f} minutes elapsed")
+        # Adjust replica start times to account for elapsed time
+        # When resuming, we want elapsed time calculations to continue from where they left off
+        # So we set start_time = current_time - elapsed_time
+        current_time = time.time()
+        elapsed_seconds = checkpoint['elapsed_time']
+        adjusted_start_time = current_time - elapsed_seconds
+        
+        for replica in climber.replicas:
+            replica.start_time = adjusted_start_time
+        
+        # Set last_save_time and last_plot_time to current time to respect intervals
+        # This prevents immediate save/plot when resuming from a recently saved checkpoint
+        climber.last_save_time = current_time
+        climber.last_plot_time = current_time
+        
+        print(f"Resumed from checkpoint: {elapsed_seconds/60:.1f} minutes elapsed")
         
         return climber

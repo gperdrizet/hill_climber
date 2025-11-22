@@ -1,6 +1,6 @@
 """Replica exchange coordination and utilities."""
 import numpy as np
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 from dataclasses import dataclass, field
 
 
@@ -8,8 +8,8 @@ from dataclasses import dataclass, field
 class TemperatureLadder:
     """Manages temperature ladder for replica exchange.
     
-    Attributes:
-        temperatures: Array of temperatures from coldest to hottest
+    Provides methods to create geometric, linear, or custom temperature
+    schedules for parallel tempering optimization.
     """
     
     temperatures: np.ndarray
@@ -70,11 +70,8 @@ class TemperatureLadder:
 class ExchangeStatistics:
     """Track exchange statistics across all replicas.
     
-    Attributes:
-        n_replicas: Number of replicas
-        attempts: Matrix of exchange attempts [i,j]
-        acceptances: Matrix of successful exchanges [i,j]
-        round_count: Number of exchange rounds completed
+    Maintains matrices of exchange attempts and acceptances between all
+    replica pairs, enabling analysis of exchange efficiency.
     """
     
     n_replicas: int

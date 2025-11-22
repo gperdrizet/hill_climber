@@ -62,8 +62,8 @@ def run_replica_steps(
         
         if accept:
             state.record_improvement(perturbed, objective, metrics)
-        else:
-            state.record_step(metrics, state.current_objective)
+        # Note: We only record accepted steps to avoid misleading history
+        # where rejected steps would show the old objective with a new step number
         
         # Cool temperature
         cooling_rate = state.hyperparameters['cooling_rate']

@@ -147,7 +147,7 @@ Resume from a checkpoint:
 .. code-block:: python
 
    resumed = HillClimber.load_checkpoint(
-       checkpoint_file='optimization.pkl',
+       filepath='optimization.pkl',
        objective_func=my_objective
    )
    

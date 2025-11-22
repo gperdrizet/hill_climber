@@ -52,6 +52,13 @@ autodoc_default_options = {
     'exclude-members': '__weakref__'
 }
 
+# Suppress warnings about duplicate dataclass field documentation
+suppress_warnings = ['ref.python']
+
+# Control dataclass documentation to avoid duplicates
+autodoc_typehints = 'description'
+autodoc_class_signature = 'separated'
+
 # -- NBSphinx settings -------------------------------------------------------
 nbsphinx_execute = 'never'  # Don't execute notebooks during build
 nbsphinx_allow_errors = True  # Continue on errors
