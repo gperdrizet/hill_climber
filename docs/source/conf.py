@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'Hill Climber'
 copyright = '2025, Hill Climber Contributors'
 author = 'Hill Climber Contributors'
-release = '0.1.13'
+release = '1.0.0'
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -51,6 +51,13 @@ autodoc_default_options = {
     'undoc-members': True,
     'exclude-members': '__weakref__'
 }
+
+# Suppress warnings about duplicate dataclass field documentation
+suppress_warnings = ['ref.python']
+
+# Control dataclass documentation to avoid duplicates
+autodoc_typehints = 'description'
+autodoc_class_signature = 'separated'
 
 # -- NBSphinx settings -------------------------------------------------------
 nbsphinx_execute = 'never'  # Don't execute notebooks during build

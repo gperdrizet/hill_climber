@@ -17,7 +17,7 @@ Tests for helper functions in `climber_functions.py`:
   - Column name preservation
   - Correct data types
   
-- **TestCalculateCorrelationObjective**: Tests for `calculate_correlation_objective()`
+- **TestCalculateObjective**: Tests for `calculate_objective()`
   - Array and DataFrame compatibility
   - Metrics dictionary structure
   - Integration with objective functions
@@ -81,7 +81,7 @@ python -m unittest discover -s tests -p "test_*.py" -v
 ## Test Coverage
 
 The test suite covers:
-- **40 total tests**
+- **39 total tests**
 - All helper functions
 - HillClimber initialization and validation
 - All optimization modes (maximize, minimize, target)

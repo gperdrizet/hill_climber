@@ -138,5 +138,16 @@ def calculate_objective(data, objective_func):
     return objective_func(*columns)
 
 
-# Backwards compatibility alias
-calculate_correlation_objective = calculate_objective
+def evaluate_objective(data, objective_func):
+    """Evaluate objective function on data.
+    
+    This is a convenience wrapper around calculate_objective.
+    
+    Args:
+        data: numpy array (N, M)
+        objective_func: Function taking M arrays, returns (metrics_dict, objective_value)
+        
+    Returns:
+        Tuple of (metrics_dict, objective_value)
+    """
+    return calculate_objective(data, objective_func)

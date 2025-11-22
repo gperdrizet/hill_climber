@@ -10,8 +10,8 @@ A Python package for hill climbing optimization of user-supplied objective funct
 
 ## 2. Features
 
+- **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
 - **Simulated Annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
-- **Parallel Execution**: Run multiple replicates simultaneously for diverse solutions
 - **Flexible Objectives**: Support for any objective function with multiple metrics
 - **Multi-Column Support**: Optimize datasets with any number of features/columns
 - **Checkpoint/Resume**: Save and resume long-running optimizations
@@ -53,19 +53,20 @@ def my_objective(x, y):
     metrics = {'correlation': correlation}
     return metrics, correlation
 
-# Create optimizer
+# Create optimizer with replica exchange
 climber = HillClimber(
     data=data,
     objective_func=my_objective,
     max_time=1,  # minutes
-    mode='maximize'
+    mode='maximize',
+    n_replicas=4  # Use 4 replicas for parallel tempering
 )
 
-# Run optimization with multiple replicates
-results = climber.climb_parallel(replicates=4, initial_noise=0.1)
+# Run optimization
+best_data, history_df = climber.climb()
 
 # Visualize results
-climber.plot_results(results, plot_type='histogram')
+climber.plot_results((best_data, history_df), plot_type='histogram')
 ```
 
 ### 3.3. Example Notebooks
@@ -127,6 +128,9 @@ To run the test suite:
 
 ```bash
 # Run all tests
+python tests/run_tests.py
+
+# Or with pytest if installed
 python -m pytest tests/
 
 # Run specific test file

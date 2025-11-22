@@ -11,10 +11,11 @@ def plot_input_data(data, plot_type='scatter'):
     
     Args:
         data: numpy array (Nx2) or pandas DataFrame with 2 columns
-        plot_type: 'scatter' or 'kde' (default: 'scatter')
+        plot_type: Type of plot, either ``'scatter'`` or ``'kde'``
+                   (default is ``'scatter'``)
     
     Raises:
-        ValueError: If plot_type is not 'scatter' or 'kde'
+        ValueError: If plot_type is not ``'scatter'`` or ``'kde'``
     """
 
     if plot_type not in ['scatter', 'kde']:
@@ -87,44 +88,34 @@ def plot_results(results, plot_type='scatter', metrics=None):
     - Snapshot plots at 25%, 50%, 75%, and 100% completion
     
     Args:
-        results: Results from climb() or climb_parallel(). Can be:
-                 - Tuple (best_data, steps_df) from climb()
-                 - Dictionary with 'input_data' and 'results' keys from climb_parallel()
-                 - List of (noisy_initial, best_data, steps_df) tuples (legacy)
-                 - List of (best_data, steps_df) tuples (older legacy)
-        plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
-                   Note: 'histogram' uses KDE (Kernel Density Estimation) plots
+        results: Results from climb(). Can be:
+                 - Tuple (best_data, steps_df) from single climb() call
+                 - List of result tuples for multi-replica visualization
+        plot_type: Type of snapshot plots, either ``'scatter'`` or ``'histogram'``
+                   (default is ``'scatter'``).
+                   Note: ``'histogram'`` uses KDE (Kernel Density Estimation) plots
         metrics: List of metric names to display in progress plots and snapshots.
                  If None (default), all available metrics are shown.
-                 Example: ['Pearson', 'Spearman'] or ['Mean X', 'Std X']
+                 Example: ``['Pearson', 'Spearman']`` or ``['Mean X', 'Std X']``
     
     Raises:
-        ValueError: If plot_type is not 'scatter' or 'histogram'
+        ValueError: If plot_type is not ``'scatter'`` or ``'histogram'``
         ValueError: If any specified metric is not found in the results
     """
 
     if plot_type not in ['scatter', 'histogram']:
         raise ValueError(f"plot_type must be 'scatter' or 'histogram', got '{plot_type}'")
     
-    # Handle different result formats for backward compatibility
-    if isinstance(results, dict):
-        # Dictionary format from climb_parallel()
-        results_list = results['results']
-    elif isinstance(results, tuple) and len(results) == 2:
+    # Ensure results is a list
+    if isinstance(results, tuple) and len(results) == 2:
         # Single result tuple from climb(): (best_data, steps_df)
         # Wrap in list to make it compatible with the plotting functions
         results_list = [results]
     else:
-        # Legacy list format
         results_list = results
     
-    # Determine format of individual results
-    if len(results_list[0]) == 3:
-        # Format: (noisy_initial, best_data, steps_df)
-        _, _, steps_df = results_list[0]
-    else:
-        # Format: (best_data, steps_df)
-        _, steps_df = results_list[0]
+    # Get steps_df to validate metrics
+    _, steps_df = results_list[0]
     
     # Validate metrics if provided
     if metrics is not None:
@@ -148,7 +139,7 @@ def _plot_results_scatter(results, metrics=None):
     """Internal function: Visualize results with scatter plots.
     
     Args:
-        results: List of tuples from climb_parallel() - handles both formats
+        results: List of result tuples - handles both (data, df) and (_, data, df) formats
         metrics: List of metric names to display, or None for all metrics
     """
 
@@ -244,7 +235,7 @@ def _plot_results_histogram(results, metrics=None):
     """Internal function: Visualize results with KDE plots.
     
     Args:
-        results: List of tuples from climb_parallel() - handles both formats
+        results: List of result tuples - handles both (data, df) and (_, data, df) formats
         metrics: List of metric names to display, or None for all metrics
     """
 

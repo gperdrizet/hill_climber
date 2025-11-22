@@ -1,701 +1,558 @@
-"""Hill climbing optimization with simulated annealing."""
+"""Hill climbing optimization with replica exchange."""
 
 import numpy as np
 import pandas as pd
 import pickle
 import time
 import os
-from multiprocessing import Pool, cpu_count
+from typing import Callable, Optional, Dict, Any, Tuple, List
 import matplotlib.pyplot as plt
+from multiprocessing import Pool, cpu_count
+from functools import partial
 
-from .climber_functions import perturb_vectors, calculate_objective
-from .plotting_functions import plot_input_data, plot_results as plot_results_func
 from .optimizer_state import OptimizerState
+from .climber_functions import perturb_vectors, evaluate_objective
+from .plotting_functions import plot_results as plot_results_func
+from .replica_exchange import (
+    TemperatureLadder, ExchangeScheduler, ExchangeStatistics,
+    should_exchange
+)
+from .replica_worker import run_replica_steps
 
 
 class HillClimber:
-    """Hill climbing optimizer with optional simulated annealing.
+    """Hill climbing optimizer with replica exchange.
     
-    Performs optimization using hill climbing with optional simulated annealing
-    for escaping local optima. Supports three optimization modes: maximize,
-    minimize, or target a specific value.
+    This optimizer uses parallel tempering (replica exchange) to improve
+    global optimization. Multiple replicas run at different temperatures,
+    periodically exchanging configurations to enhance exploration and
+    exploitation.
     
-    Works with multi-column datasets where the objective function receives each
-    column as a separate argument. Uses a unified OptimizerState dataclass to
-    manage all optimization progress tracking internally.
-    
-    Attributes:
-        data: Initial data (numpy array or pandas DataFrame)
-        objective_func: Objective function returning (metrics_dict, objective_value)
+    Args:
+        data: Input data as numpy array (N, M) or pandas DataFrame with M columns
+        objective_func: Function taking M column arrays, returns (metrics_dict, objective_value)
         max_time: Maximum runtime in minutes
-        perturb_fraction: Fraction of points to perturb at each step
-        step_spread: Standard deviation of normal distribution for perturbations
-        temperature: Initial temperature for simulated annealing (0 disables)
-        cooling_rate: Multiplicative cooling factor (computed from input parameter)
-        mode: Optimization mode ('maximize', 'minimize', or 'target')
-        target_value: Target objective value when mode='target'
-        state: OptimizerState instance managing all optimization progress
+        perturb_fraction: Fraction of data points to perturb each step
+        temperature: Base temperature (will be used as T_min for ladder)
+        cooling_rate: Temperature decay rate per step
+        mode: 'maximize', 'minimize', or 'target'
+        target_value: Target value (only used if mode='target')
+        checkpoint_file: Path to save checkpoints
+        save_interval: Checkpoint save interval in seconds
+        plot_progress: Plot results every N minutes (None to disable)
+        plot_metrics: List of metric names to plot (None to plot all metrics)
+        step_spread: Standard deviation for perturbation distribution
+        n_replicas: Number of replicas for parallel tempering (default: 4)
+        T_max: Maximum temperature for hottest replica (default: 10 * temperature)
+        exchange_interval: Steps between exchange attempts
+        temperature_scheme: 'geometric' or 'linear' temperature spacing
+        exchange_strategy: 'even_odd', 'random', or 'all_neighbors'
+        n_workers: Number of worker processes (None = n_replicas, 0 = sequential)
     """
     
     def __init__(
         self,
         data,
-        objective_func,
-        max_time=30,
-        perturb_fraction=0.05,
-        temperature=1000,
-        cooling_rate=0.000001,
-        mode='maximize',
-        target_value=None,
-        checkpoint_file=None,
-        save_interval=60,
-        plot_progress=None,
-        step_spread=1.0
+        objective_func: Callable,
+        max_time: float = 30,
+        perturb_fraction: float = 0.05,
+        temperature: float = 1000,
+        cooling_rate: float = 0.000001,
+        mode: str = 'maximize',
+        target_value: Optional[float] = None,
+        checkpoint_file: Optional[str] = None,
+        save_interval: float = 60,
+        plot_progress: Optional[float] = None,
+        plot_metrics: Optional[List[str]] = None,
+        step_spread: float = 1.0,
+        n_replicas: int = 4,
+        T_max: Optional[float] = None,
+        exchange_interval: int = 1000,
+        temperature_scheme: str = 'geometric',
+        exchange_strategy: str = 'even_odd',
+        n_workers: Optional[int] = None
     ):
-        """Initialize HillClimber.
+        # Convert data to numpy if needed
+        if isinstance(data, pd.DataFrame):
+            self.data = data.values
+            self.column_names = list(data.columns)
+            self.is_dataframe = True
+        else:
+            self.data = np.array(data)
+            self.column_names = [f'col_{i}' for i in range(self.data.shape[1])]
+            self.is_dataframe = False
         
-        Args:
-            data: numpy array ``(N x M)`` or pandas DataFrame with M columns
-            objective_func: Function that takes M column arrays and returns 
-                          ``(metrics_dict, objective_value)``. For 2-column data, receives ``(x, y)``.
-                          For 3-column data, receives ``(x, y, z)``, etc.
-            max_time: Maximum runtime in minutes (default: 30)
-            perturb_fraction: Fraction of points to perturb each step (default: 0.05)
-            temperature: Initial temperature for simulated annealing (default: 1000)
-            cooling_rate: Amount subtracted from 1 to get multiplicative cooling rate.
-                         For example, ``0.000001`` results in ``temp *= 0.999999`` each step.
-                         Smaller values = slower cooling. (default: 0.000001)
-            mode: ``'maximize'``, ``'minimize'``, or ``'target'`` (default: ``'maximize'``)
-            target_value: Target objective value for target mode (default: None)
-            checkpoint_file: Path to save/load checkpoints (default: None)
-            save_interval: Seconds between checkpoint saves (default: 60)
-            plot_progress: Plot results every N minutes during optimization. 
-                          If None (default), no plots are drawn during optimization.
-            step_spread: Standard deviation of normal distribution for perturbations (default: 1.0)
-            
-        Raises:
-            ValueError: If mode is invalid or target_value missing for target mode
-        """
-
+        # Store bounds for boundary reflection
+        self.bounds = (np.min(self.data, axis=0), np.max(self.data, axis=0))
+        
+        # Validate mode
         if mode not in ['maximize', 'minimize', 'target']:
-            raise ValueError(f"Mode must be 'maximize', 'minimize', or 'target', got '{mode}'")
+            raise ValueError(f"mode must be 'maximize', 'minimize', or 'target', got '{mode}'")
         
+        # Validate target_value when mode is 'target'
         if mode == 'target' and target_value is None:
             raise ValueError("target_value must be specified when mode='target'")
-        
-        # Store original data and format info
-        self.data = data
-        self.is_dataframe = isinstance(data, pd.DataFrame)
-        self.columns = data.columns.tolist() if self.is_dataframe else None
-        
-        # Convert to numpy for efficient processing during optimization
-        self.data_numpy = data.values if self.is_dataframe else data.copy()
-        
-        # Calculate bounds for perturbation clipping
-        self.min_bounds = np.min(self.data_numpy, axis=0)
-        self.max_bounds = np.max(self.data_numpy, axis=0)
-        self.bounds = (self.min_bounds, self.max_bounds)
         
         self.objective_func = objective_func
         self.max_time = max_time
         self.perturb_fraction = perturb_fraction
         self.temperature = temperature
-
-        # Convert user-provided cooling_rate to multiplicative factor
-        # User specifies 1 - multiplicative_rate, we store the multiplicative rate
-        self.cooling_rate = 1 - cooling_rate
-        self.cooling_rate_input = cooling_rate  # Store original for checkpointing
+        self.cooling_rate = cooling_rate
         self.mode = mode
         self.target_value = target_value
         self.checkpoint_file = checkpoint_file
         self.save_interval = save_interval
         self.plot_progress = plot_progress
+        self.plot_metrics = plot_metrics
         self.step_spread = step_spread
         
-        # Unified state management via dataclass
-        self.state = OptimizerState()
-
-
-    def save_checkpoint(self, force=False):
-        """Save current optimization state to checkpoint file.
+        # Replica exchange parameters
+        self.n_replicas = n_replicas
+        self.T_min = temperature
+        self.T_max = T_max or (temperature * 10)
+        self.exchange_interval = exchange_interval
+        self.temperature_scheme = temperature_scheme
+        self.exchange_strategy = exchange_strategy
         
-        Args:
-            force: Save even if save_interval hasn't elapsed (default: False)
-        """
-        if not self.checkpoint_file:
-            return
-            
-        current_time = time.time()
-        
-        if not force and self.state.last_save_time is not None:
-            if current_time - self.state.last_save_time < self.save_interval:
-                return
-        
-        # Get complete state data from dataclass (includes hyperparameters and original_data)
-        state_dict = self.state.to_checkpoint_dict()
-        
-        checkpoint_data = {
-            'state': state_dict,
-            'elapsed_time': current_time - self.state.start_time if self.state.start_time else 0,
-            'data_info': {
-                'is_dataframe': self.is_dataframe,
-                'columns': self.columns,
-                'bounds': self.bounds
-            }
-        }
-        
-        # Create checkpoint directory if needed
-        checkpoint_dir = os.path.dirname(self.checkpoint_file)
-
-        if checkpoint_dir and not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
-        
-        with open(self.checkpoint_file, 'wb') as f:
-            pickle.dump(checkpoint_data, f)
-        
-        self.state.last_save_time = current_time
-        print(f"Checkpoint saved: {self.checkpoint_file}")
-
-
-    def plot_progress_check(self, force=False):
-        """Plot optimization progress if plot_progress interval has elapsed.
-        
-        Args:
-            force: Plot even if plot_progress interval hasn't elapsed (default: False)
-        """
-
-        if self.plot_progress is None:
-            return
-        
-        if self.state.start_time is None:
-            return
-            
-        current_time = time.time()
-        
-        if not force and self.state.last_plot_time is not None:
-            if (current_time - self.state.last_plot_time) / 60 < self.plot_progress:
-                return
-        
-        # Clear any existing plots
-        plt.close('all')
-        
-        # Clear output in Jupyter notebooks to replace previous plot
-        try:
-            from IPython.display import clear_output
-            clear_output(wait=True)
-
-        except ImportError:
-            # Not in IPython/Jupyter environment
-            pass
-        
-        # Get results from state
-        best_data_output, history_df = self.state.get_results(
-            is_dataframe=self.is_dataframe,
-            columns=self.columns
-        )
-        
-        # Format as expected by plot_results (single replicate)
-        results = {
-            'input_data': self.data,
-            'results': [(self.data, best_data_output, history_df)]
-        }
-        
-        # Plot current progress
-        elapsed_min = (current_time - self.state.start_time) / 60
-        last_elapsed_min = (self.state.last_plot_time - self.state.start_time) / 60 if self.state.last_plot_time else 0
-        
-        # Format elapsed time based on duration
-        def format_elapsed(minutes):
-
-            if minutes < 60:
-                return f"{int(minutes)} minutes"
-
-            else:
-                hours = minutes / 60
-                return f"{hours:.1f} hours"
-        
-        # Check if there are any steps to plot
-        if not self.state.has_steps():
-            print(f"\nNo accepted steps since last progress update")
-            print(f"Last progress update: {format_elapsed(last_elapsed_min)}")
-            print(f"Current time: {format_elapsed(elapsed_min)}")
-
+        # Parallel processing parameters
+        # None = use n_replicas workers, 0 = sequential mode, >0 = specified number
+        if n_workers is None:
+            self.n_workers = self.n_replicas
+        elif n_workers == 0:
+            self.n_workers = 0  # Sequential mode
         else:
-            print(f"\nPlotting progress at {format_elapsed(elapsed_min)}...")
-            plot_results_func(results, plot_type='scatter')
+            self.n_workers = min(n_workers, cpu_count())
         
-        self.state.last_plot_time = current_time
+        # Will be initialized in climb()
+        self.replicas: List[OptimizerState] = []
+        self.temperature_ladder: Optional[TemperatureLadder] = None
+        self.exchange_stats: Optional[ExchangeStatistics] = None
+        self.last_save_time: Optional[float] = None
+        self.last_plot_time: Optional[float] = None
 
 
-    def load_checkpoint(self, checkpoint_file):
-        """Load optimization state from checkpoint file.
-        
-        Args:
-            checkpoint_file: Path to checkpoint file to load
-            
-        Returns:
-            True if checkpoint was loaded successfully, False otherwise
-        """
-
-        if not os.path.exists(checkpoint_file):
-            print(f"Checkpoint file not found: {checkpoint_file}")
-            return False
-        
-        try:
-            with open(checkpoint_file, 'rb') as f:
-                checkpoint_data = pickle.load(f)
-            
-            # Check if this is a new-format checkpoint with 'state' key
-            if 'state' in checkpoint_data:
-                # New format: load from dataclass
-                self.state = OptimizerState.from_checkpoint_dict(checkpoint_data['state'])
-                
-                # Restore data info (needed for HillClimber operations)
-                data_info = checkpoint_data.get('data_info', {})
-                self.is_dataframe = data_info.get('is_dataframe', False)
-                self.columns = data_info.get('columns')
-                self.bounds = data_info.get('bounds')
-                
-                # Restore original data from state
-                if self.state.original_data is not None:
-                    self.data = self.state.original_data
-                    self.data_numpy = self.data.values if self.is_dataframe else self.data
-                else:
-                    # This should not happen with properly saved checkpoints
-                    raise ValueError("Checkpoint missing original_data in state")
-                        
-            else:
-                # Old format: migrate to dataclass
-                self.state = OptimizerState()
-                self.state.best_data = checkpoint_data['best_data']
-                self.state.current_data = checkpoint_data['current_data']
-                self.state.best_objective = checkpoint_data['best_objective']
-                self.state.current_objective = checkpoint_data['current_objective']
-                self.state.best_distance = checkpoint_data['best_distance']
-                self.state.history = checkpoint_data['steps']
-                self.state.step = checkpoint_data['step']
-                self.state.temperature = checkpoint_data['temp']
-                self.state.start_time = checkpoint_data['start_time']
-                
-                # Store hyperparameters and original data in state for consistency
-                self.state.hyperparameters = checkpoint_data.get('hyperparameters', {})
-                self.state.original_data = checkpoint_data.get('original_data')
-                
-                # Restore data info
-                data_info = checkpoint_data['data_info']
-                self.is_dataframe = data_info['is_dataframe']
-                self.columns = data_info['columns']
-                self.bounds = data_info['bounds']
-                self.data_numpy = checkpoint_data['original_data']
-                self.data = self.state.original_data
-            
-            # Adjust start time to account for elapsed time
-            elapsed_time = checkpoint_data['elapsed_time']
-            self.state.start_time = time.time() - elapsed_time
-            
-            print(f"Checkpoint loaded: {checkpoint_file}")
-            print(f"Resuming from step {self.state.step}, elapsed time: {elapsed_time:.1f}s")
-            
-            return True
-            
-        except Exception as e:
-            print(f"Error loading checkpoint: {e}")
-            return False
-
-
-    @classmethod
-    def resume_from_checkpoint(cls, checkpoint_file, objective_func, 
-                             new_max_time=None, new_checkpoint_file=None):
-        """Create a new HillClimber instance from a checkpoint file.
-        
-        Args:
-            checkpoint_file: Path to checkpoint file
-            objective_func: Objective function (must be same as original)
-            new_max_time: New max_time for continued optimization (default: use original)
-            new_checkpoint_file: New checkpoint file path (default: use original)
-            
-        Returns:
-            New HillClimber instance with state loaded from checkpoint
-        """
-        if not os.path.exists(checkpoint_file):
-            raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_file}")
-        
-        with open(checkpoint_file, 'rb') as f:
-            checkpoint_data = pickle.load(f)
-        
-        # Extract hyperparameters
-        hyperparams = checkpoint_data['hyperparameters']
-        data_info = checkpoint_data['data_info']
-        
-        # Reconstruct original data
-        original_data = checkpoint_data['original_data']
-
-        if data_info['is_dataframe']:
-            original_data = pd.DataFrame(original_data, columns=data_info['columns'])
-        
-        # Create new instance
-        climber = cls(
-            data=original_data,
-            objective_func=objective_func,
-            max_time=new_max_time if new_max_time is not None else hyperparams['max_time'],
-            perturb_fraction=hyperparams['perturb_fraction'],
-            temperature=hyperparams['temperature'],
-            cooling_rate=hyperparams['cooling_rate'],
-            mode=hyperparams['mode'],
-            target_value=hyperparams['target_value'],
-            checkpoint_file=new_checkpoint_file if new_checkpoint_file is not None else checkpoint_file,
-            step_spread=hyperparams['step_spread']
-        )
-        
-        # Load the checkpoint state
-        climber.load_checkpoint(checkpoint_file)
-        
-        return climber
-
-
-    def climb(self):
-        """Perform hill climbing optimization.
+    def climb(self) -> Tuple[np.ndarray, pd.DataFrame]:
+        """Run replica exchange optimization.
         
         Returns:
             Tuple of (best_data, steps_df) where:
-                - best_data: Best solution found (same format as input data)
-                - steps_df: DataFrame tracking optimization progress
+                best_data: Best configuration found across all replicas
+                steps_df: DataFrame with optimization history from best replica
         """
-
-        # Initialize state if not resuming
-        if self.state.current_data is None:
-            # Get initial objective and metrics
-            metrics, objective = calculate_objective(
-                self.data_numpy, self.objective_func
+        mode_str = f"parallel ({self.n_workers} workers)" if self.n_workers > 0 else "sequential"
+        print(f"Starting replica exchange with {self.n_replicas} replicas ({mode_str})...")
+        
+        # Initialize temperature ladder
+        if self.temperature_scheme == 'geometric':
+            self.temperature_ladder = TemperatureLadder.geometric(
+                self.n_replicas, self.T_min, self.T_max
             )
-            
-            # Prepare hyperparameters dictionary
-            hyperparameters = {
-                'max_time': self.max_time,
-                'perturb_fraction': self.perturb_fraction,
-                'temperature': self.temperature,
-                'cooling_rate': self.cooling_rate_input,
-                'mode': self.mode,
-                'target_value': self.target_value,
-                'step_spread': self.step_spread,
-                'checkpoint_file': self.checkpoint_file,
-                'save_interval': self.save_interval,
-                'plot_progress': self.plot_progress
-            }
-            
-            # Initialize state
-            self.state.initialize(
-                data=self.data_numpy,
-                objective=objective,
-                metrics=metrics,
-                temperature=self.temperature,
-                target_value=self.target_value,
-                mode=self.mode,
-                original_data=self.data,
-                hyperparameters=hyperparameters
+        else:
+            self.temperature_ladder = TemperatureLadder.linear(
+                self.n_replicas, self.T_min, self.T_max
             )
         
-        # Set or update start time
-        if self.state.start_time is None:
-            self.state.start_time = time.time()
+        print(f"Temperature ladder: {self.temperature_ladder.temperatures}")
         
+        # Initialize replicas
+        self._initialize_replicas()
+        
+        # Initialize exchange scheduler and statistics
+        scheduler = ExchangeScheduler(self.n_replicas, self.exchange_strategy)
+        self.exchange_stats = ExchangeStatistics(self.n_replicas)
+        
+        # Choose execution path
+        if self.n_workers > 0:
+            return self._climb_parallel(scheduler)
+        else:
+            return self._climb_sequential(scheduler)
+    
+    def _climb_sequential(self, scheduler: ExchangeScheduler) -> Tuple[np.ndarray, pd.DataFrame]:
+        """Run optimization sequentially (original single-threaded approach)."""
         # Main optimization loop
-        while time.time() - self.state.start_time < self.max_time * 60:
-
-            self.state.step += 1
+        start_time = time.time()
+        self.last_save_time = start_time
+        self.last_plot_time = start_time
+        
+        while (time.time() - start_time) < (self.max_time * 60):
             
-            # Generate and evaluate new candidate solution
-            new_data = perturb_vectors(
-                self.state.current_data, 
-                self.perturb_fraction,
-                self.bounds,
-                self.step_spread
-            )
-
-            metrics, new_objective = calculate_objective(new_data, self.objective_func)
+            # Each replica takes a step
+            for replica in self.replicas:
+                self._step_replica(replica)
             
-            # Determine if we accept the new solution
-            if self.temperature > 0:
-
-                # Simulated annealing: accept worse solutions probabilistically
-                delta = self._calculate_delta(new_objective)
-                accept = delta >= 0 or np.random.random() < np.exp(delta / max(self.state.temperature, 1e-10))
+            # Attempt exchanges periodically
+            if self.replicas[0].step % self.exchange_interval == 0:
+                self._exchange_round(scheduler)
+            
+            # Checkpointing
+            if self.checkpoint_file and (time.time() - self.last_save_time >= self.save_interval):
+                self.save_checkpoint(self.checkpoint_file)
+                self.last_save_time = time.time()
+            
+            # Progress plotting
+            if self.plot_progress and (time.time() - self.last_plot_time >= self.plot_progress * 60):
+                self._plot_progress()
+                self.last_plot_time = time.time()
+        
+        return self._finalize_results()
+    
+    def _climb_parallel(self, scheduler: ExchangeScheduler) -> Tuple[np.ndarray, pd.DataFrame]:
+        """Run optimization with parallel workers."""
+        start_time = time.time()
+        self.last_save_time = start_time
+        self.last_plot_time = start_time
+        
+        # Create worker pool
+        with Pool(processes=self.n_workers) as pool:
+            while (time.time() - start_time) < (self.max_time * 60):
                 
-                if accept:
-                    self.state.update_current(new_data, new_objective, metrics)
-                    
-                    # Update best if this is an improvement
-                    if self._is_improvement(new_objective):
-                        self.state.update_best(new_data, new_objective, self.target_value)
-                        self.state.record_improvement()
+                # Run batch of steps in parallel
+                self._parallel_step_batch(pool, self.exchange_interval)
                 
-                self.state.temperature *= self.cooling_rate
-
-            else:
-                # Standard hill climbing: only accept improvements
-                if self._is_improvement(new_objective):
-                    # Update both current and best
-                    self.state.update_current(new_data, new_objective, metrics)
-                    self.state.update_best(new_data, new_objective, self.target_value)
-                    self.state.record_improvement()
-            
-            # Save checkpoint periodically
-            self.save_checkpoint()
-            
-            # Plot progress periodically
-            self.plot_progress_check()
+                # Attempt exchanges
+                self._exchange_round(scheduler)
+                
+                # Checkpointing
+                if self.checkpoint_file and (time.time() - self.last_save_time >= self.save_interval):
+                    self.save_checkpoint(self.checkpoint_file)
+                    self.last_save_time = time.time()
+                
+                # Progress plotting
+                if self.plot_progress and (time.time() - self.last_plot_time >= self.plot_progress * 60):
+                    self._plot_progress()
+                    self.last_plot_time = time.time()
         
-        # Save final checkpoint
-        self.save_checkpoint(force=True)
+        return self._finalize_results()
+    
+    def _parallel_step_batch(self, pool: Pool, n_steps: int):
+        """Execute n_steps for all replicas in parallel."""
+        # Serialize current replica states
+        state_dicts = [self._serialize_state(r) for r in self.replicas]
         
-        # Plot final results
-        self.plot_progress_check(force=True)
-        
-        # Return results
-        return self.state.get_results(
-            is_dataframe=self.is_dataframe,
-            columns=self.columns
+        # Create partial function with fixed parameters
+        worker_func = partial(
+            run_replica_steps,
+            objective_func=self.objective_func,
+            bounds=self.bounds,
+            n_steps=n_steps,
+            mode=self.mode,
+            target_value=self.target_value
         )
-
-
-    def climb_parallel(self, replicates=4, initial_noise=0.0, output_file=None, 
-                      checkpoint_dir=None):
-        """Run hill climbing in parallel with multiple replicates.
-        
-        Args:
-            replicates: Number of parallel replicates to run (default: 4)
-            initial_noise: Std dev of Gaussian noise added to initial data (default: 0.0)
-            output_file: Path to save results as pickle file (default: None)
-            checkpoint_dir: Directory to save individual replicate checkpoints (default: None)
-            
-        Returns:
-            Dictionary with:
-                'input_data': Original input data (before noise)
-                'results': List of (noisy_initial_data, best_data, steps_df) tuples
-            
-        Raises:
-            ValueError: If replicates exceeds available CPU count
-        """
-
-        # Validate CPU availability
-        available_cpus = cpu_count()
-
-        if replicates > available_cpus:
-            raise ValueError(
-                f"Replicates ({replicates}) exceeds CPU count ({available_cpus}). "
-                f"Reduce replicates or use more CPUs."
-            )
-        
-        # Create replicate inputs with optional noise
-        replicate_inputs = []
-
-        for _ in range(replicates):
-
-            new_data = self.data_numpy.copy()
-
-            if initial_noise > 0:
-
-                # Add uniform noise and reflect values back into bounds
-                noise = np.random.uniform(-initial_noise, initial_noise, new_data.shape)
-                new_data = new_data + noise
-                
-                # Reflect values that exceed bounds back into valid range
-                # This prevents accumulation at boundaries
-                for col_idx in range(new_data.shape[1]):
-
-                    col_min = self.min_bounds[col_idx]
-                    col_max = self.max_bounds[col_idx]
-                    col_range = col_max - col_min
-                    
-                    # Reflect values below minimum
-                    below_min = new_data[:, col_idx] < col_min
-                    new_data[below_min, col_idx] = col_min + (col_min - new_data[below_min, col_idx])
-                    
-                    # Reflect values above maximum
-                    above_max = new_data[:, col_idx] > col_max
-                    new_data[above_max, col_idx] = col_max - (new_data[above_max, col_idx] - col_max)
-                    
-                    # Handle cases where reflection itself goes out of bounds
-                    # (can happen with large noise values) - wrap around
-                    still_out = (new_data[:, col_idx] < col_min) | (new_data[:, col_idx] > col_max)
-
-                    if np.any(still_out):
-
-                        # Use modulo to wrap into range
-                        new_data[still_out, col_idx] = col_min + np.mod(
-                            new_data[still_out, col_idx] - col_min, col_range
-                        )
-
-            replicate_inputs.append(new_data)
-        
-        # Package arguments for parallel execution
-        args_list = []
-
-        for i, data_rep in enumerate(replicate_inputs):
-
-            checkpoint_file = None
-
-            if checkpoint_dir:
-                os.makedirs(checkpoint_dir, exist_ok=True)
-                checkpoint_file = os.path.join(checkpoint_dir, f'replicate_{i:03d}.pkl')
-            
-            args_list.append((
-                data_rep, self.objective_func, self.max_time,
-                self.perturb_fraction, self.temperature, self.cooling_rate,
-                self.mode, self.target_value, self.is_dataframe, self.columns,
-                checkpoint_file, self.save_interval, None,  # Disable plot_progress for parallel
-                self.step_spread
-            ))
         
         # Execute in parallel
-        with Pool(processes=replicates) as pool:
-            optimization_results = pool.map(_climb_wrapper, args_list)
+        updated_states = pool.map(worker_func, state_dicts)
         
-        # Combine results with noisy initial data for each replicate
-        # Format: [(noisy_initial_data, best_data, steps_df), ...]
-        results_list = []
-        for i, (best_data, steps_df) in enumerate(optimization_results):
-            # Convert noisy initial numpy array to DataFrame if needed
-            if self.is_dataframe:
-                noisy_initial = pd.DataFrame(replicate_inputs[i], columns=self.columns)
-            else:
-                noisy_initial = replicate_inputs[i]
-            
-            results_list.append((noisy_initial, best_data, steps_df))
+        # Deserialize results back into replica objects
+        for i, state_dict in enumerate(updated_states):
+            self.replicas[i] = OptimizerState(**state_dict)
+    
+    def _finalize_results(self) -> Tuple[np.ndarray, pd.DataFrame]:
+        """Complete optimization and return results."""
+        # Final checkpoint and plot
+        if self.checkpoint_file:
+            self.save_checkpoint(self.checkpoint_file)
+        if self.plot_progress:
+            self._plot_progress(force=True)
         
-        # Package results with original input data (saved only once)
-        results = {
-            'input_data': self.data,  # Original data before noise
-            'results': results_list    # List of (noisy_initial, best, steps) tuples
+        # Return results from best replica
+        best_replica = self._get_best_replica()
+        print(f"\nBest result from replica {best_replica.replica_id} "
+              f"(T={best_replica.temperature:.1f})")
+        print(f"Exchange acceptance rate: {self.exchange_stats.get_overall_acceptance_rate():.2%}")
+        
+        # Convert to DataFrame if input was DataFrame
+        if self.is_dataframe:
+            best_data_output = pd.DataFrame(best_replica.best_data, columns=self.column_names)
+        else:
+            best_data_output = best_replica.best_data
+        
+        return best_data_output, best_replica.get_history_dataframe()
+    
+    def _initialize_replicas(self):
+        """Initialize all replica states."""
+        hyperparams = {
+            'max_time': self.max_time,
+            'perturb_fraction': self.perturb_fraction,
+            'cooling_rate': self.cooling_rate,
+            'mode': self.mode,
+            'target_value': self.target_value,
+            'step_spread': self.step_spread
         }
         
-        # Save results if requested
-        if output_file:
-
-            results_package = {
-                'input_data': self.data,
-                'results': results_list,
-                'hyperparameters': {
-                    'max_time': self.max_time,
-                    'perturb_fraction': self.perturb_fraction,
-                    'replicates': replicates,
-                    'initial_noise': initial_noise,
-                    'temperature': self.temperature,
-                    'cooling_rate': self.cooling_rate_input,
-                    'objective_function': self.objective_func.__name__,
-                    'mode': self.mode,
-                    'target_value': self.target_value,
-                    'input_size': len(self.data),
-                    'step_spread': self.step_spread
-                }
-            }
-            
-            with open(output_file, 'wb') as f:
-                pickle.dump(results_package, f)
-
-            print(f"Results saved to: {output_file}")
+        # Evaluate initial objective
+        metrics, objective = evaluate_objective(
+            self.data, self.objective_func
+        )
         
-        return results
-
-
-    def plot_input(self, plot_type='scatter'):
-        """Plot the input data distribution.
+        self.replicas = []
+        for i, temp in enumerate(self.temperature_ladder.temperatures):
+            state = OptimizerState(
+                replica_id=i,
+                temperature=temp,
+                current_data=self.data.copy(),
+                current_objective=objective,
+                best_data=self.data.copy(),
+                best_objective=objective,
+                original_data=self.data.copy(),
+                hyperparameters=hyperparams.copy()
+            )
+            state.record_step(metrics, objective)
+            self.replicas.append(state)
+    
+    def _step_replica(self, replica: OptimizerState):
+        """Perform one optimization step for a replica."""
+        # Perturb data (already includes boundary reflection)
+        perturbed = perturb_vectors(
+            replica.current_data,
+            self.perturb_fraction,
+            self.bounds,
+            self.step_spread
+        )
         
-        Args:
-            plot_type: 'scatter' or 'kde' (default: 'scatter')
-        """
-
-        plot_input_data(self.data, plot_type=plot_type)
-
-    def plot_results(self, results, plot_type='scatter', metrics=None):
-        """Visualize hill climbing results.
+        # Evaluate
+        metrics, objective = evaluate_objective(
+            perturbed, self.objective_func
+        )
         
-        Args:
-            results: List of (best_data, steps_df) tuples from climb_parallel()
-            plot_type: 'scatter' or 'histogram' (default: 'scatter')
-            metrics: List of metric names to display (default: None shows all)
-        """
-
-        plot_results_func(results, plot_type=plot_type, metrics=metrics)
-
-
-    def _is_improvement(self, new_obj):
-        """Check if new objective is an improvement.
+        # Acceptance criterion (simulated annealing)
+        accept = self._should_accept(
+            objective, replica.current_objective, replica.temperature
+        )
         
-        Args:
-            new_obj: New objective value
-            
-        Returns:
-            True if new_obj improves on current best
-        """
+        if accept:
+            replica.record_improvement(perturbed, objective, metrics)
+        # Note: We only record accepted steps to avoid misleading history
+        # where rejected steps would show the old objective with a new step number
+        
+        # Cool temperature
+        replica.temperature *= (1 - self.cooling_rate)
+    
+    def _should_accept(self, new_obj: float, current_obj: float, temp: float) -> bool:
+        """Determine if new state should be accepted (simulated annealing)."""
         if self.mode == 'maximize':
-            return new_obj > self.state.best_objective
-
+            delta = new_obj - current_obj
         elif self.mode == 'minimize':
-            return new_obj < self.state.best_objective
-
+            delta = current_obj - new_obj
         else:  # target mode
-            return abs(new_obj - self.target_value) < self.state.best_distance
-
-    def _calculate_delta(self, new_obj):
-        """Calculate delta for simulated annealing acceptance.
-        
-        Args:
-            new_obj: New objective value
-            
-        Returns:
-            Delta (positive = improvement, negative = deterioration)
-        """
-
-        if self.mode == 'maximize':
-            return new_obj - self.state.current_objective
-
-        elif self.mode == 'minimize':
-            return self.state.current_objective - new_obj
-
-        else:  # target mode
-            curr_dist = abs(self.state.current_objective - self.target_value)
+            current_dist = abs(current_obj - self.target_value)
             new_dist = abs(new_obj - self.target_value)
-
-            return curr_dist - new_dist
-
-
-def _climb_wrapper(args):
-    """Wrapper for parallel execution of HillClimber.climb().
-    
-    Args:
-        args: Tuple of (data_numpy, objective_func, max_time, 
-              perturb_fraction, temperature, cooling_rate, mode, target_value, 
-              is_dataframe, columns, checkpoint_file, save_interval, plot_progress, 
-              step_spread)
+            delta = current_dist - new_dist
         
-    Returns:
-        Result from climb(): (best_data, steps_df)
-    """
-
-    (data_numpy, objective_func, max_time, perturb_fraction, 
-     temperature, cooling_rate, mode, target_value, is_dataframe, columns,
-     checkpoint_file, save_interval, plot_progress, step_spread) = args
+        if delta > 0:
+            return True
+        else:
+            prob = np.exp(delta / temp) if temp > 0 else 0
+            return np.random.random() < prob
     
-    # Reconstruct original data format for HillClimber
-    data_input = (
-        pd.DataFrame(data_numpy, columns=columns) 
-        if is_dataframe else data_numpy
-    )
+    def _exchange_round(self, scheduler: ExchangeScheduler):
+        """Perform one round of replica exchanges."""
+        pairs = scheduler.get_pairs()
+        
+        for i, j in pairs:
+            replica_i = self.replicas[i]
+            replica_j = self.replicas[j]
+            
+            # Attempt exchange
+            accepted = should_exchange(
+                replica_i.current_objective,
+                replica_j.current_objective,
+                replica_i.temperature,
+                replica_j.temperature,
+                self.mode
+            )
+            
+            if accepted:
+                # Swap configurations (not temperatures!)
+                replica_i.current_data, replica_j.current_data = \
+                    replica_j.current_data.copy(), replica_i.current_data.copy()
+                replica_i.current_objective, replica_j.current_objective = \
+                    replica_j.current_objective, replica_i.current_objective
+            
+            # Record statistics
+            replica_i.record_exchange(j, accepted)
+            replica_j.record_exchange(i, accepted)
+            self.exchange_stats.record_attempt(i, j, accepted)
+        
+        if pairs:
+            self.exchange_stats.round_count += 1
     
-    climber = HillClimber(
-        data=data_input,
-        objective_func=objective_func,
-        max_time=max_time,
-        perturb_fraction=perturb_fraction,
-        temperature=temperature,
-        cooling_rate=cooling_rate,
-        mode=mode,
-        target_value=target_value,
-        checkpoint_file=checkpoint_file,
-        save_interval=save_interval,
-        plot_progress=plot_progress,
-        step_spread=step_spread
-    )
+    def _get_best_replica(self) -> OptimizerState:
+        """Find replica with best objective value."""
+        if self.mode == 'maximize':
+            return max(self.replicas, key=lambda r: r.best_objective)
+        elif self.mode == 'minimize':
+            return min(self.replicas, key=lambda r: r.best_objective)
+        else:  # target mode
+            return min(self.replicas, 
+                      key=lambda r: abs(r.best_objective - self.target_value))
     
-    return climber.climb()
+    def _plot_progress(self, force: bool = False):
+        """Plot current progress of best replica."""
+        best_replica = self._get_best_replica()
+        
+        if not best_replica.metrics_history:
+            elapsed = (time.time() - best_replica.start_time) / 60
+            if elapsed < 60:
+                time_str = f"{int(elapsed)} minutes"
+            else:
+                time_str = f"{elapsed/60:.1f} hours"
+            print(f"No accepted steps yet (elapsed: {time_str})")
+            return
+        
+        # Clear previous plots
+        plt.close('all')
+        
+        try:
+            from IPython.display import clear_output
+            clear_output(wait=True)
+        except ImportError:
+            pass
+        
+        # Create results structure for plotting
+        if self.is_dataframe:
+            best_data_output = pd.DataFrame(best_replica.best_data, columns=self.column_names)
+        else:
+            best_data_output = best_replica.best_data
+        
+        results = (best_data_output, best_replica.get_history_dataframe())
+        self.plot_results(results)
+    
+    def plot_results(self, results, plot_type: str = 'scatter', 
+                     metrics: Optional[List[str]] = None):
+        """Plot optimization results.
+        
+        Args:
+            results: Tuple of (best_data, steps_df)
+            plot_type: 'scatter' or 'histogram'
+            metrics: List of metric names to plot (overrides plot_metrics from __init__)
+        """
+        # Use provided metrics, or fall back to instance plot_metrics
+        metrics_to_plot = metrics if metrics is not None else self.plot_metrics
+        plot_results_func(results, plot_type, metrics_to_plot)
+    
+    def save_checkpoint(self, filepath: str):
+        """Save current state to checkpoint file."""
+        checkpoint = {
+            'replicas': [self._serialize_state(r) for r in self.replicas],
+            'temperature_ladder': self.temperature_ladder.temperatures.tolist(),
+            'exchange_stats': {
+                'attempts': self.exchange_stats.attempts.tolist(),
+                'acceptances': self.exchange_stats.acceptances.tolist(),
+                'round_count': self.exchange_stats.round_count
+            },
+            'elapsed_time': time.time() - self.replicas[0].start_time,
+            'hyperparameters': self.replicas[0].hyperparameters,
+            'is_dataframe': self.is_dataframe,
+            'column_names': self.column_names,
+            'bounds': self.bounds,
+            'plot_metrics': self.plot_metrics,
+            'n_workers': self.n_workers
+        }
+        
+        # Create checkpoint directory if needed
+        checkpoint_dir = os.path.dirname(filepath)
+        if checkpoint_dir and not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
+        
+        with open(filepath, 'wb') as f:
+            pickle.dump(checkpoint, f)
+        
+        print(f"Checkpoint saved: {filepath}")
+    
+    @staticmethod
+    def _serialize_state(state: OptimizerState) -> Dict[str, Any]:
+        """Convert OptimizerState to dictionary for pickling."""
+        return {
+            'replica_id': state.replica_id,
+            'temperature': state.temperature,
+            'current_data': state.current_data,
+            'current_objective': state.current_objective,
+            'best_data': state.best_data,
+            'best_objective': state.best_objective,
+            'step': state.step,
+            'metrics_history': state.metrics_history,
+            'exchange_attempts': state.exchange_attempts,
+            'exchange_acceptances': state.exchange_acceptances,
+            'partner_history': state.partner_history,
+            'original_data': state.original_data,
+            'hyperparameters': state.hyperparameters,
+            'start_time': state.start_time
+        }
+    
+    @classmethod
+    def load_checkpoint(cls, filepath: str, objective_func: Callable):
+        """Load optimization state from checkpoint.
+        
+        Args:
+            filepath: Path to checkpoint file
+            objective_func: Objective function (must match original)
+            
+        Returns:
+            HillClimber instance with restored state
+        """
+        with open(filepath, 'rb') as f:
+            checkpoint = pickle.load(f)
+        
+        # Reconstruct climber
+        first_replica = checkpoint['replicas'][0]
+        hyperparams = first_replica['hyperparameters']
+        
+        # Create data in proper format
+        data = first_replica['original_data']
+        if checkpoint.get('is_dataframe', False):
+            data = pd.DataFrame(data, columns=checkpoint['column_names'])
+        
+        climber = cls(
+            data=data,
+            objective_func=objective_func,
+            max_time=hyperparams['max_time'],
+            perturb_fraction=hyperparams['perturb_fraction'],
+            temperature=hyperparams.get('temperature', 1000),
+            cooling_rate=hyperparams['cooling_rate'],
+            mode=hyperparams['mode'],
+            target_value=hyperparams.get('target_value'),
+            step_spread=hyperparams['step_spread'],
+            n_replicas=len(checkpoint['replicas']),
+            plot_metrics=checkpoint.get('plot_metrics'),
+            n_workers=checkpoint.get('n_workers')
+        )
+        
+        # Restore states
+        climber.replicas = [
+            OptimizerState(**state_dict)
+            for state_dict in checkpoint['replicas']
+        ]
+        
+        # Restore temperature ladder
+        climber.temperature_ladder = TemperatureLadder(
+            temperatures=np.array(checkpoint['temperature_ladder'])
+        )
+        
+        # Restore exchange statistics
+        stats_data = checkpoint['exchange_stats']
+        climber.exchange_stats = ExchangeStatistics(len(climber.replicas))
+        climber.exchange_stats.attempts = np.array(stats_data['attempts'])
+        climber.exchange_stats.acceptances = np.array(stats_data['acceptances'])
+        climber.exchange_stats.round_count = stats_data['round_count']
+        
+        # Restore bounds
+        climber.bounds = checkpoint.get('bounds', (np.min(climber.data, axis=0), np.max(climber.data, axis=0)))
+        
+        # Adjust replica start times to account for elapsed time
+        # When resuming, we want elapsed time calculations to continue from where they left off
+        # So we set start_time = current_time - elapsed_time
+        current_time = time.time()
+        elapsed_seconds = checkpoint['elapsed_time']
+        adjusted_start_time = current_time - elapsed_seconds
+        
+        for replica in climber.replicas:
+            replica.start_time = adjusted_start_time
+        
+        # Set last_save_time and last_plot_time to current time to respect intervals
+        # This prevents immediate save/plot when resuming from a recently saved checkpoint
+        climber.last_save_time = current_time
+        climber.last_plot_time = current_time
+        
+        print(f"Resumed from checkpoint: {elapsed_seconds/60:.1f} minutes elapsed")
+        
+        return climber

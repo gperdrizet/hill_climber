@@ -30,9 +30,9 @@ Must follow semantic versioning: `MAJOR.MINOR.PATCH`
 
 Examples:
 - `0.1.0` - Initial development release
-- `0.1.1` - Bug fix
-- `0.2.0` - New features (backward compatible)
-- `1.0.0` - First stable release
+- `0.1.1` - Bug fix (patch)
+- `0.2.0` - New features (minor)
+- `1.0.0` - First stable release (major)
 
 ### Examples
 

@@ -13,7 +13,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from hill_climber.climber_functions import (
     perturb_vectors,
     extract_columns,
-    calculate_correlation_objective,
     calculate_objective
 )
 
@@ -174,7 +173,7 @@ class TestExtractColumns(unittest.TestCase):
 
 
 class TestCalculateObjective(unittest.TestCase):
-    """Test cases for calculate_objective and calculate_correlation_objective functions."""
+    """Test cases for calculate_objective function."""
     
     def setUp(self):
         """Set up test fixtures."""
@@ -246,17 +245,6 @@ class TestCalculateObjective(unittest.TestCase):
 
         self.assertIn('pearson', metrics)
         self.assertAlmostEqual(objective, 1.0, places=5)  # Perfect correlation
-
-
-    def test_backwards_compatibility_alias(self):
-        """Test that calculate_correlation_objective is an alias for calculate_objective."""
-
-        # Both should give same results
-        metrics1, obj1 = calculate_objective(self.array_data_2d, self.simple_objective_2d)
-        metrics2, obj2 = calculate_correlation_objective(self.array_data_2d, self.simple_objective_2d)
-        
-        self.assertEqual(metrics1, metrics2)
-        self.assertEqual(obj1, obj2)
 
 
 if __name__ == '__main__':

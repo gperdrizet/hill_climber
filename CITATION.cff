@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
-title: "Hill Climber: Parallel Simulated Annealing Optimization"
+title: "Hill Climber: Replica Exchange Optimization with Simulated Annealing"
 authors:
   - family-names: Perdrizet
     given-names: George
@@ -10,16 +10,19 @@ authors:
 repository-code: "https://github.com/gperdrizet/hill_climber"
 url: "https://gperdrizet.github.io/hill_climber"
 abstract: >
-  A Python package for hill climbing optimization with simulated annealing.
-  Designed for flexible multi-objective optimization with support for
-  N-dimensional data, parallel execution, and checkpoint/resume capabilities.
+  A Python package for hill climbing optimization using replica exchange
+  (parallel tempering) and simulated annealing. Designed for flexible
+  multi-objective optimization with support for N-dimensional data,
+  automatic temperature ladders, and checkpoint/resume capabilities.
 keywords:
   - optimization
   - simulated-annealing
+  - replica-exchange
+  - parallel-tempering
   - hill-climbing
   - machine-learning
   - data-science
   - Python
 license: GPL-3.0
-version: 0.1.13
-date-released: 2025-11-14
+version: 1.0.0
+date-released: 2025-11-17
