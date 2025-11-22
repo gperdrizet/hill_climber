@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quick Start &mdash; Hill Climber 0.1.13 documentation</title>
+  <title>Quick Start &mdash; Hill Climber 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=8d02545a"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -50,7 +50,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#basic-example">Basic Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#monitoring-progress">Monitoring Progress</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#understanding-the-results">Understanding the Results</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#parallel-replicates">Parallel Replicates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#replica-exchange-parallel-tempering">Replica Exchange (Parallel Tempering)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#visualization">Visualization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
 </ul>
@@ -111,12 +111,13 @@ one argument for each column/feature in your data.</p>
     <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Pearson correlation&#39;</span><span class="p">:</span> <span class="n">corr</span><span class="p">}</span>
     <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">corr</span><span class="p">)</span>
 
-<span class="c1"># Create optimizer</span>
+<span class="c1"># Create optimizer with replica exchange</span>
 <span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">objective_high_correlation</span><span class="p">,</span>
     <span class="n">max_time</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>  <span class="c1"># 5 minutes</span>
-    <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;maximize&#39;</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span>
+    <span class="n">n_replicas</span><span class="o">=</span><span class="mi">4</span>  <span class="c1"># Use 4 replicas for parallel tempering</span>
 <span class="p">)</span>
 
 <span class="c1"># Run optimization</span>
@@ -138,12 +139,8 @@ one argument for each column/feature in your data.</p>
     <span class="n">plot_progress</span><span class="o">=</span><span class="mi">5</span>  <span class="c1"># Plot every 5 minutes</span>
 <span class="p">)</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+<span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Progress plotting only works with <code class="docutils literal notranslate"><span class="pre">climb()</span></code> (not <code class="docutils literal notranslate"><span class="pre">climb_parallel()</span></code>).</p>
 </div>
 </section>
 <section id="understanding-the-results">
@@ -155,25 +152,34 @@ one argument for each column/feature in your data.</p>
 including the objective value and all metrics you defined</p></li>
 </ul>
 </section>
-<section id="parallel-replicates">
-<h2>Parallel Replicates<a class="headerlink" href="#parallel-replicates" title="Link to this heading"></a></h2>
-<p>Run multiple independent optimizations to explore different solutions:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb_parallel</span><span class="p">(</span>
-    <span class="n">replicates</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-    <span class="n">initial_noise</span><span class="o">=</span><span class="mf">0.5</span>
+<section id="replica-exchange-parallel-tempering">
+<h2>Replica Exchange (Parallel Tempering)<a class="headerlink" href="#replica-exchange-parallel-tempering" title="Link to this heading"></a></h2>
+<p>Hill Climber 2.0 uses replica exchange (parallel tempering) by default. Multiple
+replicas run at different temperatures and exchange configurations to improve
+global optimization:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">objective_high_correlation</span><span class="p">,</span>
+    <span class="n">max_time</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span>
+    <span class="n">n_replicas</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>  <span class="c1"># Number of replicas (default: 4)</span>
+    <span class="n">temperature</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>  <span class="c1"># Minimum temperature (T_min)</span>
+    <span class="n">T_max</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>  <span class="c1"># Maximum temperature</span>
+    <span class="n">exchange_interval</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>  <span class="c1"># Steps between exchange attempts</span>
+    <span class="n">temperature_scheme</span><span class="o">=</span><span class="s1">&#39;geometric&#39;</span>  <span class="c1"># or &#39;linear&#39;</span>
 <span class="p">)</span>
 
-<span class="c1"># Results is a dictionary with:</span>
-<span class="c1"># - &#39;input_data&#39;: original data</span>
-<span class="c1"># - &#39;results&#39;: list of (initial_data, best_data, steps_df) tuples</span>
+<span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
+<p>The <code class="docutils literal notranslate"><span class="pre">climb()</span></code> method automatically runs all replicas and returns the best result.</p>
 </section>
 <section id="visualization">
 <h2>Visualization<a class="headerlink" href="#visualization" title="Link to this heading"></a></h2>
 <p>Visualize the optimization progress:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span><span class="o">.</span><span class="n">plot_results</span><span class="p">(</span>
-    <span class="n">results</span><span class="p">,</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Visualize single result</span>
+<span class="n">climber</span><span class="o">.</span><span class="n">plot_results</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span><span class="p">),</span>
     <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Pearson correlation&#39;</span><span class="p">],</span>
     <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;histogram&#39;</span>
 <span class="p">)</span>

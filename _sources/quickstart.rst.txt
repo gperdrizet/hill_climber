@@ -31,12 +31,13 @@ Here's a simple example that optimizes a 2-column dataset for high Pearson corre
        metrics = {'Pearson correlation': corr}
        return metrics, abs(corr)
 
-   # Create optimizer
+   # Create optimizer with replica exchange
    climber = HillClimber(
        data=data,
        objective_func=objective_high_correlation,
        max_time=5,  # 5 minutes
-       mode='maximize'
+       mode='maximize',
+       n_replicas=4  # Use 4 replicas for parallel tempering
    )
 
    # Run optimization
@@ -60,10 +61,7 @@ For longer runs, monitor progress with live plots:
        plot_progress=5  # Plot every 5 minutes
    )
 
-   result = climber.climb()
-
-.. note::
-   Progress plotting only works with ``climb()`` (not ``climb_parallel()``).
+   best_data, steps_df = climber.climb()
 
 Understanding the Results
 --------------------------
@@ -74,21 +72,30 @@ The ``climb()`` method returns a tuple of ``(best_data, steps_df)``:
 - ``steps_df``: A DataFrame tracking the optimization history at each accepted step,
   including the objective value and all metrics you defined
 
-Parallel Replicates
--------------------
+Replica Exchange (Parallel Tempering)
+--------------------------------------
 
-Run multiple independent optimizations to explore different solutions:
+Hill Climber 2.0 uses replica exchange (parallel tempering) by default. Multiple
+replicas run at different temperatures and exchange configurations to improve
+global optimization:
 
 .. code-block:: python
 
-   results = climber.climb_parallel(
-       replicates=4,
-       initial_noise=0.5
+   climber = HillClimber(
+       data=data,
+       objective_func=objective_high_correlation,
+       max_time=10,
+       mode='maximize',
+       n_replicas=8,  # Number of replicas (default: 4)
+       temperature=1000,  # Minimum temperature (T_min)
+       T_max=10000,  # Maximum temperature
+       exchange_interval=100,  # Steps between exchange attempts
+       temperature_scheme='geometric'  # or 'linear'
    )
 
-   # Results is a dictionary with:
-   # - 'input_data': original data
-   # - 'results': list of (initial_data, best_data, steps_df) tuples
+   best_data, steps_df = climber.climb()
+
+The ``climb()`` method automatically runs all replicas and returns the best result.
 
 Visualization
 -------------
@@ -97,8 +104,9 @@ Visualize the optimization progress:
 
 .. code-block:: python
 
+   # Visualize single result
    climber.plot_results(
-       results,
+       (best_data, steps_df),
        metrics=['Pearson correlation'],
        plot_type='histogram'
    )

@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Guide &mdash; Hill Climber 0.1.13 documentation</title>
+  <title>User Guide &mdash; Hill Climber 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=8d02545a"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -53,7 +53,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#objective-functions">Objective Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hyperparameters">Hyperparameters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#boundary-handling">Boundary Handling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#replicate-noise">Replicate Noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#replica-exchange-parallel-tempering">Replica Exchange (Parallel Tempering)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#results-structure">Results Structure</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#internal-architecture">Internal Architecture</a></li>
@@ -177,7 +177,31 @@ in your input data.</p>
 </section>
 <section id="hyperparameters">
 <h2>Hyperparameters<a class="headerlink" href="#hyperparameters" title="Link to this heading"></a></h2>
-<dl>
+<dl class="simple">
+<dt><strong>n_replicas</strong> (default: 4)</dt><dd><p>Number of replicas for parallel tempering (replica exchange). More replicas
+provide better exploration but use more memory. Each replica runs at a different
+temperature from the temperature ladder.</p>
+</dd>
+<dt><strong>temperature</strong> (default: 1000)</dt><dd><p>Minimum temperature (T_min) for the coldest replica in the temperature ladder.
+Also used as the base temperature for simulated annealing. Higher temperatures
+allow more exploration of suboptimal solutions.</p>
+</dd>
+<dt><strong>T_max</strong> (default: 10000)</dt><dd><p>Maximum temperature for the hottest replica in the temperature ladder. Should
+be significantly higher than T_min for effective replica exchange.</p>
+</dd>
+<dt><strong>temperature_scheme</strong> (default: ‘geometric’)</dt><dd><p>How to space temperatures in the ladder: ‘geometric’ or ‘linear’. Geometric
+spacing typically provides better exchange acceptance rates.</p>
+</dd>
+<dt><strong>exchange_interval</strong> (default: 100)</dt><dd><p>Number of optimization steps between replica exchange attempts. Smaller values
+attempt exchanges more frequently.</p>
+</dd>
+<dt><strong>exchange_strategy</strong> (default: ‘even_odd’)</dt><dd><p>Strategy for selecting replica pairs for exchange:</p>
+<ul class="simple">
+<li><p>‘even_odd’: Alternates between even and odd neighboring pairs</p></li>
+<li><p>‘random’: Random pair selection</p></li>
+<li><p>‘all_neighbors’: All neighboring pairs</p></li>
+</ul>
+</dd>
 <dt><strong>step_spread</strong> (default: 1.0)</dt><dd><p>Standard deviation of the normal distribution used for perturbations. Controls
 the variability and typical magnitude of changes. Perturbations are sampled
 from a normal distribution with mean 0 and this standard deviation. Larger
@@ -187,27 +211,15 @@ adjustments.</p>
 <dt><strong>perturb_fraction</strong> (default: 0.1)</dt><dd><p>Fraction of data points to modify in each iteration (0.0 to 1.0).
 Higher values create more dramatic changes per step.</p>
 </dd>
-<dt><strong>temperature</strong> (default: 1000)</dt><dd><p>Initial temperature for simulated annealing. Higher temperatures allow
-more exploration of suboptimal solutions early on.</p>
-</dd>
 <dt><strong>cooling_rate</strong> (default: 0.000001)</dt><dd><p>Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
 is multiplied by <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">-</span> <span class="pre">cooling_rate)</span></code> each iteration. Smaller values result in slower
 cooling and longer exploration. For example, <code class="docutils literal notranslate"><span class="pre">0.000001</span></code> means <code class="docutils literal notranslate"><span class="pre">temp</span> <span class="pre">*=</span> <span class="pre">0.999999</span></code> each step.</p>
 </dd>
 <dt><strong>max_time</strong> (default: 30)</dt><dd><p>Maximum optimization time in minutes.</p>
 </dd>
-<dt><strong>initial_noise</strong> (default: 0.0)</dt><dd><p>Amount of uniform noise to add when creating replicate starting points.
-Only used in <code class="docutils literal notranslate"><span class="pre">climb_parallel()</span></code>.</p>
-</dd>
 <dt><strong>plot_progress</strong> (default: None)</dt><dd><p>Interval in minutes for plotting optimization progress during a run.
 When set, creates scatter plots showing the current best solution at
 regular intervals. For example, <code class="docutils literal notranslate"><span class="pre">plot_progress=5</span></code> plots every 5 minutes.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This option only works in single-process mode (<code class="docutils literal notranslate"><span class="pre">climb()</span></code>). It does not
-work with parallel mode (<code class="docutils literal notranslate"><span class="pre">climb_parallel()</span></code>) because results from worker
-processes are not collected until the end of the run.</p>
-</div>
 </dd>
 </dl>
 </section>
@@ -223,20 +235,47 @@ back into the valid range</p></li>
 </ul>
 <p>Example: If minimum is 5 and a perturbation creates 4.5, it reflects to 5.5.</p>
 </section>
-<section id="replicate-noise">
-<h2>Replicate Noise<a class="headerlink" href="#replicate-noise" title="Link to this heading"></a></h2>
-<p>When running parallel replicates, <code class="docutils literal notranslate"><span class="pre">initial_noise</span></code> adds diversity:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb_parallel</span><span class="p">(</span>
-    <span class="n">replicates</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-    <span class="n">initial_noise</span><span class="o">=</span><span class="mf">0.5</span>  <span class="c1"># Add ±50% uniform noise to starting data</span>
-<span class="p">)</span>
+<section id="replica-exchange-parallel-tempering">
+<h2>Replica Exchange (Parallel Tempering)<a class="headerlink" href="#replica-exchange-parallel-tempering" title="Link to this heading"></a></h2>
+<p>Hill Climber 2.0 uses replica exchange to improve global optimization. Multiple
+replicas run simultaneously at different temperatures:</p>
+<p><strong>How it works:</strong></p>
+<ol class="arabic simple">
+<li><p>Each replica has its own temperature from a ladder (e.g., 1000, 2154, 4641, 10000)</p></li>
+<li><p>All replicas perform optimization steps independently</p></li>
+<li><p>Periodically, replicas attempt to exchange configurations</p></li>
+<li><p>Exchanges use Metropolis criterion: better solutions move to cooler temperatures</p></li>
+<li><p>The coldest replica typically finds the best solution</p></li>
+</ol>
+<p><strong>Temperature Ladder:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemperatureLadder</span>
+
+<span class="c1"># Geometric spacing (default, recommended)</span>
+<span class="n">ladder</span> <span class="o">=</span> <span class="n">TemperatureLadder</span><span class="o">.</span><span class="n">geometric</span><span class="p">(</span><span class="n">n_replicas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">T_min</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="p">)</span>  <span class="c1"># [1000, 2154, 4641, 10000]</span>
+
+<span class="c1"># Linear spacing</span>
+<span class="n">ladder</span> <span class="o">=</span> <span class="n">TemperatureLadder</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">n_replicas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">T_min</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="p">)</span>  <span class="c1"># [1000, 4000, 7000, 10000]</span>
 </pre></div>
 </div>
+<p><strong>Exchange Statistics:</strong></p>
+<p>After optimization, check exchange acceptance rates:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_data</span><span class="p">,</span> <span class="n">history_df</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+
+<span class="c1"># Exchange statistics are printed during optimization</span>
+<span class="c1"># Exchange acceptance rate: 15.4%</span>
+
+<span class="c1"># For detailed analysis, access the climber&#39;s exchange statistics:</span>
+<span class="c1"># climber.exchange_stats.get_acceptance_matrix()</span>
+</pre></div>
+</div>
+<p><strong>Benefits:</strong></p>
 <ul class="simple">
-<li><p>Each replicate starts from a slightly different position</p></li>
-<li><p>Helps explore different regions of the solution space</p></li>
-<li><p>Increases chances of finding global optima</p></li>
-<li><p>Generates diverse solutions for comparison</p></li>
+<li><p>Better global optimization compared to single-temperature annealing</p></li>
+<li><p>Hotter replicas explore broadly, cooler replicas exploit locally</p></li>
+<li><p>Exchanges allow good solutions to refine at low temperatures</p></li>
+<li><p>More robust than independent parallel runs</p></li>
 </ul>
 </section>
 <section id="checkpointing">
@@ -254,19 +293,19 @@ back into the valid range</p></li>
 </pre></div>
 </div>
 <p>Resume from a checkpoint:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">resume_from_checkpoint</span><span class="p">(</span>
-    <span class="n">checkpoint_file</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
-    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
-    <span class="n">new_max_time</span><span class="o">=</span><span class="mi">30</span>  <span class="c1"># Continue for 30 more minutes</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span>
+    <span class="n">filepath</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span>
 <span class="p">)</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+<span class="c1"># Continue optimizing</span>
+<span class="n">best_data</span><span class="p">,</span> <span class="n">history_df</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
 </section>
 <section id="results-structure">
 <h2>Results Structure<a class="headerlink" href="#results-structure" title="Link to this heading"></a></h2>
-<p><strong>Single climb</strong> returns a tuple of:</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">climb()</span></code> method returns a tuple:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -282,27 +321,7 @@ back into the valid range</p></li>
 </ul>
 </li>
 </ul>
-<p><strong>Parallel climbs</strong> returns a dictionary:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb_parallel</span><span class="p">(</span><span class="n">replicates</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
-
-<span class="c1"># Structure:</span>
-<span class="p">{</span>
-    <span class="s1">&#39;input_data&#39;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">original</span> <span class="n">DataFrame</span><span class="o">&gt;</span><span class="p">,</span>
-    <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="p">(</span><span class="n">initial_data_1</span><span class="p">,</span> <span class="n">best_data_1</span><span class="p">,</span> <span class="n">steps_df_1</span><span class="p">),</span>
-        <span class="p">(</span><span class="n">initial_data_2</span><span class="p">,</span> <span class="n">best_data_2</span><span class="p">,</span> <span class="n">steps_df_2</span><span class="p">),</span>
-        <span class="o">...</span>
-    <span class="p">]</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Where:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">input_data</span></code>: Original data before any noise was added</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">initial_data</span></code>: Data for this replicate after noise addition</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">best_data</span></code>: Final optimized data for this replicate</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">steps_df</span></code>: Optimization history for this replicate</p></li>
-</ul>
+<p>The best result is automatically selected from the replica with the best objective value.</p>
 </section>
 <section id="internal-architecture">
 <h2>Internal Architecture<a class="headerlink" href="#internal-architecture" title="Link to this heading"></a></h2>

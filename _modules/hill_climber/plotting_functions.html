@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hill_climber.plotting_functions &mdash; Hill Climber 0.1.13 documentation</title>
+  <title>hill_climber.plotting_functions &mdash; Hill Climber 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=8d02545a"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -90,10 +90,11 @@
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
 <span class="sd">        data: numpy array (Nx2) or pandas DataFrame with 2 columns</span>
-<span class="sd">        plot_type: &#39;scatter&#39; or &#39;kde&#39; (default: &#39;scatter&#39;)</span>
+<span class="sd">        plot_type: Type of plot, either ``&#39;scatter&#39;`` or ``&#39;kde&#39;``</span>
+<span class="sd">                   (default is ``&#39;scatter&#39;``)</span>
 <span class="sd">    </span>
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If plot_type is not &#39;scatter&#39; or &#39;kde&#39;</span>
+<span class="sd">        ValueError: If plot_type is not ``&#39;scatter&#39;`` or ``&#39;kde&#39;``</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">plot_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;scatter&#39;</span><span class="p">,</span> <span class="s1">&#39;kde&#39;</span><span class="p">]:</span>
@@ -169,44 +170,34 @@
 <span class="sd">    - Snapshot plots at 25%, 50%, 75%, and 100% completion</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        results: Results from climb() or climb_parallel(). Can be:</span>
-<span class="sd">                 - Tuple (best_data, steps_df) from climb()</span>
-<span class="sd">                 - Dictionary with &#39;input_data&#39; and &#39;results&#39; keys from climb_parallel()</span>
-<span class="sd">                 - List of (noisy_initial, best_data, steps_df) tuples (legacy)</span>
-<span class="sd">                 - List of (best_data, steps_df) tuples (older legacy)</span>
-<span class="sd">        plot_type: Type of snapshot plots - &#39;scatter&#39; or &#39;histogram&#39; (default: &#39;scatter&#39;)</span>
-<span class="sd">                   Note: &#39;histogram&#39; uses KDE (Kernel Density Estimation) plots</span>
+<span class="sd">        results: Results from climb(). Can be:</span>
+<span class="sd">                 - Tuple (best_data, steps_df) from single climb() call</span>
+<span class="sd">                 - List of result tuples for multi-replica visualization</span>
+<span class="sd">        plot_type: Type of snapshot plots, either ``&#39;scatter&#39;`` or ``&#39;histogram&#39;``</span>
+<span class="sd">                   (default is ``&#39;scatter&#39;``).</span>
+<span class="sd">                   Note: ``&#39;histogram&#39;`` uses KDE (Kernel Density Estimation) plots</span>
 <span class="sd">        metrics: List of metric names to display in progress plots and snapshots.</span>
 <span class="sd">                 If None (default), all available metrics are shown.</span>
-<span class="sd">                 Example: [&#39;Pearson&#39;, &#39;Spearman&#39;] or [&#39;Mean X&#39;, &#39;Std X&#39;]</span>
+<span class="sd">                 Example: ``[&#39;Pearson&#39;, &#39;Spearman&#39;]`` or ``[&#39;Mean X&#39;, &#39;Std X&#39;]``</span>
 <span class="sd">    </span>
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If plot_type is not &#39;scatter&#39; or &#39;histogram&#39;</span>
+<span class="sd">        ValueError: If plot_type is not ``&#39;scatter&#39;`` or ``&#39;histogram&#39;``</span>
 <span class="sd">        ValueError: If any specified metric is not found in the results</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">plot_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;scatter&#39;</span><span class="p">,</span> <span class="s1">&#39;histogram&#39;</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;plot_type must be &#39;scatter&#39; or &#39;histogram&#39;, got &#39;</span><span class="si">{</span><span class="n">plot_type</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
     
-    <span class="c1"># Handle different result formats for backward compatibility</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="c1"># Dictionary format from climb_parallel()</span>
-        <span class="n">results_list</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+    <span class="c1"># Ensure results is a list</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
         <span class="c1"># Single result tuple from climb(): (best_data, steps_df)</span>
         <span class="c1"># Wrap in list to make it compatible with the plotting functions</span>
         <span class="n">results_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">results</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Legacy list format</span>
         <span class="n">results_list</span> <span class="o">=</span> <span class="n">results</span>
     
-    <span class="c1"># Determine format of individual results</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="c1"># Format: (noisy_initial, best_data, steps_df)</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">results_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Format: (best_data, steps_df)</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">results_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># Get steps_df to validate metrics</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">results_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     
     <span class="c1"># Validate metrics if provided</span>
     <span class="k">if</span> <span class="n">metrics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -231,7 +222,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Internal function: Visualize results with scatter plots.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        results: List of tuples from climb_parallel() - handles both formats</span>
+<span class="sd">        results: List of result tuples - handles both (data, df) and (_, data, df) formats</span>
 <span class="sd">        metrics: List of metric names to display, or None for all metrics</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -327,7 +318,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Internal function: Visualize results with KDE plots.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        results: List of tuples from climb_parallel() - handles both formats</span>
+<span class="sd">        results: List of result tuples - handles both (data, df) and (_, data, df) formats</span>
 <span class="sd">        metrics: List of metric names to display, or None for all metrics</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 

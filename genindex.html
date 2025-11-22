@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; Hill Climber 0.1.13 documentation</title>
+  <title>Index &mdash; Hill Climber 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=8d02545a"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -78,46 +78,64 @@
 
 <div class="genindex-jumpbox">
  <a href="#_"><strong>_</strong></a>
+ | <a href="#A"><strong>A</strong></a>
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
- | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
- | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
- | <a href="#I"><strong>I</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
- | <a href="#U"><strong>U</strong></a>
  
 </div>
 <h2 id="_">_</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.HillClimber.__init__">__init__() (hill_climber.HillClimber method)</a>
+      <li><a href="api.html#hill_climber.ExchangeScheduler.__init__">__init__() (hill_climber.ExchangeScheduler method)</a>
 
       <ul>
-        <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.__init__">(hill_climber.optimizer_state.OptimizerState method)</a>
+        <li><a href="api.html#hill_climber.ExchangeStatistics.__init__">(hill_climber.ExchangeStatistics method)</a>
+</li>
+        <li><a href="api.html#hill_climber.HillClimber.__init__">(hill_climber.HillClimber method)</a>
+</li>
+        <li><a href="api.html#hill_climber.OptimizerState.__init__">(hill_climber.OptimizerState method)</a>
+</li>
+        <li><a href="api.html#hill_climber.TemperatureLadder.__init__">(hill_climber.TemperatureLadder method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#hill_climber.ExchangeStatistics.__post_init__">__post_init__() (hill_climber.ExchangeStatistics method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#hill_climber.ExchangeStatistics.acceptances">acceptances (hill_climber.ExchangeStatistics attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#hill_climber.ExchangeStatistics.attempts">attempts (hill_climber.ExchangeStatistics attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.best_data">best_data (hill_climber.optimizer_state.OptimizerState attribute)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.best_data">best_data (hill_climber.OptimizerState attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.best_distance">best_distance (hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.best_objective">best_objective (hill_climber.optimizer_state.OptimizerState attribute)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.best_objective">best_objective (hill_climber.OptimizerState attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -125,29 +143,17 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.climber_functions.calculate_correlation_objective">calculate_correlation_objective() (in module hill_climber.climber_functions)</a>
-</li>
       <li><a href="api.html#hill_climber.climber_functions.calculate_objective">calculate_objective() (in module hill_climber.climber_functions)</a>
 </li>
       <li><a href="api.html#hill_climber.HillClimber.climb">climb() (hill_climber.HillClimber method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.HillClimber.climb_parallel">climb_parallel() (hill_climber.HillClimber method)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.current_data">current_data (hill_climber.OptimizerState attribute)</a>
 </li>
-      <li><a href="api.html#hill_climber.HillClimber.cooling_rate">cooling_rate (hill_climber.HillClimber attribute)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.current_objective">current_objective (hill_climber.OptimizerState attribute)</a>
 </li>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.current_data">current_data (hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.current_objective">current_objective (hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="D">D</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.HillClimber.data">data (hill_climber.HillClimber attribute)</a>
+      <li><a href="api.html#hill_climber.TemperatureLadder.custom">custom() (hill_climber.TemperatureLadder class method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -155,15 +161,19 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.climber_functions.extract_columns">extract_columns() (in module hill_climber.climber_functions)</a>
+      <li><a href="api.html#hill_climber.climber_functions.evaluate_objective">evaluate_objective() (in module hill_climber.climber_functions)</a>
+</li>
+      <li><a href="api.html#hill_climber.OptimizerState.exchange_acceptances">exchange_acceptances (hill_climber.OptimizerState attribute)</a>
+</li>
+      <li><a href="api.html#hill_climber.OptimizerState.exchange_attempts">exchange_attempts (hill_climber.OptimizerState attribute)</a>
 </li>
   </ul></td>
-</tr></table>
-
-<h2 id="F">F</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.from_checkpoint_dict">from_checkpoint_dict() (hill_climber.optimizer_state.OptimizerState class method)</a>
+      <li><a href="api.html#hill_climber.ExchangeScheduler">ExchangeScheduler (class in hill_climber)</a>
+</li>
+      <li><a href="api.html#hill_climber.ExchangeStatistics">ExchangeStatistics (class in hill_climber)</a>
+</li>
+      <li><a href="api.html#hill_climber.climber_functions.extract_columns">extract_columns() (in module hill_climber.climber_functions)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -171,11 +181,19 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.get_history_dataframe">get_history_dataframe() (hill_climber.optimizer_state.OptimizerState method)</a>
+      <li><a href="api.html#hill_climber.TemperatureLadder.geometric">geometric() (hill_climber.TemperatureLadder class method)</a>
+</li>
+      <li><a href="api.html#hill_climber.ExchangeStatistics.get_acceptance_matrix">get_acceptance_matrix() (hill_climber.ExchangeStatistics method)</a>
+</li>
+      <li><a href="api.html#hill_climber.OptimizerState.get_acceptance_rate">get_acceptance_rate() (hill_climber.OptimizerState method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.get_results">get_results() (hill_climber.optimizer_state.OptimizerState method)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.get_history_dataframe">get_history_dataframe() (hill_climber.OptimizerState method)</a>
+</li>
+      <li><a href="api.html#hill_climber.ExchangeStatistics.get_overall_acceptance_rate">get_overall_acceptance_rate() (hill_climber.ExchangeStatistics method)</a>
+</li>
+      <li><a href="api.html#hill_climber.ExchangeScheduler.get_pairs">get_pairs() (hill_climber.ExchangeScheduler method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -183,8 +201,6 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.has_steps">has_steps() (hill_climber.optimizer_state.OptimizerState method)</a>
-</li>
       <li>
     hill_climber.climber_functions
 
@@ -203,17 +219,7 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#hill_climber.HillClimber">HillClimber (class in hill_climber)</a>
 </li>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.history">history (hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.hyperparameters">hyperparameters (hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="I">I</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.initialize">initialize() (hill_climber.optimizer_state.OptimizerState method)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.hyperparameters">hyperparameters (hill_climber.OptimizerState attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -221,13 +227,11 @@
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.last_plot_time">last_plot_time (hill_climber.optimizer_state.OptimizerState attribute)</a>
+      <li><a href="api.html#hill_climber.TemperatureLadder.linear">linear() (hill_climber.TemperatureLadder class method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.last_save_time">last_save_time (hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
-      <li><a href="api.html#hill_climber.HillClimber.load_checkpoint">load_checkpoint() (hill_climber.HillClimber method)</a>
+      <li><a href="api.html#hill_climber.HillClimber.load_checkpoint">load_checkpoint() (hill_climber.HillClimber class method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -235,14 +239,8 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.HillClimber.max_time">max_time (hill_climber.HillClimber attribute)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.metrics_history">metrics_history (hill_climber.OptimizerState attribute)</a>
 </li>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.metrics">metrics (hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
-      <li><a href="api.html#hill_climber.HillClimber.mode">mode (hill_climber.HillClimber attribute)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     module
 
@@ -255,16 +253,26 @@
   </ul></td>
 </tr></table>
 
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#hill_climber.ExchangeStatistics.n_replicas">n_replicas (hill_climber.ExchangeStatistics attribute)</a>
+
+      <ul>
+        <li><a href="api.html#hill_climber.TemperatureLadder.n_replicas">(hill_climber.TemperatureLadder property)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.HillClimber.objective_func">objective_func (hill_climber.HillClimber attribute)</a>
+      <li><a href="api.html#hill_climber.OptimizerState">OptimizerState (class in hill_climber)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState">OptimizerState (class in hill_climber.optimizer_state)</a>
-</li>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.original_data">original_data (hill_climber.optimizer_state.OptimizerState attribute)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.original_data">original_data (hill_climber.OptimizerState attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -272,17 +280,13 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.HillClimber.perturb_fraction">perturb_fraction (hill_climber.HillClimber attribute)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.partner_history">partner_history (hill_climber.OptimizerState attribute)</a>
 </li>
       <li><a href="api.html#hill_climber.climber_functions.perturb_vectors">perturb_vectors() (in module hill_climber.climber_functions)</a>
-</li>
-      <li><a href="api.html#hill_climber.HillClimber.plot_input">plot_input() (hill_climber.HillClimber method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#hill_climber.plotting_functions.plot_input_data">plot_input_data() (in module hill_climber.plotting_functions)</a>
-</li>
-      <li><a href="api.html#hill_climber.HillClimber.plot_progress_check">plot_progress_check() (hill_climber.HillClimber method)</a>
 </li>
       <li><a href="api.html#hill_climber.HillClimber.plot_results">plot_results() (hill_climber.HillClimber method)</a>
 
@@ -296,11 +300,19 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.record_improvement">record_improvement() (hill_climber.optimizer_state.OptimizerState method)</a>
+      <li><a href="api.html#hill_climber.ExchangeStatistics.record_attempt">record_attempt() (hill_climber.ExchangeStatistics method)</a>
+</li>
+      <li><a href="api.html#hill_climber.OptimizerState.record_exchange">record_exchange() (hill_climber.OptimizerState method)</a>
+</li>
+      <li><a href="api.html#hill_climber.OptimizerState.record_improvement">record_improvement() (hill_climber.OptimizerState method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.HillClimber.resume_from_checkpoint">resume_from_checkpoint() (hill_climber.HillClimber class method)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.record_step">record_step() (hill_climber.OptimizerState method)</a>
+</li>
+      <li><a href="api.html#hill_climber.OptimizerState.replica_id">replica_id (hill_climber.OptimizerState attribute)</a>
+</li>
+      <li><a href="api.html#hill_climber.ExchangeStatistics.round_count">round_count (hill_climber.ExchangeStatistics attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -310,15 +322,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#hill_climber.HillClimber.save_checkpoint">save_checkpoint() (hill_climber.HillClimber method)</a>
 </li>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.start_time">start_time (hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.HillClimber.state">state (hill_climber.HillClimber attribute)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.start_time">start_time (hill_climber.OptimizerState attribute)</a>
 </li>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.step">step (hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
-      <li><a href="api.html#hill_climber.HillClimber.step_spread">step_spread (hill_climber.HillClimber attribute)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.step">step (hill_climber.OptimizerState attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -326,29 +334,13 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.HillClimber.target_value">target_value (hill_climber.HillClimber attribute)</a>
-</li>
-      <li><a href="api.html#hill_climber.HillClimber.temperature">temperature (hill_climber.HillClimber attribute)</a>
-
-      <ul>
-        <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.temperature">(hill_climber.optimizer_state.OptimizerState attribute)</a>
-</li>
-      </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.to_checkpoint_dict">to_checkpoint_dict() (hill_climber.optimizer_state.OptimizerState method)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="U">U</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.update_best">update_best() (hill_climber.optimizer_state.OptimizerState method)</a>
+      <li><a href="api.html#hill_climber.OptimizerState.temperature">temperature (hill_climber.OptimizerState attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#hill_climber.optimizer_state.OptimizerState.update_current">update_current() (hill_climber.optimizer_state.OptimizerState method)</a>
+      <li><a href="api.html#hill_climber.TemperatureLadder">TemperatureLadder (class in hill_climber)</a>
+</li>
+      <li><a href="api.html#hill_climber.TemperatureLadder.temperatures">temperatures (hill_climber.TemperatureLadder attribute)</a>
 </li>
   </ul></td>
 </tr></table>

@@ -65,22 +65,65 @@ Implement hard constraints through penalties:
        
        return {'Correlation': correlation, 'Penalty': penalty}, objective
 
-Parallel Processing Tips
--------------------------
+Replica Exchange Tuning
+------------------------
 
-Choosing Number of Replicates
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Temperature Ladder Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- **4-8 replicates**: Good balance for most problems
-- **More replicates**: Better exploration, find more diverse solutions
-- **CPU resource limit**: Not recommended to run more replicates than one less than available CPU threads
+Choose the appropriate temperature range and spacing:
 
-Replicate Noise Tuning
-~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: python
 
-- **Low noise** (~1%-10% of input range): When starting data is already close to solutions
-- **Medium noise** (~10%-50% of input range): General purpose exploration
-- **High noise** (~50%-150% of input range): When you need very diverse starting points
+   # Wide temperature range for difficult landscapes
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       n_replicas=8,
+       temperature=100,      # T_min: coldest replica
+       T_max=100000,         # T_max: hottest replica  
+       temperature_scheme='geometric'  # Recommended for better mixing
+   )
+
+   # Narrow range for fine-tuning
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       n_replicas=4,
+       temperature=1000,
+       T_max=5000,
+       temperature_scheme='linear'
+   )
+
+Exchange Strategy Selection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Different strategies for replica pairing:
+
+- **even_odd** (default): Alternates between even and odd pairs (0-1, 2-3, then 1-2, 3-4). Good balance of mixing and efficiency.
+- **random**: Random pair selection each round. More stochastic exploration.
+- **all_neighbors**: All neighboring pairs attempt exchange each round. More thorough but slower.
+
+.. code-block:: python
+
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       exchange_strategy='random',  # or 'even_odd', 'all_neighbors'
+       exchange_interval=50  # Exchange attempts every 50 steps
+   )
+
+Choosing Number of Replicas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **4 replicas**: Good default for most problems
+- **8-12 replicas**: Better exploration of complex landscapes
+- **16+ replicas**: For very difficult optimization problems
+- **Memory consideration**: Each replica maintains a copy of your data
+
+Trade-offs:
+- More replicas = better exploration but more memory usage
+- Fewer replicas = faster per-iteration but may miss global optima
 
 Checkpointing
 -------------
@@ -103,13 +146,13 @@ Resume from a checkpoint:
 
 .. code-block:: python
 
-   resumed = HillClimber.resume_from_checkpoint(
-       checkpoint_file='optimization.pkl',
-       objective_func=my_objective,
-       new_max_time=30  # Continue for 30 more minutes
+   resumed = HillClimber.load_checkpoint(
+       filepath='optimization.pkl',
+       objective_func=my_objective
    )
    
-   result = resumed.climb()
+   # Continue from where it left off
+   best_data, history_df = resumed.climb()
 
 Progress Monitoring
 -------------------
@@ -136,15 +179,6 @@ This is particularly useful for:
 - Interactive Jupyter notebooks
 - Debugging objective functions
 - Monitoring convergence behavior
-
-**Important Notes**:
-
-- Only works with ``climb()`` method (single-process mode)
-- Does **not** work with ``climb_parallel()`` because worker processes don't
-  report intermediate results
-- If no steps are accepted between plot intervals, displays time information
-  instead of plotting
-- In Jupyter notebooks, each plot replaces the previous one for clean output
 
 Performance Optimization
 ------------------------
@@ -222,14 +256,15 @@ No Progress After Many Steps
 Converging to Local Optima
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Symptoms**: Different replicates find similar suboptimal solutions
+**Symptoms**: Different runs find similar suboptimal solutions, exchange acceptance rate is very low
 
 **Solutions**:
 
-- Increase ``temperature`` for more exploration
-- Increase ``initial_noise`` for more diverse starting points
+- Increase ``T_max`` for hotter replicas to explore more broadly
+- Increase ``n_replicas`` for better temperature coverage
 - Use smaller ``cooling_rate`` (slower cooling) to explore longer
-- Increase number of replicates
+- Adjust ``exchange_interval`` (try smaller values for more frequent exchanges)
+- Check temperature ladder - ensure good spacing between replicas
 
 Oscillating Objective Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hill_climber.optimizer &mdash; Hill Climber 0.1.13 documentation</title>
+  <title>hill_climber.optimizer &mdash; Hill Climber 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=8d02545a"></script>
+      <script src="../../_static/documentation_options.js?v=8d563738"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -75,45 +75,58 @@
            <div itemprop="articleBody">
              
   <h1>Source code for hill_climber.optimizer</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Hill climbing optimization with simulated annealing.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;Hill climbing optimization with replica exchange.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pool</span><span class="p">,</span> <span class="n">cpu_count</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pool</span><span class="p">,</span> <span class="n">cpu_count</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.climber_functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">perturb_vectors</span><span class="p">,</span> <span class="n">calculate_objective</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.plotting_functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_input_data</span><span class="p">,</span> <span class="n">plot_results</span> <span class="k">as</span> <span class="n">plot_results_func</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.optimizer_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptimizerState</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.climber_functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">perturb_vectors</span><span class="p">,</span> <span class="n">evaluate_objective</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.plotting_functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_results</span> <span class="k">as</span> <span class="n">plot_results_func</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.replica_exchange</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">TemperatureLadder</span><span class="p">,</span> <span class="n">ExchangeScheduler</span><span class="p">,</span> <span class="n">ExchangeStatistics</span><span class="p">,</span>
+    <span class="n">should_exchange</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.replica_worker</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_replica_steps</span>
 
 
 <div class="viewcode-block" id="HillClimber">
 <a class="viewcode-back" href="../../api.html#hill_climber.HillClimber">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">HillClimber</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hill climbing optimizer with optional simulated annealing.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hill climbing optimizer with replica exchange.</span>
 <span class="sd">    </span>
-<span class="sd">    Performs optimization using hill climbing with optional simulated annealing</span>
-<span class="sd">    for escaping local optima. Supports three optimization modes: maximize,</span>
-<span class="sd">    minimize, or target a specific value.</span>
+<span class="sd">    This optimizer uses parallel tempering (replica exchange) to improve</span>
+<span class="sd">    global optimization. Multiple replicas run at different temperatures,</span>
+<span class="sd">    periodically exchanging configurations to enhance exploration and</span>
+<span class="sd">    exploitation.</span>
 <span class="sd">    </span>
-<span class="sd">    Works with multi-column datasets where the objective function receives each</span>
-<span class="sd">    column as a separate argument. Uses a unified OptimizerState dataclass to</span>
-<span class="sd">    manage all optimization progress tracking internally.</span>
-<span class="sd">    </span>
-<span class="sd">    Attributes:</span>
-<span class="sd">        data: Initial data (numpy array or pandas DataFrame)</span>
-<span class="sd">        objective_func: Objective function returning (metrics_dict, objective_value)</span>
+<span class="sd">    Args:</span>
+<span class="sd">        data: Input data as numpy array (N, M) or pandas DataFrame with M columns</span>
+<span class="sd">        objective_func: Function taking M column arrays, returns (metrics_dict, objective_value)</span>
 <span class="sd">        max_time: Maximum runtime in minutes</span>
-<span class="sd">        perturb_fraction: Fraction of points to perturb at each step</span>
-<span class="sd">        step_spread: Standard deviation of normal distribution for perturbations</span>
-<span class="sd">        temperature: Initial temperature for simulated annealing (0 disables)</span>
-<span class="sd">        cooling_rate: Multiplicative cooling factor (computed from input parameter)</span>
-<span class="sd">        mode: Optimization mode (&#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;)</span>
-<span class="sd">        target_value: Target objective value when mode=&#39;target&#39;</span>
-<span class="sd">        state: OptimizerState instance managing all optimization progress</span>
+<span class="sd">        perturb_fraction: Fraction of data points to perturb each step</span>
+<span class="sd">        temperature: Base temperature (will be used as T_min for ladder)</span>
+<span class="sd">        cooling_rate: Temperature decay rate per step</span>
+<span class="sd">        mode: &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;</span>
+<span class="sd">        target_value: Target value (only used if mode=&#39;target&#39;)</span>
+<span class="sd">        checkpoint_file: Path to save checkpoints</span>
+<span class="sd">        save_interval: Checkpoint save interval in seconds</span>
+<span class="sd">        plot_progress: Plot results every N minutes (None to disable)</span>
+<span class="sd">        plot_metrics: List of metric names to plot (None to plot all metrics)</span>
+<span class="sd">        step_spread: Standard deviation for perturbation distribution</span>
+<span class="sd">        n_replicas: Number of replicas for parallel tempering (default: 4)</span>
+<span class="sd">        T_max: Maximum temperature for hottest replica (default: 10 * temperature)</span>
+<span class="sd">        exchange_interval: Steps between exchange attempts</span>
+<span class="sd">        temperature_scheme: &#39;geometric&#39; or &#39;linear&#39; temperature spacing</span>
+<span class="sd">        exchange_strategy: &#39;even_odd&#39;, &#39;random&#39;, or &#39;all_neighbors&#39;</span>
+<span class="sd">        n_workers: Number of worker processes (None = n_replicas, 0 = sequential)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
 <div class="viewcode-block" id="HillClimber.__init__">
@@ -121,691 +134,523 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">data</span><span class="p">,</span>
-        <span class="n">objective_func</span><span class="p">,</span>
-        <span class="n">max_time</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
-        <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
-        <span class="n">temperature</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
-        <span class="n">cooling_rate</span><span class="o">=</span><span class="mf">0.000001</span><span class="p">,</span>
-        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span>
-        <span class="n">target_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">checkpoint_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">save_interval</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
-        <span class="n">plot_progress</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">step_spread</span><span class="o">=</span><span class="mf">1.0</span>
+        <span class="n">objective_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">max_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
+        <span class="n">perturb_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="n">cooling_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.000001</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;maximize&#39;</span><span class="p">,</span>
+        <span class="n">target_value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">checkpoint_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">save_interval</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">60</span><span class="p">,</span>
+        <span class="n">plot_progress</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">plot_metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">step_spread</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">n_replicas</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">T_max</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">exchange_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="n">temperature_scheme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;geometric&#39;</span><span class="p">,</span>
+        <span class="n">exchange_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;even_odd&#39;</span><span class="p">,</span>
+        <span class="n">n_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize HillClimber.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            data: numpy array ``(N x M)`` or pandas DataFrame with M columns</span>
-<span class="sd">            objective_func: Function that takes M column arrays and returns </span>
-<span class="sd">                          ``(metrics_dict, objective_value)``. For 2-column data, receives ``(x, y)``.</span>
-<span class="sd">                          For 3-column data, receives ``(x, y, z)``, etc.</span>
-<span class="sd">            max_time: Maximum runtime in minutes (default: 30)</span>
-<span class="sd">            perturb_fraction: Fraction of points to perturb each step (default: 0.05)</span>
-<span class="sd">            temperature: Initial temperature for simulated annealing (default: 1000)</span>
-<span class="sd">            cooling_rate: Amount subtracted from 1 to get multiplicative cooling rate.</span>
-<span class="sd">                         For example, ``0.000001`` results in ``temp *= 0.999999`` each step.</span>
-<span class="sd">                         Smaller values = slower cooling. (default: 0.000001)</span>
-<span class="sd">            mode: ``&#39;maximize&#39;``, ``&#39;minimize&#39;``, or ``&#39;target&#39;`` (default: ``&#39;maximize&#39;``)</span>
-<span class="sd">            target_value: Target objective value for target mode (default: None)</span>
-<span class="sd">            checkpoint_file: Path to save/load checkpoints (default: None)</span>
-<span class="sd">            save_interval: Seconds between checkpoint saves (default: 60)</span>
-<span class="sd">            plot_progress: Plot results every N minutes during optimization. </span>
-<span class="sd">                          If None (default), no plots are drawn during optimization.</span>
-<span class="sd">            step_spread: Standard deviation of normal distribution for perturbations (default: 1.0)</span>
-<span class="sd">            </span>
-<span class="sd">        Raises:</span>
-<span class="sd">            ValueError: If mode is invalid or target_value missing for target mode</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span> <span class="s1">&#39;minimize&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">]:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mode must be &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;, got &#39;</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="c1"># Convert data to numpy if needed</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">column_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">column_names</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;col_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span> <span class="o">=</span> <span class="kc">False</span>
         
+        <span class="c1"># Store bounds for boundary reflection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        
+        <span class="c1"># Validate mode</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span> <span class="s1">&#39;minimize&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mode must be &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;, got &#39;</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate target_value when mode is &#39;target&#39;</span>
         <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;target&#39;</span> <span class="ow">and</span> <span class="n">target_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;target_value must be specified when mode=&#39;target&#39;&quot;</span><span class="p">)</span>
-        
-        <span class="c1"># Store original data and format info</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span> <span class="k">else</span> <span class="kc">None</span>
-        
-        <span class="c1"># Convert to numpy for efficient processing during optimization</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data_numpy</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span> <span class="k">else</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        
-        <span class="c1"># Calculate bounds for perturbation clipping</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">min_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_numpy</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_numpy</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_bounds</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bounds</span><span class="p">)</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">objective_func</span> <span class="o">=</span> <span class="n">objective_func</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span> <span class="o">=</span> <span class="n">max_time</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span> <span class="o">=</span> <span class="n">perturb_fraction</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">temperature</span>
-
-        <span class="c1"># Convert user-provided cooling_rate to multiplicative factor</span>
-        <span class="c1"># User specifies 1 - multiplicative_rate, we store the multiplicative rate</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">cooling_rate</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate_input</span> <span class="o">=</span> <span class="n">cooling_rate</span>  <span class="c1"># Store original for checkpointing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span> <span class="o">=</span> <span class="n">cooling_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span> <span class="o">=</span> <span class="n">target_value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">checkpoint_file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">save_interval</span> <span class="o">=</span> <span class="n">save_interval</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress</span> <span class="o">=</span> <span class="n">plot_progress</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_metrics</span> <span class="o">=</span> <span class="n">plot_metrics</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span> <span class="o">=</span> <span class="n">step_spread</span>
         
-        <span class="c1"># Unified state management via dataclass</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">OptimizerState</span><span class="p">()</span></div>
-
-
-
-<div class="viewcode-block" id="HillClimber.save_checkpoint">
-<a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.save_checkpoint">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save current optimization state to checkpoint file.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            force: Save even if save_interval hasn&#39;t elapsed (default: False)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">:</span>
-            <span class="k">return</span>
-            
-        <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="c1"># Replica exchange parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span> <span class="o">=</span> <span class="n">n_replicas</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T_min</span> <span class="o">=</span> <span class="n">temperature</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T_max</span> <span class="o">=</span> <span class="n">T_max</span> <span class="ow">or</span> <span class="p">(</span><span class="n">temperature</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span> <span class="o">=</span> <span class="n">exchange_interval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature_scheme</span> <span class="o">=</span> <span class="n">temperature_scheme</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exchange_strategy</span> <span class="o">=</span> <span class="n">exchange_strategy</span>
         
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">force</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">last_save_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">last_save_time</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_interval</span><span class="p">:</span>
-                <span class="k">return</span>
-        
-        <span class="c1"># Get complete state data from dataclass (includes hyperparameters and original_data)</span>
-        <span class="n">state_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">to_checkpoint_dict</span><span class="p">()</span>
-        
-        <span class="n">checkpoint_data</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="n">state_dict</span><span class="p">,</span>
-            <span class="s1">&#39;elapsed_time&#39;</span><span class="p">:</span> <span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
-            <span class="s1">&#39;data_info&#39;</span><span class="p">:</span> <span class="p">{</span>
-                <span class="s1">&#39;is_dataframe&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">,</span>
-                <span class="s1">&#39;columns&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
-                <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
-        
-        <span class="c1"># Create checkpoint directory if needed</span>
-        <span class="n">checkpoint_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">checkpoint_dir</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
-        
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">checkpoint_data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
-        
-        <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">last_save_time</span> <span class="o">=</span> <span class="n">current_time</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpoint saved: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="HillClimber.plot_progress_check">
-<a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.plot_progress_check">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">plot_progress_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot optimization progress if plot_progress interval has elapsed.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            force: Plot even if plot_progress interval hasn&#39;t elapsed (default: False)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span>
-        
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span>
-            
-        <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-        
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">force</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">last_plot_time</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress</span><span class="p">:</span>
-                <span class="k">return</span>
-        
-        <span class="c1"># Clear any existing plots</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
-        
-        <span class="c1"># Clear output in Jupyter notebooks to replace previous plot</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">clear_output</span>
-            <span class="n">clear_output</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-            <span class="c1"># Not in IPython/Jupyter environment</span>
-            <span class="k">pass</span>
-        
-        <span class="c1"># Get results from state</span>
-        <span class="n">best_data_output</span><span class="p">,</span> <span class="n">history_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">get_results</span><span class="p">(</span>
-            <span class="n">is_dataframe</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">,</span>
-            <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span>
-        <span class="p">)</span>
-        
-        <span class="c1"># Format as expected by plot_results (single replicate)</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;input_data&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
-            <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">best_data_output</span><span class="p">,</span> <span class="n">history_df</span><span class="p">)]</span>
-        <span class="p">}</span>
-        
-        <span class="c1"># Plot current progress</span>
-        <span class="n">elapsed_min</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span>
-        <span class="n">last_elapsed_min</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="k">else</span> <span class="mi">0</span>
-        
-        <span class="c1"># Format elapsed time based on duration</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">format_elapsed</span><span class="p">(</span><span class="n">minutes</span><span class="p">):</span>
-
-            <span class="k">if</span> <span class="n">minutes</span> <span class="o">&lt;</span> <span class="mi">60</span><span class="p">:</span>
-                <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">minutes</span><span class="p">)</span><span class="si">}</span><span class="s2"> minutes&quot;</span>
-
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">hours</span> <span class="o">=</span> <span class="n">minutes</span> <span class="o">/</span> <span class="mi">60</span>
-                <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">hours</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> hours&quot;</span>
-        
-        <span class="c1"># Check if there are any steps to plot</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">has_steps</span><span class="p">():</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">No accepted steps since last progress update&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Last progress update: </span><span class="si">{</span><span class="n">format_elapsed</span><span class="p">(</span><span class="n">last_elapsed_min</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current time: </span><span class="si">{</span><span class="n">format_elapsed</span><span class="p">(</span><span class="n">elapsed_min</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
+        <span class="c1"># Parallel processing parameters</span>
+        <span class="c1"># None = use n_replicas workers, 0 = sequential mode, &gt;0 = specified number</span>
+        <span class="k">if</span> <span class="n">n_workers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span>
+        <span class="k">elif</span> <span class="n">n_workers</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Sequential mode</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Plotting progress at </span><span class="si">{</span><span class="n">format_elapsed</span><span class="p">(</span><span class="n">elapsed_min</span><span class="p">)</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
-            <span class="n">plot_results_func</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;scatter&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_workers</span><span class="p">,</span> <span class="n">cpu_count</span><span class="p">())</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="o">=</span> <span class="n">current_time</span></div>
-
-
-
-<div class="viewcode-block" id="HillClimber.load_checkpoint">
-<a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.load_checkpoint">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checkpoint_file</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load optimization state from checkpoint file.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            checkpoint_file: Path to checkpoint file to load</span>
-<span class="sd">            </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            True if checkpoint was loaded successfully, False otherwise</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">):</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpoint file not found: </span><span class="si">{</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="kc">False</span>
-        
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">checkpoint_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-            
-            <span class="c1"># Check if this is a new-format checkpoint with &#39;state&#39; key</span>
-            <span class="k">if</span> <span class="s1">&#39;state&#39;</span> <span class="ow">in</span> <span class="n">checkpoint_data</span><span class="p">:</span>
-                <span class="c1"># New format: load from dataclass</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">OptimizerState</span><span class="o">.</span><span class="n">from_checkpoint_dict</span><span class="p">(</span><span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">])</span>
-                
-                <span class="c1"># Restore data info (needed for HillClimber operations)</span>
-                <span class="n">data_info</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;data_info&#39;</span><span class="p">,</span> <span class="p">{})</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span> <span class="o">=</span> <span class="n">data_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;is_dataframe&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">data_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;columns&#39;</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span> <span class="o">=</span> <span class="n">data_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;bounds&#39;</span><span class="p">)</span>
-                
-                <span class="c1"># Restore original data from state</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">original_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">original_data</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">data_numpy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># This should not happen with properly saved checkpoints</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Checkpoint missing original_data in state&quot;</span><span class="p">)</span>
-                        
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># Old format: migrate to dataclass</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">OptimizerState</span><span class="p">()</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">best_data</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">current_data</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;current_data&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">best_objective</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">current_objective</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;current_objective&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">best_distance</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;best_distance&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;steps&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;temp&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;start_time&#39;</span><span class="p">]</span>
-                
-                <span class="c1"># Store hyperparameters and original data in state for consistency</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">hyperparameters</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hyperparameters&#39;</span><span class="p">,</span> <span class="p">{})</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">original_data</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;original_data&#39;</span><span class="p">)</span>
-                
-                <span class="c1"># Restore data info</span>
-                <span class="n">data_info</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;data_info&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span> <span class="o">=</span> <span class="n">data_info</span><span class="p">[</span><span class="s1">&#39;is_dataframe&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">data_info</span><span class="p">[</span><span class="s1">&#39;columns&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span> <span class="o">=</span> <span class="n">data_info</span><span class="p">[</span><span class="s1">&#39;bounds&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">data_numpy</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;original_data&#39;</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">original_data</span>
-            
-            <span class="c1"># Adjust start time to account for elapsed time</span>
-            <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;elapsed_time&#39;</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">elapsed_time</span>
-            
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpoint loaded: </span><span class="si">{</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resuming from step </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="si">}</span><span class="s2">, elapsed time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
-            
-            <span class="k">return</span> <span class="kc">True</span>
-            
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading checkpoint: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="kc">False</span></div>
-
-
-
-<div class="viewcode-block" id="HillClimber.resume_from_checkpoint">
-<a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.resume_from_checkpoint">[docs]</a>
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">resume_from_checkpoint</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">checkpoint_file</span><span class="p">,</span> <span class="n">objective_func</span><span class="p">,</span> 
-                             <span class="n">new_max_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">new_checkpoint_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a new HillClimber instance from a checkpoint file.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            checkpoint_file: Path to checkpoint file</span>
-<span class="sd">            objective_func: Objective function (must be same as original)</span>
-<span class="sd">            new_max_time: New max_time for continued optimization (default: use original)</span>
-<span class="sd">            new_checkpoint_file: New checkpoint file path (default: use original)</span>
-<span class="sd">            </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            New HillClimber instance with state loaded from checkpoint</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpoint file not found: </span><span class="si">{</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">checkpoint_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-        
-        <span class="c1"># Extract hyperparameters</span>
-        <span class="n">hyperparams</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;hyperparameters&#39;</span><span class="p">]</span>
-        <span class="n">data_info</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;data_info&#39;</span><span class="p">]</span>
-        
-        <span class="c1"># Reconstruct original data</span>
-        <span class="n">original_data</span> <span class="o">=</span> <span class="n">checkpoint_data</span><span class="p">[</span><span class="s1">&#39;original_data&#39;</span><span class="p">]</span>
-
-        <span class="k">if</span> <span class="n">data_info</span><span class="p">[</span><span class="s1">&#39;is_dataframe&#39;</span><span class="p">]:</span>
-            <span class="n">original_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">original_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">data_info</span><span class="p">[</span><span class="s1">&#39;columns&#39;</span><span class="p">])</span>
-        
-        <span class="c1"># Create new instance</span>
-        <span class="n">climber</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">data</span><span class="o">=</span><span class="n">original_data</span><span class="p">,</span>
-            <span class="n">objective_func</span><span class="o">=</span><span class="n">objective_func</span><span class="p">,</span>
-            <span class="n">max_time</span><span class="o">=</span><span class="n">new_max_time</span> <span class="k">if</span> <span class="n">new_max_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;max_time&#39;</span><span class="p">],</span>
-            <span class="n">perturb_fraction</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;perturb_fraction&#39;</span><span class="p">],</span>
-            <span class="n">temperature</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">],</span>
-            <span class="n">cooling_rate</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;cooling_rate&#39;</span><span class="p">],</span>
-            <span class="n">mode</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">],</span>
-            <span class="n">target_value</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;target_value&#39;</span><span class="p">],</span>
-            <span class="n">checkpoint_file</span><span class="o">=</span><span class="n">new_checkpoint_file</span> <span class="k">if</span> <span class="n">new_checkpoint_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">checkpoint_file</span><span class="p">,</span>
-            <span class="n">step_spread</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;step_spread&#39;</span><span class="p">]</span>
-        <span class="p">)</span>
-        
-        <span class="c1"># Load the checkpoint state</span>
-        <span class="n">climber</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">)</span>
-        
-        <span class="k">return</span> <span class="n">climber</span></div>
+        <span class="c1"># Will be initialized in climb()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">OptimizerState</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature_ladder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TemperatureLadder</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exchange_stats</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ExchangeStatistics</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_save_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_plot_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
 
 <div class="viewcode-block" id="HillClimber.climb">
 <a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.climb">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">climb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform hill climbing optimization.</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">climb</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run replica exchange optimization.</span>
 <span class="sd">        </span>
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple of (best_data, steps_df) where:</span>
-<span class="sd">                - best_data: Best solution found (same format as input data)</span>
-<span class="sd">                - steps_df: DataFrame tracking optimization progress</span>
+<span class="sd">                best_data: Best configuration found across all replicas</span>
+<span class="sd">                steps_df: DataFrame with optimization history from best replica</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mode_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;parallel (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span><span class="si">}</span><span class="s2"> workers)&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;sequential&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting replica exchange with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="si">}</span><span class="s2"> replicas (</span><span class="si">{</span><span class="n">mode_str</span><span class="si">}</span><span class="s2">)...&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Initialize temperature ladder</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_scheme</span> <span class="o">==</span> <span class="s1">&#39;geometric&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">temperature_ladder</span> <span class="o">=</span> <span class="n">TemperatureLadder</span><span class="o">.</span><span class="n">geometric</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_max</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">temperature_ladder</span> <span class="o">=</span> <span class="n">TemperatureLadder</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_max</span>
+            <span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Temperature ladder: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature_ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Initialize replicas</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_replicas</span><span class="p">()</span>
+        
+        <span class="c1"># Initialize exchange scheduler and statistics</span>
+        <span class="n">scheduler</span> <span class="o">=</span> <span class="n">ExchangeScheduler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_strategy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exchange_stats</span> <span class="o">=</span> <span class="n">ExchangeStatistics</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="p">)</span>
+        
+        <span class="c1"># Choose execution path</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_climb_parallel</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_climb_sequential</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span></div>
 
-        <span class="c1"># Initialize state if not resuming</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">current_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># Get initial objective and metrics</span>
-            <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span> <span class="o">=</span> <span class="n">calculate_objective</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">data_numpy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective_func</span>
-            <span class="p">)</span>
-            
-            <span class="c1"># Prepare hyperparameters dictionary</span>
-            <span class="n">hyperparameters</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s1">&#39;max_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">,</span>
-                <span class="s1">&#39;perturb_fraction&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span><span class="p">,</span>
-                <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
-                <span class="s1">&#39;cooling_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate_input</span><span class="p">,</span>
-                <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
-                <span class="s1">&#39;target_value&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">,</span>
-                <span class="s1">&#39;step_spread&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span><span class="p">,</span>
-                <span class="s1">&#39;checkpoint_file&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">,</span>
-                <span class="s1">&#39;save_interval&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_interval</span><span class="p">,</span>
-                <span class="s1">&#39;plot_progress&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress</span>
-            <span class="p">}</span>
-            
-            <span class="c1"># Initialize state</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span>
-                <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_numpy</span><span class="p">,</span>
-                <span class="n">objective</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
-                <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
-                <span class="n">temperature</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
-                <span class="n">target_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">,</span>
-                <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
-                <span class="n">original_data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
-                <span class="n">hyperparameters</span><span class="o">=</span><span class="n">hyperparameters</span>
-            <span class="p">)</span>
-        
-        <span class="c1"># Set or update start time</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-        
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_climb_sequential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">:</span> <span class="n">ExchangeScheduler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run optimization sequentially (original single-threaded approach).&quot;&quot;&quot;</span>
         <span class="c1"># Main optimization loop</span>
-        <span class="k">while</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">start_time</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span> <span class="o">*</span> <span class="mi">60</span><span class="p">:</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">step</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_save_time</span> <span class="o">=</span> <span class="n">start_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="o">=</span> <span class="n">start_time</span>
+        
+        <span class="k">while</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">&lt;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_time</span> <span class="o">*</span> <span class="mi">60</span><span class="p">):</span>
             
-            <span class="c1"># Generate and evaluate new candidate solution</span>
-            <span class="n">new_data</span> <span class="o">=</span> <span class="n">perturb_vectors</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">current_data</span><span class="p">,</span> 
-                <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span>
-            <span class="p">)</span>
-
-            <span class="n">metrics</span><span class="p">,</span> <span class="n">new_objective</span> <span class="o">=</span> <span class="n">calculate_objective</span><span class="p">(</span><span class="n">new_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective_func</span><span class="p">)</span>
+            <span class="c1"># Each replica takes a step</span>
+            <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_step_replica</span><span class="p">(</span><span class="n">replica</span><span class="p">)</span>
             
-            <span class="c1"># Determine if we accept the new solution</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-
-                <span class="c1"># Simulated annealing: accept worse solutions probabilistically</span>
-                <span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_delta</span><span class="p">(</span><span class="n">new_objective</span><span class="p">)</span>
-                <span class="n">accept</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">delta</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">))</span>
+            <span class="c1"># Attempt exchanges periodically</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">step</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_round</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
+            
+            <span class="c1"># Checkpointing</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span> <span class="ow">and</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_save_time</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_interval</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_save_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            
+            <span class="c1"># Progress plotting</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress</span> <span class="ow">and</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress</span> <span class="o">*</span> <span class="mi">60</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_plot_progress</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finalize_results</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_climb_parallel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">:</span> <span class="n">ExchangeScheduler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run optimization with parallel workers.&quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_save_time</span> <span class="o">=</span> <span class="n">start_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="o">=</span> <span class="n">start_time</span>
+        
+        <span class="c1"># Create worker pool</span>
+        <span class="k">with</span> <span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+            <span class="k">while</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">&lt;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_time</span> <span class="o">*</span> <span class="mi">60</span><span class="p">):</span>
                 
-                <span class="k">if</span> <span class="n">accept</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">update_current</span><span class="p">(</span><span class="n">new_data</span><span class="p">,</span> <span class="n">new_objective</span><span class="p">,</span> <span class="n">metrics</span><span class="p">)</span>
-                    
-                    <span class="c1"># Update best if this is an improvement</span>
-                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_improvement</span><span class="p">(</span><span class="n">new_objective</span><span class="p">):</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">update_best</span><span class="p">(</span><span class="n">new_data</span><span class="p">,</span> <span class="n">new_objective</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">)</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">record_improvement</span><span class="p">()</span>
+                <span class="c1"># Run batch of steps in parallel</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_step_batch</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span><span class="p">)</span>
                 
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">temperature</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span>
-
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># Standard hill climbing: only accept improvements</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_improvement</span><span class="p">(</span><span class="n">new_objective</span><span class="p">):</span>
-                    <span class="c1"># Update both current and best</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">update_current</span><span class="p">(</span><span class="n">new_data</span><span class="p">,</span> <span class="n">new_objective</span><span class="p">,</span> <span class="n">metrics</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">update_best</span><span class="p">(</span><span class="n">new_data</span><span class="p">,</span> <span class="n">new_objective</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">record_improvement</span><span class="p">()</span>
-            
-            <span class="c1"># Save checkpoint periodically</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">()</span>
-            
-            <span class="c1"># Plot progress periodically</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress_check</span><span class="p">()</span>
-        
-        <span class="c1"># Save final checkpoint</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        
-        <span class="c1"># Plot final results</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress_check</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        
-        <span class="c1"># Return results</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">get_results</span><span class="p">(</span>
-            <span class="n">is_dataframe</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">,</span>
-            <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span>
-        <span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="HillClimber.climb_parallel">
-<a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.climb_parallel">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">climb_parallel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">replicates</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">initial_noise</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">output_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
-                      <span class="n">checkpoint_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run hill climbing in parallel with multiple replicates.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            replicates: Number of parallel replicates to run (default: 4)</span>
-<span class="sd">            initial_noise: Std dev of Gaussian noise added to initial data (default: 0.0)</span>
-<span class="sd">            output_file: Path to save results as pickle file (default: None)</span>
-<span class="sd">            checkpoint_dir: Directory to save individual replicate checkpoints (default: None)</span>
-<span class="sd">            </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            Dictionary with:</span>
-<span class="sd">                &#39;input_data&#39;: Original input data (before noise)</span>
-<span class="sd">                &#39;results&#39;: List of (noisy_initial_data, best_data, steps_df) tuples</span>
-<span class="sd">            </span>
-<span class="sd">        Raises:</span>
-<span class="sd">            ValueError: If replicates exceeds available CPU count</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># Validate CPU availability</span>
-        <span class="n">available_cpus</span> <span class="o">=</span> <span class="n">cpu_count</span><span class="p">()</span>
-
-        <span class="k">if</span> <span class="n">replicates</span> <span class="o">&gt;</span> <span class="n">available_cpus</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Replicates (</span><span class="si">{</span><span class="n">replicates</span><span class="si">}</span><span class="s2">) exceeds CPU count (</span><span class="si">{</span><span class="n">available_cpus</span><span class="si">}</span><span class="s2">). &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;Reduce replicates or use more CPUs.&quot;</span>
-            <span class="p">)</span>
-        
-        <span class="c1"># Create replicate inputs with optional noise</span>
-        <span class="n">replicate_inputs</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">replicates</span><span class="p">):</span>
-
-            <span class="n">new_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_numpy</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-            <span class="k">if</span> <span class="n">initial_noise</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-
-                <span class="c1"># Add uniform noise and reflect values back into bounds</span>
-                <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">initial_noise</span><span class="p">,</span> <span class="n">initial_noise</span><span class="p">,</span> <span class="n">new_data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-                <span class="n">new_data</span> <span class="o">=</span> <span class="n">new_data</span> <span class="o">+</span> <span class="n">noise</span>
+                <span class="c1"># Attempt exchanges</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_exchange_round</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
                 
-                <span class="c1"># Reflect values that exceed bounds back into valid range</span>
-                <span class="c1"># This prevents accumulation at boundaries</span>
-                <span class="k">for</span> <span class="n">col_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">new_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-
-                    <span class="n">col_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_bounds</span><span class="p">[</span><span class="n">col_idx</span><span class="p">]</span>
-                    <span class="n">col_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_bounds</span><span class="p">[</span><span class="n">col_idx</span><span class="p">]</span>
-                    <span class="n">col_range</span> <span class="o">=</span> <span class="n">col_max</span> <span class="o">-</span> <span class="n">col_min</span>
-                    
-                    <span class="c1"># Reflect values below minimum</span>
-                    <span class="n">below_min</span> <span class="o">=</span> <span class="n">new_data</span><span class="p">[:,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">col_min</span>
-                    <span class="n">new_data</span><span class="p">[</span><span class="n">below_min</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_min</span> <span class="o">+</span> <span class="p">(</span><span class="n">col_min</span> <span class="o">-</span> <span class="n">new_data</span><span class="p">[</span><span class="n">below_min</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">])</span>
-                    
-                    <span class="c1"># Reflect values above maximum</span>
-                    <span class="n">above_max</span> <span class="o">=</span> <span class="n">new_data</span><span class="p">[:,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">col_max</span>
-                    <span class="n">new_data</span><span class="p">[</span><span class="n">above_max</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_max</span> <span class="o">-</span> <span class="p">(</span><span class="n">new_data</span><span class="p">[</span><span class="n">above_max</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">col_max</span><span class="p">)</span>
-                    
-                    <span class="c1"># Handle cases where reflection itself goes out of bounds</span>
-                    <span class="c1"># (can happen with large noise values) - wrap around</span>
-                    <span class="n">still_out</span> <span class="o">=</span> <span class="p">(</span><span class="n">new_data</span><span class="p">[:,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">col_min</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">new_data</span><span class="p">[:,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">col_max</span><span class="p">)</span>
-
-                    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">still_out</span><span class="p">):</span>
-
-                        <span class="c1"># Use modulo to wrap into range</span>
-                        <span class="n">new_data</span><span class="p">[</span><span class="n">still_out</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_min</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span>
-                            <span class="n">new_data</span><span class="p">[</span><span class="n">still_out</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">col_min</span><span class="p">,</span> <span class="n">col_range</span>
-                        <span class="p">)</span>
-
-            <span class="n">replicate_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+                <span class="c1"># Checkpointing</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span> <span class="ow">and</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_save_time</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_interval</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">last_save_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                
+                <span class="c1"># Progress plotting</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress</span> <span class="ow">and</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress</span> <span class="o">*</span> <span class="mi">60</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_plot_progress</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         
-        <span class="c1"># Package arguments for parallel execution</span>
-        <span class="n">args_list</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">data_rep</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">replicate_inputs</span><span class="p">):</span>
-
-            <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="kc">None</span>
-
-            <span class="k">if</span> <span class="n">checkpoint_dir</span><span class="p">:</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;replicate_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s1">03d</span><span class="si">}</span><span class="s1">.pkl&#39;</span><span class="p">)</span>
-            
-            <span class="n">args_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
-                <span class="n">data_rep</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective_func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span>
-                <span class="n">checkpoint_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_interval</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># Disable plot_progress for parallel</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span>
-            <span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finalize_results</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parallel_step_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pool</span><span class="p">:</span> <span class="n">Pool</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute n_steps for all replicas in parallel.&quot;&quot;&quot;</span>
+        <span class="c1"># Serialize current replica states</span>
+        <span class="n">state_dicts</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_serialize_state</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">]</span>
+        
+        <span class="c1"># Create partial function with fixed parameters</span>
+        <span class="n">worker_func</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+            <span class="n">run_replica_steps</span><span class="p">,</span>
+            <span class="n">objective_func</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">objective_func</span><span class="p">,</span>
+            <span class="n">bounds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">,</span>
+            <span class="n">n_steps</span><span class="o">=</span><span class="n">n_steps</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
+            <span class="n">target_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_value</span>
+        <span class="p">)</span>
         
         <span class="c1"># Execute in parallel</span>
-        <span class="k">with</span> <span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">replicates</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
-            <span class="n">optimization_results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_climb_wrapper</span><span class="p">,</span> <span class="n">args_list</span><span class="p">)</span>
+        <span class="n">updated_states</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">worker_func</span><span class="p">,</span> <span class="n">state_dicts</span><span class="p">)</span>
         
-        <span class="c1"># Combine results with noisy initial data for each replicate</span>
-        <span class="c1"># Format: [(noisy_initial_data, best_data, steps_df), ...]</span>
-        <span class="n">results_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">optimization_results</span><span class="p">):</span>
-            <span class="c1"># Convert noisy initial numpy array to DataFrame if needed</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">:</span>
-                <span class="n">noisy_initial</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">replicate_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">noisy_initial</span> <span class="o">=</span> <span class="n">replicate_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            
-            <span class="n">results_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">noisy_initial</span><span class="p">,</span> <span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span><span class="p">))</span>
+        <span class="c1"># Deserialize results back into replica objects</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state_dict</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">updated_states</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">OptimizerState</span><span class="p">(</span><span class="o">**</span><span class="n">state_dict</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_finalize_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Complete optimization and return results.&quot;&quot;&quot;</span>
+        <span class="c1"># Final checkpoint and plot</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_progress</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_plot_progress</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         
-        <span class="c1"># Package results with original input data (saved only once)</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;input_data&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>  <span class="c1"># Original data before noise</span>
-            <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">results_list</span>    <span class="c1"># List of (noisy_initial, best, steps) tuples</span>
+        <span class="c1"># Return results from best replica</span>
+        <span class="n">best_replica</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_best_replica</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Best result from replica </span><span class="si">{</span><span class="n">best_replica</span><span class="o">.</span><span class="n">replica_id</span><span class="si">}</span><span class="s2"> &quot;</span>
+              <span class="sa">f</span><span class="s2">&quot;(T=</span><span class="si">{</span><span class="n">best_replica</span><span class="o">.</span><span class="n">temperature</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exchange acceptance rate: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_stats</span><span class="o">.</span><span class="n">get_overall_acceptance_rate</span><span class="p">()</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Convert to DataFrame if input was DataFrame</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">:</span>
+            <span class="n">best_data_output</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">best_replica</span><span class="o">.</span><span class="n">best_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">best_data_output</span> <span class="o">=</span> <span class="n">best_replica</span><span class="o">.</span><span class="n">best_data</span>
+        
+        <span class="k">return</span> <span class="n">best_data_output</span><span class="p">,</span> <span class="n">best_replica</span><span class="o">.</span><span class="n">get_history_dataframe</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_initialize_replicas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize all replica states.&quot;&quot;&quot;</span>
+        <span class="n">hyperparams</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;max_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">,</span>
+            <span class="s1">&#39;perturb_fraction&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span><span class="p">,</span>
+            <span class="s1">&#39;cooling_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span><span class="p">,</span>
+            <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
+            <span class="s1">&#39;target_value&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">,</span>
+            <span class="s1">&#39;step_spread&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span>
         <span class="p">}</span>
         
-        <span class="c1"># Save results if requested</span>
-        <span class="k">if</span> <span class="n">output_file</span><span class="p">:</span>
-
-            <span class="n">results_package</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="s1">&#39;input_data&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
-                <span class="s1">&#39;results&#39;</span><span class="p">:</span> <span class="n">results_list</span><span class="p">,</span>
-                <span class="s1">&#39;hyperparameters&#39;</span><span class="p">:</span> <span class="p">{</span>
-                    <span class="s1">&#39;max_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="p">,</span>
-                    <span class="s1">&#39;perturb_fraction&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span><span class="p">,</span>
-                    <span class="s1">&#39;replicates&#39;</span><span class="p">:</span> <span class="n">replicates</span><span class="p">,</span>
-                    <span class="s1">&#39;initial_noise&#39;</span><span class="p">:</span> <span class="n">initial_noise</span><span class="p">,</span>
-                    <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
-                    <span class="s1">&#39;cooling_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate_input</span><span class="p">,</span>
-                    <span class="s1">&#39;objective_function&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective_func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-                    <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
-                    <span class="s1">&#39;target_value&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">,</span>
-                    <span class="s1">&#39;input_size&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
-                    <span class="s1">&#39;step_spread&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span>
-                <span class="p">}</span>
-            <span class="p">}</span>
-            
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">results_package</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
-
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Results saved to: </span><span class="si">{</span><span class="n">output_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># Evaluate initial objective</span>
+        <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span> <span class="o">=</span> <span class="n">evaluate_objective</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective_func</span>
+        <span class="p">)</span>
         
-        <span class="k">return</span> <span class="n">results</span></div>
-
-
-
-<div class="viewcode-block" id="HillClimber.plot_input">
-<a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.plot_input">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">plot_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;scatter&#39;</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot the input data distribution.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            plot_type: &#39;scatter&#39; or &#39;kde&#39; (default: &#39;scatter&#39;)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">plot_input_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="n">plot_type</span><span class="p">)</span></div>
-
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">temp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature_ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="p">):</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="n">OptimizerState</span><span class="p">(</span>
+                <span class="n">replica_id</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+                <span class="n">temperature</span><span class="o">=</span><span class="n">temp</span><span class="p">,</span>
+                <span class="n">current_data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+                <span class="n">current_objective</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
+                <span class="n">best_data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+                <span class="n">best_objective</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
+                <span class="n">original_data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+                <span class="n">hyperparameters</span><span class="o">=</span><span class="n">hyperparams</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">record_step</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_step_replica</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">replica</span><span class="p">:</span> <span class="n">OptimizerState</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform one optimization step for a replica.&quot;&quot;&quot;</span>
+        <span class="c1"># Perturb data (already includes boundary reflection)</span>
+        <span class="n">perturbed</span> <span class="o">=</span> <span class="n">perturb_vectors</span><span class="p">(</span>
+            <span class="n">replica</span><span class="o">.</span><span class="n">current_data</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Evaluate</span>
+        <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span> <span class="o">=</span> <span class="n">evaluate_objective</span><span class="p">(</span>
+            <span class="n">perturbed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective_func</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Acceptance criterion (simulated annealing)</span>
+        <span class="n">accept</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_accept</span><span class="p">(</span>
+            <span class="n">objective</span><span class="p">,</span> <span class="n">replica</span><span class="o">.</span><span class="n">current_objective</span><span class="p">,</span> <span class="n">replica</span><span class="o">.</span><span class="n">temperature</span>
+        <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">accept</span><span class="p">:</span>
+            <span class="n">replica</span><span class="o">.</span><span class="n">record_improvement</span><span class="p">(</span><span class="n">perturbed</span><span class="p">,</span> <span class="n">objective</span><span class="p">,</span> <span class="n">metrics</span><span class="p">)</span>
+        <span class="c1"># Note: We only record accepted steps to avoid misleading history</span>
+        <span class="c1"># where rejected steps would show the old objective with a new step number</span>
+        
+        <span class="c1"># Cool temperature</span>
+        <span class="n">replica</span><span class="o">.</span><span class="n">temperature</span> <span class="o">*=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_should_accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_obj</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">current_obj</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">temp</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine if new state should be accepted (simulated annealing).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;maximize&#39;</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">new_obj</span> <span class="o">-</span> <span class="n">current_obj</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;minimize&#39;</span><span class="p">:</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">current_obj</span> <span class="o">-</span> <span class="n">new_obj</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># target mode</span>
+            <span class="n">current_dist</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">current_obj</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">)</span>
+            <span class="n">new_dist</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">new_obj</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">)</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">current_dist</span> <span class="o">-</span> <span class="n">new_dist</span>
+        
+        <span class="k">if</span> <span class="n">delta</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">delta</span> <span class="o">/</span> <span class="n">temp</span><span class="p">)</span> <span class="k">if</span> <span class="n">temp</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">prob</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_exchange_round</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">:</span> <span class="n">ExchangeScheduler</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform one round of replica exchanges.&quot;&quot;&quot;</span>
+        <span class="n">pairs</span> <span class="o">=</span> <span class="n">scheduler</span><span class="o">.</span><span class="n">get_pairs</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
+            <span class="n">replica_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">replica_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            
+            <span class="c1"># Attempt exchange</span>
+            <span class="n">accepted</span> <span class="o">=</span> <span class="n">should_exchange</span><span class="p">(</span>
+                <span class="n">replica_i</span><span class="o">.</span><span class="n">current_objective</span><span class="p">,</span>
+                <span class="n">replica_j</span><span class="o">.</span><span class="n">current_objective</span><span class="p">,</span>
+                <span class="n">replica_i</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
+                <span class="n">replica_j</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mode</span>
+            <span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">accepted</span><span class="p">:</span>
+                <span class="c1"># Swap configurations (not temperatures!)</span>
+                <span class="n">replica_i</span><span class="o">.</span><span class="n">current_data</span><span class="p">,</span> <span class="n">replica_j</span><span class="o">.</span><span class="n">current_data</span> <span class="o">=</span> \
+                    <span class="n">replica_j</span><span class="o">.</span><span class="n">current_data</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">replica_i</span><span class="o">.</span><span class="n">current_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">replica_i</span><span class="o">.</span><span class="n">current_objective</span><span class="p">,</span> <span class="n">replica_j</span><span class="o">.</span><span class="n">current_objective</span> <span class="o">=</span> \
+                    <span class="n">replica_j</span><span class="o">.</span><span class="n">current_objective</span><span class="p">,</span> <span class="n">replica_i</span><span class="o">.</span><span class="n">current_objective</span>
+            
+            <span class="c1"># Record statistics</span>
+            <span class="n">replica_i</span><span class="o">.</span><span class="n">record_exchange</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">accepted</span><span class="p">)</span>
+            <span class="n">replica_j</span><span class="o">.</span><span class="n">record_exchange</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">accepted</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exchange_stats</span><span class="o">.</span><span class="n">record_attempt</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">accepted</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">pairs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exchange_stats</span><span class="o">.</span><span class="n">round_count</span> <span class="o">+=</span> <span class="mi">1</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_best_replica</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OptimizerState</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find replica with best objective value.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;maximize&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">best_objective</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;minimize&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">best_objective</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># target mode</span>
+            <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">,</span> 
+                      <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">best_objective</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">))</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_plot_progress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot current progress of best replica.&quot;&quot;&quot;</span>
+        <span class="n">best_replica</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_best_replica</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">best_replica</span><span class="o">.</span><span class="n">metrics_history</span><span class="p">:</span>
+            <span class="n">elapsed</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">best_replica</span><span class="o">.</span><span class="n">start_time</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span>
+            <span class="k">if</span> <span class="n">elapsed</span> <span class="o">&lt;</span> <span class="mi">60</span><span class="p">:</span>
+                <span class="n">time_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">elapsed</span><span class="p">)</span><span class="si">}</span><span class="s2"> minutes&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">time_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">elapsed</span><span class="o">/</span><span class="mi">60</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> hours&quot;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No accepted steps yet (elapsed: </span><span class="si">{</span><span class="n">time_str</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="c1"># Clear previous plots</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">clear_output</span>
+            <span class="n">clear_output</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        
+        <span class="c1"># Create results structure for plotting</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">:</span>
+            <span class="n">best_data_output</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">best_replica</span><span class="o">.</span><span class="n">best_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">best_data_output</span> <span class="o">=</span> <span class="n">best_replica</span><span class="o">.</span><span class="n">best_data</span>
+        
+        <span class="n">results</span> <span class="o">=</span> <span class="p">(</span><span class="n">best_data_output</span><span class="p">,</span> <span class="n">best_replica</span><span class="o">.</span><span class="n">get_history_dataframe</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_results</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    
 <div class="viewcode-block" id="HillClimber.plot_results">
 <a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.plot_results">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">plot_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;scatter&#39;</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Visualize hill climbing results.</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">plot_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;scatter&#39;</span><span class="p">,</span> 
+                     <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot optimization results.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
-<span class="sd">            results: List of (best_data, steps_df) tuples from climb_parallel()</span>
-<span class="sd">            plot_type: &#39;scatter&#39; or &#39;histogram&#39; (default: &#39;scatter&#39;)</span>
-<span class="sd">            metrics: List of metric names to display (default: None shows all)</span>
+<span class="sd">            results: Tuple of (best_data, steps_df)</span>
+<span class="sd">            plot_type: &#39;scatter&#39; or &#39;histogram&#39;</span>
+<span class="sd">            metrics: List of metric names to plot (overrides plot_metrics from __init__)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Use provided metrics, or fall back to instance plot_metrics</span>
+        <span class="n">metrics_to_plot</span> <span class="o">=</span> <span class="n">metrics</span> <span class="k">if</span> <span class="n">metrics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_metrics</span>
+        <span class="n">plot_results_func</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">plot_type</span><span class="p">,</span> <span class="n">metrics_to_plot</span><span class="p">)</span></div>
 
-        <span class="n">plot_results_func</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="n">plot_type</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="HillClimber.save_checkpoint">
+<a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.save_checkpoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save current state to checkpoint file.&quot;&quot;&quot;</span>
+        <span class="n">checkpoint</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;replicas&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_serialize_state</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">],</span>
+            <span class="s1">&#39;temperature_ladder&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s1">&#39;exchange_stats&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;attempts&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_stats</span><span class="o">.</span><span class="n">attempts</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+                <span class="s1">&#39;acceptances&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_stats</span><span class="o">.</span><span class="n">acceptances</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+                <span class="s1">&#39;round_count&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_stats</span><span class="o">.</span><span class="n">round_count</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;elapsed_time&#39;</span><span class="p">:</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start_time</span><span class="p">,</span>
+            <span class="s1">&#39;hyperparameters&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hyperparameters</span><span class="p">,</span>
+            <span class="s1">&#39;is_dataframe&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">,</span>
+            <span class="s1">&#39;column_names&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_names</span><span class="p">,</span>
+            <span class="s1">&#39;bounds&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">,</span>
+            <span class="s1">&#39;plot_metrics&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_metrics</span><span class="p">,</span>
+            <span class="s1">&#39;n_workers&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Create checkpoint directory if needed</span>
+        <span class="n">checkpoint_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">checkpoint_dir</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpoint saved: </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
-
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_is_improvement</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_obj</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if new objective is an improvement.</span>
+    
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_serialize_state</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">OptimizerState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert OptimizerState to dictionary for pickling.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;replica_id&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">replica_id</span><span class="p">,</span>
+            <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
+            <span class="s1">&#39;current_data&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">current_data</span><span class="p">,</span>
+            <span class="s1">&#39;current_objective&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">current_objective</span><span class="p">,</span>
+            <span class="s1">&#39;best_data&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">best_data</span><span class="p">,</span>
+            <span class="s1">&#39;best_objective&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">best_objective</span><span class="p">,</span>
+            <span class="s1">&#39;step&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="p">,</span>
+            <span class="s1">&#39;metrics_history&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">metrics_history</span><span class="p">,</span>
+            <span class="s1">&#39;exchange_attempts&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">exchange_attempts</span><span class="p">,</span>
+            <span class="s1">&#39;exchange_acceptances&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">exchange_acceptances</span><span class="p">,</span>
+            <span class="s1">&#39;partner_history&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">partner_history</span><span class="p">,</span>
+            <span class="s1">&#39;original_data&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">original_data</span><span class="p">,</span>
+            <span class="s1">&#39;hyperparameters&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">hyperparameters</span><span class="p">,</span>
+            <span class="s1">&#39;start_time&#39;</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">start_time</span>
+        <span class="p">}</span>
+    
+<div class="viewcode-block" id="HillClimber.load_checkpoint">
+<a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.load_checkpoint">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">objective_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load optimization state from checkpoint.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
-<span class="sd">            new_obj: New objective value</span>
+<span class="sd">            filepath: Path to checkpoint file</span>
+<span class="sd">            objective_func: Objective function (must match original)</span>
 <span class="sd">            </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            True if new_obj improves on current best</span>
+<span class="sd">            HillClimber instance with restored state</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;maximize&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">new_obj</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">best_objective</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        
+        <span class="c1"># Reconstruct climber</span>
+        <span class="n">first_replica</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;replicas&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">hyperparams</span> <span class="o">=</span> <span class="n">first_replica</span><span class="p">[</span><span class="s1">&#39;hyperparameters&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># Create data in proper format</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">first_replica</span><span class="p">[</span><span class="s1">&#39;original_data&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;is_dataframe&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;column_names&#39;</span><span class="p">])</span>
+        
+        <span class="n">climber</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">objective_func</span><span class="o">=</span><span class="n">objective_func</span><span class="p">,</span>
+            <span class="n">max_time</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;max_time&#39;</span><span class="p">],</span>
+            <span class="n">perturb_fraction</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;perturb_fraction&#39;</span><span class="p">],</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="n">hyperparams</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;temperature&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">),</span>
+            <span class="n">cooling_rate</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;cooling_rate&#39;</span><span class="p">],</span>
+            <span class="n">mode</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">],</span>
+            <span class="n">target_value</span><span class="o">=</span><span class="n">hyperparams</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;target_value&#39;</span><span class="p">),</span>
+            <span class="n">step_spread</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;step_spread&#39;</span><span class="p">],</span>
+            <span class="n">n_replicas</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;replicas&#39;</span><span class="p">]),</span>
+            <span class="n">plot_metrics</span><span class="o">=</span><span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;plot_metrics&#39;</span><span class="p">),</span>
+            <span class="n">n_workers</span><span class="o">=</span><span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;n_workers&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Restore states</span>
+        <span class="n">climber</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">OptimizerState</span><span class="p">(</span><span class="o">**</span><span class="n">state_dict</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">state_dict</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;replicas&#39;</span><span class="p">]</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Restore temperature ladder</span>
+        <span class="n">climber</span><span class="o">.</span><span class="n">temperature_ladder</span> <span class="o">=</span> <span class="n">TemperatureLadder</span><span class="p">(</span>
+            <span class="n">temperatures</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;temperature_ladder&#39;</span><span class="p">])</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Restore exchange statistics</span>
+        <span class="n">stats_data</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;exchange_stats&#39;</span><span class="p">]</span>
+        <span class="n">climber</span><span class="o">.</span><span class="n">exchange_stats</span> <span class="o">=</span> <span class="n">ExchangeStatistics</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">))</span>
+        <span class="n">climber</span><span class="o">.</span><span class="n">exchange_stats</span><span class="o">.</span><span class="n">attempts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats_data</span><span class="p">[</span><span class="s1">&#39;attempts&#39;</span><span class="p">])</span>
+        <span class="n">climber</span><span class="o">.</span><span class="n">exchange_stats</span><span class="o">.</span><span class="n">acceptances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">stats_data</span><span class="p">[</span><span class="s1">&#39;acceptances&#39;</span><span class="p">])</span>
+        <span class="n">climber</span><span class="o">.</span><span class="n">exchange_stats</span><span class="o">.</span><span class="n">round_count</span> <span class="o">=</span> <span class="n">stats_data</span><span class="p">[</span><span class="s1">&#39;round_count&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># Restore bounds</span>
+        <span class="n">climber</span><span class="o">.</span><span class="n">bounds</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;bounds&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">climber</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">climber</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)))</span>
+        
+        <span class="c1"># Adjust replica start times to account for elapsed time</span>
+        <span class="c1"># When resuming, we want elapsed time calculations to continue from where they left off</span>
+        <span class="c1"># So we set start_time = current_time - elapsed_time</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">elapsed_seconds</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;elapsed_time&#39;</span><span class="p">]</span>
+        <span class="n">adjusted_start_time</span> <span class="o">=</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">elapsed_seconds</span>
+        
+        <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">:</span>
+            <span class="n">replica</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">adjusted_start_time</span>
+        
+        <span class="c1"># Set last_save_time and last_plot_time to current time to respect intervals</span>
+        <span class="c1"># This prevents immediate save/plot when resuming from a recently saved checkpoint</span>
+        <span class="n">climber</span><span class="o">.</span><span class="n">last_save_time</span> <span class="o">=</span> <span class="n">current_time</span>
+        <span class="n">climber</span><span class="o">.</span><span class="n">last_plot_time</span> <span class="o">=</span> <span class="n">current_time</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resumed from checkpoint: </span><span class="si">{</span><span class="n">elapsed_seconds</span><span class="o">/</span><span class="mi">60</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> minutes elapsed&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">climber</span></div>
+</div>
 
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;minimize&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">new_obj</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">best_objective</span>
-
-        <span class="k">else</span><span class="p">:</span>  <span class="c1"># target mode</span>
-            <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">new_obj</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">best_distance</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_obj</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate delta for simulated annealing acceptance.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            new_obj: New objective value</span>
-<span class="sd">            </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            Delta (positive = improvement, negative = deterioration)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;maximize&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">new_obj</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">current_objective</span>
-
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;minimize&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">current_objective</span> <span class="o">-</span> <span class="n">new_obj</span>
-
-        <span class="k">else</span><span class="p">:</span>  <span class="c1"># target mode</span>
-            <span class="n">curr_dist</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">current_objective</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">)</span>
-            <span class="n">new_dist</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">new_obj</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">)</span>
-
-            <span class="k">return</span> <span class="n">curr_dist</span> <span class="o">-</span> <span class="n">new_dist</span></div>
-
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_climb_wrapper</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrapper for parallel execution of HillClimber.climb().</span>
-<span class="sd">    </span>
-<span class="sd">    Args:</span>
-<span class="sd">        args: Tuple of (data_numpy, objective_func, max_time, </span>
-<span class="sd">              perturb_fraction, temperature, cooling_rate, mode, target_value, </span>
-<span class="sd">              is_dataframe, columns, checkpoint_file, save_interval, plot_progress, </span>
-<span class="sd">              step_spread)</span>
-<span class="sd">        </span>
-<span class="sd">    Returns:</span>
-<span class="sd">        Result from climb(): (best_data, steps_df)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="p">(</span><span class="n">data_numpy</span><span class="p">,</span> <span class="n">objective_func</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="n">perturb_fraction</span><span class="p">,</span> 
-     <span class="n">temperature</span><span class="p">,</span> <span class="n">cooling_rate</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">target_value</span><span class="p">,</span> <span class="n">is_dataframe</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span>
-     <span class="n">checkpoint_file</span><span class="p">,</span> <span class="n">save_interval</span><span class="p">,</span> <span class="n">plot_progress</span><span class="p">,</span> <span class="n">step_spread</span><span class="p">)</span> <span class="o">=</span> <span class="n">args</span>
-    
-    <span class="c1"># Reconstruct original data format for HillClimber</span>
-    <span class="n">data_input</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data_numpy</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">)</span> 
-        <span class="k">if</span> <span class="n">is_dataframe</span> <span class="k">else</span> <span class="n">data_numpy</span>
-    <span class="p">)</span>
-    
-    <span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
-        <span class="n">data</span><span class="o">=</span><span class="n">data_input</span><span class="p">,</span>
-        <span class="n">objective_func</span><span class="o">=</span><span class="n">objective_func</span><span class="p">,</span>
-        <span class="n">max_time</span><span class="o">=</span><span class="n">max_time</span><span class="p">,</span>
-        <span class="n">perturb_fraction</span><span class="o">=</span><span class="n">perturb_fraction</span><span class="p">,</span>
-        <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
-        <span class="n">cooling_rate</span><span class="o">=</span><span class="n">cooling_rate</span><span class="p">,</span>
-        <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
-        <span class="n">target_value</span><span class="o">=</span><span class="n">target_value</span><span class="p">,</span>
-        <span class="n">checkpoint_file</span><span class="o">=</span><span class="n">checkpoint_file</span><span class="p">,</span>
-        <span class="n">save_interval</span><span class="o">=</span><span class="n">save_interval</span><span class="p">,</span>
-        <span class="n">plot_progress</span><span class="o">=</span><span class="n">plot_progress</span><span class="p">,</span>
-        <span class="n">step_spread</span><span class="o">=</span><span class="n">step_spread</span>
-    <span class="p">)</span>
-    
-    <span class="k">return</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 
            </div>
