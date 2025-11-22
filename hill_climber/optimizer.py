@@ -67,7 +67,7 @@ class HillClimber:
         step_spread: float = 1.0,
         n_replicas: Optional[int] = None,
         T_max: Optional[float] = None,
-        exchange_interval: int = 100,
+        exchange_interval: int = 1000,
         temperature_scheme: str = 'geometric',
         exchange_strategy: str = 'even_odd',
         n_workers: Optional[int] = None
@@ -226,7 +226,6 @@ class HillClimber:
             run_replica_steps,
             objective_func=self.objective_func,
             bounds=self.bounds,
-            column_names=self.column_names,
             n_steps=n_steps,
             mode=self.mode,
             target_value=self.target_value
@@ -274,7 +273,7 @@ class HillClimber:
         
         # Evaluate initial objective
         metrics, objective = evaluate_objective(
-            self.data, self.objective_func, self.column_names
+            self.data, self.objective_func
         )
         
         self.replicas = []
@@ -304,7 +303,7 @@ class HillClimber:
         
         # Evaluate
         metrics, objective = evaluate_objective(
-            perturbed, self.objective_func, self.column_names
+            perturbed, self.objective_func
         )
         
         # Acceptance criterion (simulated annealing)
@@ -421,25 +420,7 @@ class HillClimber:
         """
         # Use provided metrics, or fall back to instance plot_metrics
         metrics_to_plot = metrics if metrics is not None else self.plot_metrics
-        
-        # Wrap single result for compatibility with plot_results function
-        if isinstance(results, tuple) and len(results) == 2:
-            best_data, steps_df = results
-            
-            # Convert input data for plotting
-            if self.is_dataframe:
-                input_data = pd.DataFrame(self.data, columns=self.column_names)
-            else:
-                input_data = self.data
-            
-            wrapped_results = {
-                'input_data': input_data,
-                'results': [(self.data, best_data, steps_df)]
-            }
-        else:
-            wrapped_results = results
-        
-        plot_results_func(wrapped_results, plot_type, metrics_to_plot)
+        plot_results_func(results, plot_type, metrics_to_plot)
     
     def save_checkpoint(self, filepath: str):
         """Save current state to checkpoint file."""

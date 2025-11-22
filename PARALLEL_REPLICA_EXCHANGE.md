@@ -10,7 +10,7 @@ The hill_climber package now supports parallel execution of replica exchange usi
 - **Automatic worker management**: Worker pool is created and managed automatically
 - **Flexible configuration**: Choose number of workers or fall back to sequential mode
 - **Seamless integration**: Same API as sequential mode with one additional parameter
-- **Checkpoint compatibility**: Parallel and sequential modes share the same checkpoint format
+- **Unified checkpoints**: Parallel and sequential modes use the same checkpoint format
 
 ## Usage
 
@@ -233,12 +233,3 @@ See `test_parallel.py` and `benchmark_parallel.py` for working examples.
 - No shared memory between workers
 - All exchanges happen in main process after worker completion
 - Checkpoints saved only from main process
-
-## Backward Compatibility
-
-The parallel implementation is fully backward compatible:
-
-- Default behavior unchanged (uses parallel if n_workers not specified)
-- `n_workers=0` gives exact original sequential behavior
-- Checkpoints work across both modes
-- All existing code continues to work

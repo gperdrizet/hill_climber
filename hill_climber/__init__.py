@@ -54,7 +54,7 @@ from .replica_exchange import (
 from .climber_functions import (
     perturb_vectors,
     extract_columns,
-    calculate_correlation_objective,
+    calculate_objective,
     evaluate_objective
 )
 from .plotting_functions import (
@@ -70,7 +70,7 @@ __all__ = [
     'ExchangeScheduler',
     'perturb_vectors',
     'extract_columns',
-    'calculate_correlation_objective',
+    'calculate_objective',
     'evaluate_objective',
     'plot_input_data',
     'plot_results',

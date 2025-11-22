@@ -11,7 +11,6 @@ def run_replica_steps(
     state_dict: Dict[str, Any],
     objective_func: Callable,
     bounds: Tuple[np.ndarray, np.ndarray],
-    column_names: list,
     n_steps: int,
     mode: str,
     target_value: float = None
@@ -26,7 +25,6 @@ def run_replica_steps(
         state_dict: Serialized OptimizerState dictionary
         objective_func: Function taking M column arrays, returns (metrics_dict, objective_value)
         bounds: Tuple of (min_values, max_values) for boundary reflection
-        column_names: List of column names for objective function
         n_steps: Number of optimization steps to perform
         mode: 'maximize', 'minimize', or 'target'
         target_value: Target value (only used if mode='target')
@@ -53,7 +51,7 @@ def run_replica_steps(
         
         # Evaluate
         metrics, objective = evaluate_objective(
-            perturbed, objective_func, column_names
+            perturbed, objective_func
         )
         
         # Acceptance criterion (simulated annealing)

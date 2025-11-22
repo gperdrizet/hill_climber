@@ -89,7 +89,6 @@ def plot_results(results, plot_type='scatter', metrics=None):
     Args:
         results: Results from climb(). Can be:
                  - Tuple (best_data, steps_df) from single climb() call
-                 - Dictionary with 'input_data' and 'results' keys (legacy format)
                  - List of result tuples for multi-replica visualization
         plot_type: Type of snapshot plots - 'scatter' or 'histogram' (default: 'scatter')
                    Note: 'histogram' uses KDE (Kernel Density Estimation) plots
@@ -105,25 +104,16 @@ def plot_results(results, plot_type='scatter', metrics=None):
     if plot_type not in ['scatter', 'histogram']:
         raise ValueError(f"plot_type must be 'scatter' or 'histogram', got '{plot_type}'")
     
-    # Handle different result formats for backward compatibility
-    if isinstance(results, dict):
-        # Dictionary format with 'input_data' and 'results' keys
-        results_list = results['results']
-    elif isinstance(results, tuple) and len(results) == 2:
+    # Ensure results is a list
+    if isinstance(results, tuple) and len(results) == 2:
         # Single result tuple from climb(): (best_data, steps_df)
         # Wrap in list to make it compatible with the plotting functions
         results_list = [results]
     else:
-        # Legacy list format
         results_list = results
     
-    # Determine format of individual results
-    if len(results_list[0]) == 3:
-        # Format: (noisy_initial, best_data, steps_df)
-        _, _, steps_df = results_list[0]
-    else:
-        # Format: (best_data, steps_df)
-        _, steps_df = results_list[0]
+    # Get steps_df to validate metrics
+    _, steps_df = results_list[0]
     
     # Validate metrics if provided
     if metrics is not None:
