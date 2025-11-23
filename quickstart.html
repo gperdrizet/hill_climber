@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quick Start &mdash; Hill Climber 1.0.1 documentation</title>
+  <title>Quick Start &mdash; Hill Climber 1.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=292eb321"></script>
+      <script src="_static/documentation_options.js?v=1ed6394b"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -130,13 +130,12 @@ one argument for each column/feature in your data.</p>
 </section>
 <section id="monitoring-progress">
 <h2>Monitoring Progress<a class="headerlink" href="#monitoring-progress" title="Link to this heading"></a></h2>
-<p>For longer runs, monitor progress with live plots:</p>
+<p>For longer runs, progress plots are automatically shown after each batch:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">objective_high_correlation</span><span class="p">,</span>
     <span class="n">max_time</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
-    <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span>
-    <span class="n">plot_progress</span><span class="o">=</span><span class="mi">5</span>  <span class="c1"># Plot every 5 minutes</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;maximize&#39;</span>
 <span class="p">)</span>
 
 <span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>

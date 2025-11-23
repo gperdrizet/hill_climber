@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Guide &mdash; Hill Climber 1.0.1 documentation</title>
+  <title>User Guide &mdash; Hill Climber 1.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=292eb321"></script>
+      <script src="_static/documentation_options.js?v=1ed6394b"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -52,6 +52,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#optimization-modes">Optimization Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#objective-functions">Objective Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hyperparameters">Hyperparameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#checkpoints-and-progress-plotting">Checkpoints and Progress Plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#boundary-handling">Boundary Handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#replica-exchange-parallel-tempering">Replica Exchange (Parallel Tempering)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
@@ -202,11 +203,11 @@ attempt exchanges more frequently.</p>
 <li><p>‘all_neighbors’: All neighboring pairs</p></li>
 </ul>
 </dd>
-<dt><strong>step_spread</strong> (default: 1.0)</dt><dd><p>Standard deviation of the normal distribution used for perturbations. Controls
-the variability and typical magnitude of changes. Perturbations are sampled
-from a normal distribution with mean 0 and this standard deviation. Larger
-values create more dramatic perturbations, smaller values make more subtle
-adjustments.</p>
+<dt><strong>step_spread</strong> (default: 0.01)</dt><dd><p>Perturbation spread as a fraction of the input data range (0.01 = 1% of range).
+Controls the magnitude of changes relative to your data scale. The actual perturbation
+standard deviation is calculated as <code class="docutils literal notranslate"><span class="pre">step_spread</span> <span class="pre">*</span> <span class="pre">mean(data_range)</span></code>, making it
+automatically scale-appropriate for your data. Larger values create more dramatic
+perturbations, smaller values make more subtle adjustments.</p>
 </dd>
 <dt><strong>perturb_fraction</strong> (default: 0.1)</dt><dd><p>Fraction of data points to modify in each iteration (0.0 to 1.0).
 Higher values create more dramatic changes per step.</p>
@@ -217,9 +218,26 @@ cooling and longer exploration. For example, <code class="docutils literal notra
 </dd>
 <dt><strong>max_time</strong> (default: 30)</dt><dd><p>Maximum optimization time in minutes.</p>
 </dd>
-<dt><strong>plot_progress</strong> (default: None)</dt><dd><p>Interval in minutes for plotting optimization progress during a run.
-When set, creates scatter plots showing the current best solution at
-regular intervals. For example, <code class="docutils literal notranslate"><span class="pre">plot_progress=5</span></code> plots every 5 minutes.</p>
+<dt><strong>show_progress</strong> (default: True)</dt><dd><p>Whether to display progress plots during optimization. Set to False to disable
+plots (useful for automated scripts or testing).</p>
+</dd>
+</dl>
+</section>
+<section id="checkpoints-and-progress-plotting">
+<h2>Checkpoints and Progress Plotting<a class="headerlink" href="#checkpoints-and-progress-plotting" title="Link to this heading"></a></h2>
+<p>Hill Climber automatically saves checkpoints and updates progress plots after each
+batch of optimization steps (controlled by <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code>). If you specify a
+<code class="docutils literal notranslate"><span class="pre">checkpoint_file</span></code> path, the optimizer saves its state after every batch, allowing
+you to resume from the most recent state if interrupted. Progress plots are shown
+after each batch when <code class="docutils literal notranslate"><span class="pre">show_progress=True</span></code> (default).</p>
+<dl class="simple">
+<dt><strong>Batch Size</strong></dt><dd><p>The batch size is determined by <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> (default: 100 steps).
+After each batch, the optimizer:</p>
+<ul class="simple">
+<li><p>Attempts replica exchanges</p></li>
+<li><p>Saves a checkpoint (if <code class="docutils literal notranslate"><span class="pre">checkpoint_file</span></code> is specified)</p></li>
+<li><p>Updates progress plots (if <code class="docutils literal notranslate"><span class="pre">show_progress=True</span></code>)</p></li>
+</ul>
 </dd>
 </dl>
 </section>
@@ -293,9 +311,17 @@ replicas run simultaneously at different temperatures:</p>
 </pre></div>
 </div>
 <p>Resume from a checkpoint:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Continue with saved temperatures (default)</span>
+<span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span>
     <span class="n">filepath</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span>
+<span class="p">)</span>
+
+<span class="c1"># Or reset temperatures to original ladder values</span>
+<span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span>
+    <span class="n">filepath</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
+    <span class="n">reset_temperatures</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 
 <span class="c1"># Continue optimizing</span>

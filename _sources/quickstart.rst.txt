@@ -49,7 +49,7 @@ Here's a simple example that optimizes a 2-column dataset for high Pearson corre
 Monitoring Progress
 -------------------
 
-For longer runs, monitor progress with live plots:
+For longer runs, progress plots are automatically shown after each batch:
 
 .. code-block:: python
 
@@ -57,8 +57,7 @@ For longer runs, monitor progress with live plots:
        data=data,
        objective_func=objective_high_correlation,
        max_time=30,
-       mode='maximize',
-       plot_progress=5  # Plot every 5 minutes
+       mode='maximize'
    )
 
    best_data, steps_df = climber.climb()

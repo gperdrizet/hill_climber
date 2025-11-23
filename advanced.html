@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Topics &mdash; Hill Climber 1.0.1 documentation</title>
+  <title>Advanced Topics &mdash; Hill Climber 1.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=292eb321"></script>
+      <script src="_static/documentation_options.js?v=1ed6394b"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -61,9 +61,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#choosing-number-of-replicas">Choosing Number of Replicas</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#temperature-reset-on-resume">Temperature Reset on Resume</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#progress-monitoring">Progress Monitoring</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#live-progress-plots">Live Progress Plots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#automatic-progress-plots">Automatic Progress Plots</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#performance-optimization">Performance Optimization</a><ul>
@@ -239,40 +242,77 @@ as many arguments as you have columns. Combine multiple objectives with differen
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
     <span class="n">max_time</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
-    <span class="n">checkpoint_file</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
-    <span class="n">save_interval</span><span class="o">=</span><span class="mi">300</span>  <span class="c1"># Save every 5 minutes</span>
+    <span class="n">checkpoint_file</span><span class="o">=</span><span class="s1">&#39;long_run.pkl&#39;</span>  <span class="c1"># Auto-saves after each batch</span>
 <span class="p">)</span>
 
 <span class="n">result</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Resume from a checkpoint:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Continue with saved temperatures (default)</span>
+<span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span>
     <span class="n">filepath</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span>
+<span class="p">)</span>
+
+<span class="c1"># Or reset temperatures to restart cooling schedule</span>
+<span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span>
+    <span class="n">filepath</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
+    <span class="n">reset_temperatures</span><span class="o">=</span><span class="kc">True</span>  <span class="c1"># Restart from hot temperatures</span>
 <span class="p">)</span>
 
 <span class="c1"># Continue from where it left off</span>
 <span class="n">best_data</span><span class="p">,</span> <span class="n">history_df</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
+<section id="temperature-reset-on-resume">
+<h3>Temperature Reset on Resume<a class="headerlink" href="#temperature-reset-on-resume" title="Link to this heading"></a></h3>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">load_checkpoint</span></code> preserves the cooled temperatures from the saved state,
+allowing the optimization to continue its cooling schedule. However, you can reset
+temperatures to their original ladder values:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Reset temperatures when resuming</span>
+<span class="n">resumed</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span>
+    <span class="n">filepath</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
+    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
+    <span class="n">reset_temperatures</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>When to reset temperatures:</strong></p>
+<ul class="simple">
+<li><p><strong>Escaped local minimum</strong>: If the optimization found a good solution but you want to explore more aggressively</p></li>
+<li><p><strong>Multiple restart strategy</strong>: Run multiple sessions with fresh temperatures for better exploration</p></li>
+<li><p><strong>Stuck optimization</strong>: Replicas have cooled too much and accept very few moves</p></li>
+</ul>
+<p><strong>When to keep saved temperatures (default):</strong></p>
+<ul class="simple">
+<li><p><strong>Continuing long optimization</strong>: Natural continuation of the cooling schedule</p></li>
+<li><p><strong>Refining solution</strong>: Cooler temperatures help fine-tune the current best solution</p></li>
+<li><p><strong>Limited time remaining</strong>: Use remaining time efficiently without re-exploring</p></li>
+</ul>
+<p>Note that resetting temperatures restarts the cooling schedule but preserves all other
+state including current configurations, best solutions, and optimization history.</p>
+</section>
 </section>
 <section id="progress-monitoring">
 <h2>Progress Monitoring<a class="headerlink" href="#progress-monitoring" title="Link to this heading"></a></h2>
-<section id="live-progress-plots">
-<h3>Live Progress Plots<a class="headerlink" href="#live-progress-plots" title="Link to this heading"></a></h3>
-<p>Monitor optimization progress in real-time with automatic plotting:</p>
+<section id="automatic-progress-plots">
+<h3>Automatic Progress Plots<a class="headerlink" href="#automatic-progress-plots" title="Link to this heading"></a></h3>
+<p>Progress plots are automatically displayed after each batch in notebook environments:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
     <span class="n">max_time</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
-    <span class="n">plot_progress</span><span class="o">=</span><span class="mi">5</span>  <span class="c1"># Plot every 5 minutes</span>
+    <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;histogram&#39;</span><span class="p">,</span>  <span class="c1"># &#39;scatter&#39; or &#39;histogram&#39;</span>
+    <span class="n">plot_metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Correlation&#39;</span><span class="p">]</span>  <span class="c1"># Specific metrics to track</span>
 <span class="p">)</span>
 
 <span class="n">result</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>This is particularly useful for:</p>
+<p>Plots update automatically after each batch (every <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> steps,
+default: 100). This is useful for:</p>
 <ul class="simple">
 <li><p>Long-running optimizations (&gt;10 minutes)</p></li>
 <li><p>Interactive Jupyter notebooks</p></li>
@@ -286,18 +326,19 @@ as many arguments as you have columns. Combine multiple objectives with differen
 <section id="perturbation-strategies">
 <h3>Perturbation Strategies<a class="headerlink" href="#perturbation-strategies" title="Link to this heading"></a></h3>
 <p><strong>Perturbation distribution</strong>:</p>
-<p>Perturbations are sampled from a normal distribution N(0, <code class="docutils literal notranslate"><span class="pre">step_spread</span></code>):</p>
+<p>Perturbations are sampled from a normal distribution N(0, σ) where σ is calculated
+as <code class="docutils literal notranslate"><span class="pre">step_spread</span> <span class="pre">*</span> <span class="pre">mean(data_range)</span></code>:</p>
 <ul class="simple">
 <li><p>Mean is always 0 (symmetric perturbations around current values)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">step_spread</span></code>: Standard deviation (controls magnitude variability)</p></li>
-<li><p>Default <code class="docutils literal notranslate"><span class="pre">step_spread=1.0</span></code> provides moderate-sized perturbations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">step_spread</span></code>: Fraction of data range (default: 0.01 = 1%)</p></li>
+<li><p>Actual standard deviation scales with your data automatically</p></li>
 </ul>
 <p>Example:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
     <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>  <span class="c1"># perturb 10% of elements</span>
-    <span class="n">step_spread</span><span class="o">=</span><span class="mf">0.5</span>        <span class="c1"># moderate variability</span>
+    <span class="n">step_spread</span><span class="o">=</span><span class="mf">0.02</span>       <span class="c1"># 2% of data range</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -306,7 +347,7 @@ as many arguments as you have columns. Combine multiple objectives with differen
 <h3>Faster Convergence<a class="headerlink" href="#faster-convergence" title="Link to this heading"></a></h3>
 <p>For quick convergence, use aggressive parameters:</p>
 <ul class="simple">
-<li><p><strong>Large step_spread</strong> (5.0-10.0): Allow bigger perturbations</p></li>
+<li><p><strong>Large step_spread</strong> (0.05-0.10): Allow bigger perturbations (5-10% of range)</p></li>
 <li><p><strong>High perturb_fraction</strong> (0.4-0.6): Modify more points</p></li>
 <li><p><strong>Low temperature</strong> (10-50): More greedy optimization</p></li>
 <li><p><strong>Slower cooling</strong> (0.0001): More exploration of suboptimal solutions</p></li>
@@ -316,7 +357,7 @@ as many arguments as you have columns. Combine multiple objectives with differen
 <h3>Better Exploration<a class="headerlink" href="#better-exploration" title="Link to this heading"></a></h3>
 <p>For thorough exploration of solution space:</p>
 <ul class="simple">
-<li><p><strong>Small step_spread</strong> (0.1-0.5): Precise adjustments</p></li>
+<li><p><strong>Small step_spread</strong> (0.001-0.005): Precise adjustments (0.1-0.5% of range)</p></li>
 <li><p><strong>Low perturb_fraction</strong> (0.1-0.2): Subtle changes</p></li>
 <li><p><strong>High temperature</strong> (100-500): Accept more suboptimal moves</p></li>
 <li><p><strong>Faster cooling</strong> (0.01-0.001): Gradual convergence</p></li>
@@ -329,7 +370,7 @@ as many arguments as you have columns. Combine multiple objectives with differen
 The algorithm:</p>
 <ol class="arabic simple">
 <li><p>Starts from initial data</p></li>
-<li><p>Makes random perturbations sampled from a normal distribution N(0, <code class="docutils literal notranslate"><span class="pre">step_spread</span></code>)</p></li>
+<li><p>Makes random perturbations sampled from N(0, <code class="docutils literal notranslate"><span class="pre">step_spread</span> <span class="pre">*</span> <span class="pre">mean(data_range)</span></code>)</p></li>
 <li><p>Evaluates fitness via objective function</p></li>
 <li><p>Accepts improvements (always) or worsening moves (with probability based on temperature)</p></li>
 <li><p>Gradually reduces temperature to focus on local optimization</p></li>
@@ -343,7 +384,7 @@ The algorithm:</p>
 <p><strong>Symptoms</strong>: Objective value not improving, same metrics every iteration</p>
 <p><strong>Solutions</strong>:</p>
 <ul class="simple">
-<li><p>Increase <code class="docutils literal notranslate"><span class="pre">step_spread</span></code> for larger perturbations</p></li>
+<li><p>Increase <code class="docutils literal notranslate"><span class="pre">step_spread</span></code> for larger perturbations (try 0.05-0.10)</p></li>
 <li><p>Increase <code class="docutils literal notranslate"><span class="pre">perturb_fraction</span></code> to modify more points</p></li>
 <li><p>Decrease <code class="docutils literal notranslate"><span class="pre">temperature</span></code> for more greedy optimization</p></li>
 <li><p>Check if objective function has bugs or is too constrained</p></li>
@@ -366,7 +407,7 @@ The algorithm:</p>
 <p><strong>Symptoms</strong>: Objective improves then worsens repeatedly</p>
 <p><strong>Solutions</strong>:</p>
 <ul class="simple">
-<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">step_spread</span></code> for finer control</p></li>
+<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">step_spread</span></code> for finer control (try 0.005-0.01)</p></li>
 <li><p>Decrease <code class="docutils literal notranslate"><span class="pre">temperature</span></code> to be more selective</p></li>
 <li><p>Check for bugs in objective function</p></li>
 <li><p>Ensure objective weights are balanced</p></li>
