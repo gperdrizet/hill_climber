@@ -204,14 +204,6 @@ def _plot_results_scatter(results, metrics=None, exchange_interval=None):
 
         ax2.set_ylabel('Objective value', color='black')
         ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
-        ax.ticklabel_format(style='scientific', axis='x', scilimits=(0,0))
-        
-        ax2 = ax.twinx()
-        lines.extend(ax2.plot(x_values, steps_df['Objective value'], 
-                              label='Objective', color='black'))
-
-        ax2.set_ylabel('Objective value', color='black')
-        ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
         
         # Add vertical lines for temperature exchanges
         if temp_history:

@@ -279,7 +279,7 @@ class HillClimber:
             'cooling_rate': self.cooling_rate,
             'mode': self.mode,
             'target_value': self.target_value,
-            'step_spread': self.step_spread_absolute
+            'step_spread': self.step_spread
         }
         
         # Evaluate initial objective
@@ -523,16 +523,6 @@ class HillClimber:
         if checkpoint.get('is_dataframe', False):
             data = pd.DataFrame(data, columns=checkpoint['column_names'])
         
-        # Handle backward compatibility: old checkpoints stored absolute step_spread
-        # New version uses fractional step_spread, so we need to detect which format
-        step_spread_value = hyperparams['step_spread']
-        
-        # If step_spread > 1.0, it's likely an old absolute value
-        # Convert it to a fraction based on current data range
-        if step_spread_value > 1.0:
-            data_range = np.max(data, axis=0) - np.min(data, axis=0)
-            step_spread_value = step_spread_value / np.mean(data_range)
-        
         climber = cls(
             data=data,
             objective_func=objective_func,
@@ -542,7 +532,7 @@ class HillClimber:
             cooling_rate=hyperparams['cooling_rate'],
             mode=hyperparams['mode'],
             target_value=hyperparams.get('target_value'),
-            step_spread=step_spread_value,
+            step_spread=hyperparams['step_spread'],
             n_replicas=len(checkpoint['replicas']),
             plot_metrics=checkpoint.get('plot_metrics'),
             plot_type=checkpoint.get('plot_type', 'scatter'),
@@ -560,6 +550,9 @@ class HillClimber:
         climber.temperature_ladder = TemperatureLadder(
             temperatures=np.array(checkpoint['temperature_ladder'])
         )
+        
+        # Get elapsed time from checkpoint
+        elapsed_seconds = checkpoint['elapsed_time']
         
         # Reset temperatures if requested
         if reset_temperatures:
@@ -585,7 +578,6 @@ class HillClimber:
         # When resuming, we want elapsed time calculations to continue from where they left off
         # So we set start_time = current_time - elapsed_time
         current_time = time.time()
-        elapsed_seconds = checkpoint['elapsed_time']
         adjusted_start_time = current_time - elapsed_seconds
         
         for replica in climber.replicas:
