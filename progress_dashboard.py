@@ -149,7 +149,7 @@ try:
         additional_metrics = st.sidebar.multiselect(
             "Additional Metrics",
             options=other_metrics,
-            default=[other_metrics[0]] if len(other_metrics) > 0 else []
+            default=[other_metrics[0]]
         )
     else:
         additional_metrics = []
@@ -222,7 +222,6 @@ try:
             
             with cols[idx % n_cols]:
                 # Create individual figure with secondary y-axis
-                from plotly.subplots import make_subplots
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 
                 # Get objective value data

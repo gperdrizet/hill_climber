@@ -85,8 +85,7 @@ db_enabled : bool, default=False
     Enable database logging for dashboard monitoring
 
 db_path : str, optional
-    Path to SQLite database file. If not provided, derived from ``checkpoint_file``
-    by replacing ``.pkl`` with ``.db``, or defaults to ``hill_climber_progress.db``
+    Path to SQLite database file. Defaults to ``'data/hill_climber_progress.db'``
 
 db_step_interval : int, optional
     Collect metrics every Nth step. Default: ``max(1, exchange_interval // 1000)`` (0.1% sampling)
@@ -94,9 +93,6 @@ db_step_interval : int, optional
 db_buffer_size : int, default=10
     Number of pooled steps before database write. Workers accumulate this many
     collected steps in memory before flushing to database
-
-db_connection_pool_size : int, default=4
-    SQLite connection pool size for concurrent access
 
 checkpoint_interval : int, default=1
     Number of batches between checkpoint saves. Default is 1 (checkpoint every batch).

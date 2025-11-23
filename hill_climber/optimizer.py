@@ -37,7 +37,7 @@ class HillClimber:
         cooling_rate: Temperature decay rate per step
         mode: 'maximize', 'minimize', or 'target'
         target_value: Target value (only used if mode='target')
-        checkpoint_file: Path to save checkpoints (default: 'data/hill_climber_checkpoint.pkl')
+        checkpoint_file: Path to save checkpoints (default: None, no checkpointing)
         plot_metrics: List of metric names to plot (None to plot all metrics)
         plot_type: Type of plot for progress snapshots ('scatter' or 'histogram')
         show_progress: Show progress plots during optimization (default: True)
@@ -53,7 +53,6 @@ class HillClimber:
         db_path: Path to SQLite database file (default: 'data/hill_climber_progress.db')
         db_step_interval: Collect metrics every Nth step (default: exchange_interval // 1000)
         db_buffer_size: Number of pooled steps before database write (default: 10)
-        db_connection_pool_size: SQLite connection pool size (default: 4)
         checkpoint_interval: Batches between checkpoint saves (default: 1, i.e., every batch)
     """
     
@@ -83,7 +82,6 @@ class HillClimber:
         db_path: Optional[str] = None,
         db_step_interval: Optional[int] = None,
         db_buffer_size: int = 10,
-        db_connection_pool_size: int = 4,
         checkpoint_interval: int = 1
     ):
         # Convert data to numpy if needed
@@ -118,11 +116,7 @@ class HillClimber:
         self.cooling_rate = cooling_rate
         self.mode = mode
         self.target_value = target_value
-        # Set default checkpoint path to data/ directory
-        if checkpoint_file is None:
-            self.checkpoint_file = 'data/hill_climber_checkpoint.pkl'
-        else:
-            self.checkpoint_file = checkpoint_file
+        self.checkpoint_file = checkpoint_file
         self.plot_metrics = plot_metrics
         self.plot_type = plot_type
         self.show_progress = show_progress
@@ -151,16 +145,14 @@ class HillClimber:
             # Set step interval (default: 0.1% of exchange interval)
             self.db_step_interval = db_step_interval if db_step_interval is not None else max(1, exchange_interval // 1000)
             self.db_buffer_size = db_buffer_size
-            self.db_connection_pool_size = db_connection_pool_size
             
             # Import database module only if enabled
             from .database import DatabaseWriter
-            self.db_writer = DatabaseWriter(self.db_path, db_connection_pool_size)
+            self.db_writer = DatabaseWriter(self.db_path)
         else:
             self.db_path = None
             self.db_step_interval = None
             self.db_buffer_size = None
-            self.db_connection_pool_size = None
             self.db_writer = None
         
         # Parallel processing parameters
@@ -280,8 +272,7 @@ class HillClimber:
                 'enabled': True,
                 'path': self.db_path,
                 'step_interval': self.db_step_interval,
-                'buffer_size': self.db_buffer_size,
-                'pool_size': self.db_connection_pool_size
+                'buffer_size': self.db_buffer_size
             }
         
         # Create partial function with fixed parameters
@@ -327,7 +318,6 @@ class HillClimber:
     
     def _finalize_results(self) -> Tuple[np.ndarray, pd.DataFrame]:
         """Complete optimization and return results."""
-        # Final checkpoint
         # Final checkpoint
         if self.checkpoint_file:
             self.save_checkpoint(self.checkpoint_file)

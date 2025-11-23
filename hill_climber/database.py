@@ -4,7 +4,6 @@ import json
 import sqlite3
 import time
 from contextlib import contextmanager
-from pathlib import Path
 from typing import Dict, List, Optional, Any
 import threading
 
@@ -12,19 +11,17 @@ import threading
 class DatabaseWriter:
     """Thread-safe SQLite database writer for optimization progress.
     
-    Manages connection pooling and provides methods to write optimization
-    state and metrics to database for real-time dashboard monitoring.
+    Uses SQLite WAL mode for concurrent read/write access without
+    explicit connection pooling.
     """
     
-    def __init__(self, db_path: str, pool_size: int = 4):
+    def __init__(self, db_path: str):
         """Initialize database writer.
         
         Args:
             db_path: Path to SQLite database file
-            pool_size: Maximum number of concurrent connections (default: 4)
         """
         self.db_path = db_path
-        self.pool_size = pool_size
         self._lock = threading.Lock()
         
     @contextmanager
