@@ -80,7 +80,7 @@ def plot_input_data(data, plot_type='scatter'):
     plt.show()
 
 
-def plot_results(results, plot_type='scatter', metrics=None):
+def plot_results(results, plot_type='scatter', metrics=None, exchange_interval=None):
     """Visualize hill climbing results with progress and snapshots.
     
     Creates a comprehensive visualization showing:
@@ -97,6 +97,7 @@ def plot_results(results, plot_type='scatter', metrics=None):
         metrics: List of metric names to display in progress plots and snapshots.
                  If None (default), all available metrics are shown.
                  Example: ``['Pearson', 'Spearman']`` or ``['Mean X', 'Std X']``
+        exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)
     
     Raises:
         ValueError: If plot_type is not ``'scatter'`` or ``'histogram'``
@@ -107,15 +108,17 @@ def plot_results(results, plot_type='scatter', metrics=None):
         raise ValueError(f"plot_type must be 'scatter' or 'histogram', got '{plot_type}'")
     
     # Ensure results is a list
-    if isinstance(results, tuple) and len(results) == 2:
-        # Single result tuple from climb(): (best_data, steps_df)
-        # Wrap in list to make it compatible with the plotting functions
+    if isinstance(results, tuple):
+        # Single result tuple - could be (best_data, steps_df) or (temp_history, best_data, steps_df)
         results_list = [results]
     else:
         results_list = results
     
-    # Get steps_df to validate metrics
-    _, steps_df = results_list[0]
+    # Get steps_df to validate metrics - handle both old and new formats
+    if len(results_list[0]) == 3:
+        _, _, steps_df = results_list[0]  # New format with temperature_history
+    else:
+        _, steps_df = results_list[0]  # Old format
     
     # Validate metrics if provided
     if metrics is not None:
@@ -135,27 +138,32 @@ def plot_results(results, plot_type='scatter', metrics=None):
         _plot_results_histogram(results_list, metrics)
 
 
-def _plot_results_scatter(results, metrics=None):
+def _plot_results_scatter(results, metrics=None, exchange_interval=None):
     """Internal function: Visualize results with scatter plots.
     
     Args:
         results: List of result tuples - handles both (data, df) and (_, data, df) formats
         metrics: List of metric names to display, or None for all metrics
+        exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)
     """
 
     n_replicates = len(results)
-    fig = plt.figure(constrained_layout=True, figsize=(12, 2.4*n_replicates))
-    spec = fig.add_gridspec(nrows=n_replicates, ncols=5, width_ratios=[1.1, 1, 1, 1, 1])
+
+    # Create 2-row layout: top row for progress plots, bottom row for data snapshots
+    fig = plt.figure(figsize=(14, 5.5*n_replicates))
+    spec = fig.add_gridspec(nrows=2*n_replicates, ncols=5, 
+                           width_ratios=[1, 1, 1, 1, 1],
+                           hspace=0.5, wspace=0.5, top=0.94)
     fig.suptitle('Hill climb results', fontsize=16)
 
     for i in range(n_replicates):
-
         # Handle both old and new formats
         if len(results[i]) == 3:
-            _, best_data, steps_df = results[i]
+            temp_history, best_data, steps_df = results[i]
 
         else:
             best_data, steps_df = results[i]
+            temp_history = []
         
         # Get metric columns
         all_metric_columns = [col for col in steps_df.columns 
@@ -164,8 +172,16 @@ def _plot_results_scatter(results, metrics=None):
         # Use specified metrics or all available metrics
         metric_columns = metrics if metrics is not None else all_metric_columns
         
-        # Progress plot
-        ax = fig.add_subplot(spec[i, 0])
+        # Calculate x-axis values (batch numbers if exchange_interval provided, else steps)
+        if exchange_interval is not None:
+            x_values = steps_df['Step'] / exchange_interval
+            x_label = 'Batch'
+        else:
+            x_values = steps_df['Step']
+            x_label = 'Step'
+        
+        # Progress plot - spans all columns in top row
+        ax = fig.add_subplot(spec[2*i, :])
         ax.set_title(f'Replicate {i+1}: Progress', fontsize=10)
         
         lines = []
@@ -174,28 +190,74 @@ def _plot_results_scatter(results, metrics=None):
 
             lines.extend(
                 ax.plot(
-                    steps_df['Step'], steps_df[metric_name], label=metric_name
+                    x_values, steps_df[metric_name], label=metric_name
                 )
             )
         
-        ax.set_xlabel('Step')
+        ax.set_xlabel(x_label)
         ax.set_ylabel('Metrics', color='black')
         ax.ticklabel_format(style='scientific', axis='x', scilimits=(0,0))
         
         ax2 = ax.twinx()
-        lines.extend(ax2.plot(steps_df['Step'], steps_df['Objective value'], 
+        lines.extend(ax2.plot(x_values, steps_df['Objective value'], 
                               label='Objective', color='black'))
 
         ax2.set_ylabel('Objective value', color='black')
         ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
         
-        # Snapshot plots at 25%, 50%, 75%, 100%
-        for j, (pct, label) in enumerate(zip([0.25, 0.50, 0.75, 1.0], ['25%', '50%', '75%', '100%'])):
+        # Add vertical lines for temperature exchanges
+        if temp_history:
+            y_min, y_max = ax.get_ylim()
+            y_pos = y_max - 0.05 * (y_max - y_min)  # Position label near top
+            x_min, x_max = ax.get_xlim()
+            x_offset = 0.003 * (x_max - x_min)  # 0.3% offset to the right
+            for step, new_temp in temp_history:
+                x_pos = step / exchange_interval if exchange_interval else step
+                ax.axvline(x=x_pos, color='black', linestyle=':', linewidth=1, alpha=0.7)
+                ax.text(x_pos + x_offset, y_pos, f'T={new_temp:.2f}', fontsize=6, 
+                       ha='left', va='top', rotation=0,
+                       bbox=dict(facecolor='white', edgecolor='none', alpha=0.7, pad=1))
+        
+        # Get initial data from step 0
+        initial_data = steps_df['Best_data'].iloc[0]
+        initial_step = steps_df['Step'].iloc[0]
+        
+        # Input data snapshot (bottom row, first column)
+        ax = fig.add_subplot(spec[2*i+1, 0])
+        if isinstance(initial_data, pd.DataFrame):
+            snap_x, snap_y = initial_data.iloc[:, 0], initial_data.iloc[:, 1]
+        else:
+            snap_x, snap_y = initial_data[:, 0], initial_data[:, 1]
+        
+        if exchange_interval is not None:
+            batch_num = initial_step / exchange_interval
+            ax.set_title(f'Batch {batch_num:.2f}', fontsize=10)
+        else:
+            ax.set_title(f'Step {initial_step:.2e}', fontsize=10)
+        ax.scatter(snap_x, snap_y, color='black', s=1)
+        ax.set_xlabel('x', fontsize=8)
+        ax.set_ylabel('y', fontsize=8)
+        ax.tick_params(axis='both', which='major', labelsize=7)
+        ax.locator_params(axis='x', nbins=4)
+        ax.locator_params(axis='y', nbins=4)
+        
+        # Add metrics annotation
+        initial_metrics = steps_df.iloc[0]
+        metric_text = '\n'.join([f'{col}: {initial_metrics[col]:.3f}' 
+                                  for col in metric_columns])
+        if metric_text:
+            ax.text(0.02, 0.98, metric_text, transform=ax.transAxes,
+                   fontsize=6, verticalalignment='top',
+                   bbox=dict(facecolor='white', edgecolor='black', alpha=0.8, pad=2))
+        
+        # Snapshot plots at 25%, 50%, 75%, 100% (bottom row, columns 1-4)
+        for j, pct in enumerate([0.25, 0.50, 0.75, 1.0]):
             
-            ax = fig.add_subplot(spec[i, j+1])
+            ax = fig.add_subplot(spec[2*i+1, j+1])
             
             step_idx = max(0, min(int(len(steps_df) * pct) - 1, len(steps_df) - 1))
             snapshot_data = steps_df['Best_data'].iloc[step_idx]
+            snapshot_step = steps_df['Step'].iloc[step_idx]
             
             # For scatter plots, we can only show 2D projections
             # Extract first two columns for visualization
@@ -205,10 +267,17 @@ def _plot_results_scatter(results, metrics=None):
             else:
                 snap_x, snap_y = snapshot_data[:, 0], snapshot_data[:, 1]
             
-            ax.set_title(f'Climb {label} complete', fontsize=10)
+            if exchange_interval is not None:
+                batch_num = snapshot_step / exchange_interval
+                ax.set_title(f'Batch {batch_num:.2f}', fontsize=10)
+            else:
+                ax.set_title(f'Step {snapshot_step:.2e}', fontsize=10)
             ax.scatter(snap_x, snap_y, color='black', s=1)
-            ax.set_xlabel('x')
-            ax.set_ylabel('y')
+            ax.set_xlabel('x', fontsize=8)
+            ax.set_ylabel('y', fontsize=8)
+            ax.tick_params(axis='both', which='major', labelsize=7)
+            ax.locator_params(axis='x', nbins=4)
+            ax.locator_params(axis='y', nbins=4)
             
             # Build stats text
             obj_val = steps_df['Objective value'].iloc[step_idx]
@@ -228,30 +297,37 @@ def _plot_results_scatter(results, metrics=None):
                 bbox=dict(facecolor='white', edgecolor='black')
             )
 
+    plt.tight_layout()
     plt.show()
 
 
-def _plot_results_histogram(results, metrics=None):
-    """Internal function: Visualize results with KDE plots.
+def _plot_results_histogram(results, metrics=None, exchange_interval=None):
+    """Internal function: Visualize results with histogram/KDE plots.
     
     Args:
         results: List of result tuples - handles both (data, df) and (_, data, df) formats
         metrics: List of metric names to display, or None for all metrics
+        exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)
     """
 
     n_replicates = len(results)
-    fig = plt.figure(constrained_layout=True, figsize=(12, 2.5*n_replicates))
-    spec = fig.add_gridspec(nrows=n_replicates, ncols=5, width_ratios=[1.1, 1, 1, 1, 1])
+
+    # Create 2-row layout: top row for progress plots, bottom row for data snapshots
+    fig = plt.figure(figsize=(14, 5.3*n_replicates))
+    spec = fig.add_gridspec(nrows=2*n_replicates, ncols=5,
+                           width_ratios=[1, 1, 1, 1, 1],
+                           hspace=0.5, wspace=0.5, top=0.955)
     fig.suptitle('Hill climb results', fontsize=16)
 
     for i in range(n_replicates):
 
         # Handle both old and new formats
         if len(results[i]) == 3:
-            _, best_data, steps_df = results[i]
+            temp_history, best_data, steps_df = results[i]
 
         else:
             best_data, steps_df = results[i]
+            temp_history = []
         
         # Get metric columns
         all_metric_columns = [col for col in steps_df.columns 
@@ -260,9 +336,17 @@ def _plot_results_histogram(results, metrics=None):
         # Use specified metrics or all available metrics
         metric_columns = metrics if metrics is not None else all_metric_columns
         
-        # Progress plot (same as scatter version)
-        ax = fig.add_subplot(spec[i, 0])
-        ax.set_title(f'Replicate {i+1}: Progress', fontsize=10)
+        # Calculate x-axis values (batch numbers if exchange_interval provided, else steps)
+        if exchange_interval is not None:
+            x_values = steps_df['Step'] / exchange_interval
+            x_label = 'Batch'
+        else:
+            x_values = steps_df['Step']
+            x_label = 'Step'
+        
+        # Progress plot - spans all columns in top row
+        ax = fig.add_subplot(spec[2*i, :])
+        ax.set_title(f'Replicate {i+1}')
         
         lines = []
 
@@ -270,28 +354,120 @@ def _plot_results_histogram(results, metrics=None):
 
             lines.extend(
                 ax.plot(
-                    steps_df['Step'], steps_df[metric_name], label=metric_name
+                    x_values, steps_df[metric_name], label=metric_name
                 )
             )
         
-        ax.set_xlabel('Step')
-        ax.set_ylabel('Metrics', color='black')
+        ax.set_xlabel(x_label)
+        ax.set_ylabel('Metrics')
         ax.ticklabel_format(style='scientific', axis='x', scilimits=(0,0))
         
         ax2 = ax.twinx()
 
-        lines.extend(ax2.plot(steps_df['Step'], steps_df['Objective value'], 
+        lines.extend(ax2.plot(x_values, steps_df['Objective value'], 
                               label='Objective', color='black'))
 
         ax2.set_ylabel('Objective value', color='black')
         ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
         
-        # Snapshot histograms at 25%, 50%, 75%, 100%
-        for j, (pct, label) in enumerate(zip([0.25, 0.50, 0.75, 1.0], ['25%', '50%', '75%', '100%'])):
-            ax = fig.add_subplot(spec[i, j+1])
+        # Add vertical lines for temperature exchanges
+        if temp_history:
+
+            y_min, y_max = ax.get_ylim()
+            y_pos = y_max - 0.05 * (y_max - y_min)  # Position label near top
+            x_min, x_max = ax.get_xlim()
+            x_offset = 0.003 * (x_max - x_min)  # 0.3% offset to the right
+
+            for step, new_temp in temp_history:
+                x_pos = step / exchange_interval if exchange_interval else step
+                ax.axvline(x=x_pos, color='black', linestyle=':', linewidth=1, alpha=0.7)
+                ax.text(
+                    x_pos + x_offset, y_pos, 
+                    f'T={new_temp:.2f}', fontsize=6, 
+                    ha='left', va='top', rotation=0,
+                    bbox=dict(facecolor='white', edgecolor='none', alpha=0.7, pad=1)
+                )
+        
+        # Get initial data from step 0
+        initial_data = steps_df['Best_data'].iloc[0]
+        initial_step = steps_df['Step'].iloc[0]
+        
+        # Input data KDE (bottom row, first column)
+        ax = fig.add_subplot(spec[2*i+1, 0])
+        
+        # Extract all columns dynamically
+        if isinstance(initial_data, pd.DataFrame):
+            columns = initial_data.columns.tolist()
+            column_data = {col: np.array(initial_data[col]) for col in columns}
+
+        else:
+            # For numpy arrays, generate column names
+            n_cols = initial_data.shape[1] if len(initial_data.shape) > 1 else 1
+            columns = [f'col_{k}' for k in range(n_cols)]
+            column_data = {columns[k]: initial_data[:, k] for k in range(n_cols)}
+        
+        if exchange_interval is not None:
+            batch_num = initial_step / exchange_interval
+            ax.set_title(f'Batch {batch_num:.2f}', fontsize=10)
+        else:
+            ax.set_title(f'Step {initial_step:.2e}')
+        
+        # Use matplotlib's default color cycle
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        
+        # Create KDE plots for all columns
+        try:
+            # Get global min/max across all columns for consistent x-axis
+            all_data = np.concatenate([column_data[col] for col in columns])
+            x_min, x_max = all_data.min(), all_data.max()
+            x_eval = np.linspace(x_min, x_max, 200)
+            
+            # Plot KDE for each column
+            for k, col in enumerate(columns):
+                col_data = column_data[col]
+                color = colors[k % len(colors)]
+                
+                kde = gaussian_kde(col_data)
+                density = kde(x_eval)
+                
+                ax.plot(x_eval, density, color=color, linewidth=2, alpha=0.8)
+                ax.fill_between(x_eval, density, alpha=0.2, color=color)
+            
+            ax.set_xlabel('Value', fontsize=8)
+            ax.set_ylabel('Density', fontsize=8)
+            # ax.tick_params(axis='both', which='major', labelsize=7)
+            # ax.locator_params(axis='x', nbins=4)
+            # ax.locator_params(axis='y', nbins=4)
+            
+        except (np.linalg.LinAlgError, ValueError):
+            # If KDE fails, fall back to histogram
+            for k, col in enumerate(columns):
+                col_data = column_data[col]
+                color = colors[k % len(colors)]
+                ax.hist(col_data, bins=20, alpha=0.5, color=color, edgecolor='black')
+            
+            ax.set_xlabel('Value', fontsize=8)
+            ax.set_ylabel('Frequency', fontsize=8)
+            # ax.tick_params(axis='both', which='major', labelsize=7)
+        
+        # Add metrics annotation
+        initial_metrics = steps_df.iloc[0]
+        metric_text = '\n'.join([f'{col}: {initial_metrics[col]:.3f}' 
+                                  for col in metric_columns])
+        if metric_text:
+            ax.text(0.02, 0.98, metric_text, transform=ax.transAxes,
+                   fontsize=6, verticalalignment='top',
+                   bbox=dict(facecolor='white', edgecolor='black', alpha=0.8, pad=2))
+            # ax.locator_params(axis='x', nbins=4)
+            # ax.locator_params(axis='y', nbins=4)
+        
+        # Snapshot histograms at 25%, 50%, 75%, 100% (bottom row, columns 1-4)
+        for j, pct in enumerate([0.25, 0.50, 0.75, 1.0]):
+            ax = fig.add_subplot(spec[2*i+1, j+1])
             
             step_idx = max(0, min(int(len(steps_df) * pct) - 1, len(steps_df) - 1))
             snapshot_data = steps_df['Best_data'].iloc[step_idx]
+            snapshot_step = steps_df['Step'].iloc[step_idx]
             
             # Extract all columns dynamically
             if isinstance(snapshot_data, pd.DataFrame):
@@ -304,7 +480,11 @@ def _plot_results_histogram(results, metrics=None):
                 columns = [f'col_{k}' for k in range(n_cols)]
                 column_data = {columns[k]: snapshot_data[:, k] for k in range(n_cols)}
             
-            ax.set_title(f'Climb {label} complete', fontsize=10)
+            if exchange_interval is not None:
+                batch_num = snapshot_step / exchange_interval
+                ax.set_title(f'Batch {batch_num:.2f}', fontsize=10)
+            else:
+                ax.set_title(f'Step {snapshot_step:.2e}')
             
             # Use matplotlib's default color cycle
             colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -337,9 +517,11 @@ def _plot_results_histogram(results, metrics=None):
 
                     ax.fill_between(x_eval, density, alpha=0.2, color=color)
                 
-                ax.set_xlabel('Value')
-                ax.set_ylabel('Density')
-                ax.legend(fontsize=7)
+                ax.set_xlabel('Value', fontsize=8)
+                ax.set_ylabel('Density', fontsize=8)
+                # ax.tick_params(axis='both', which='major', labelsize=7)
+                # ax.locator_params(axis='x', nbins=4)
+                # ax.locator_params(axis='y', nbins=4)
                 
             except (np.linalg.LinAlgError, ValueError) as e:
 
@@ -357,9 +539,11 @@ def _plot_results_histogram(results, metrics=None):
                         edgecolor='black'
                     )
                 
-                ax.set_xlabel('Value')
-                ax.set_ylabel('Frequency')
-                ax.legend(fontsize=7)
+                ax.set_xlabel('Value', fontsize=8)
+                ax.set_ylabel('Frequency', fontsize=8)
+                # ax.tick_params(axis='both', which='major', labelsize=7)
+                # ax.locator_params(axis='x', nbins=4)
+                # ax.locator_params(axis='y', nbins=4)
             
             # Build stats text
             obj_val = steps_df['Objective value'].iloc[step_idx]
@@ -380,3 +564,4 @@ def _plot_results_histogram(results, metrics=None):
             )
 
     plt.show()
+

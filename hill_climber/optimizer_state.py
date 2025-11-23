@@ -24,6 +24,7 @@ class OptimizerState:
     best_objective: float
     step: int = 0
     metrics_history: List[tuple] = field(default_factory=list)
+    temperature_history: List[tuple] = field(default_factory=list)  # (step, new_temperature)
     exchange_attempts: int = 0
     exchange_acceptances: int = 0
     partner_history: List[int] = field(default_factory=list)
@@ -71,6 +72,17 @@ class OptimizerState:
         if accepted:
             self.exchange_acceptances += 1
             self.partner_history.append(partner_id)
+    
+    def record_temperature_change(self, new_temperature: float, step: Optional[int] = None):
+        """Record a temperature change from replica exchange.
+        
+        Args:
+            new_temperature: New temperature after exchange
+            step: Step number when exchange occurred (uses self.step if not provided)
+        """
+        exchange_step = step if step is not None else self.step
+        self.temperature_history.append((exchange_step, new_temperature))
+        self.temperature = new_temperature
     
     def _is_better(self, new_val: float, current_val: float) -> bool:
         """Check if new value is better based on mode.

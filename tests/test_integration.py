@@ -56,7 +56,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             objective_func=objective_spearman_large_pearson_small,
             max_time=0.02,
             step_spread=0.1,
-            mode='maximize'
+            mode='maximize',
+            show_progress=False
         )
         
         best_data, steps_df = climber.climb()
@@ -76,7 +77,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             step_spread=0.1,
             temperature=10.0,
             cooling_rate=0.005,
-            mode='maximize'
+            mode='maximize',
+            show_progress=False
         )
         
         best_data, steps_df = climber.climb()
@@ -91,7 +93,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             objective_func=objective_spearman_large_pearson_small,
             max_time=0.02,
             step_spread=0.1,
-            mode='minimize'
+            mode='minimize',
+            show_progress=False
         )
         
         best_data, steps_df = climber.climb()
@@ -107,7 +110,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.02,
             step_spread=0.1,
             mode='target',
-            target_value=0.5
+            target_value=0.5,
+            show_progress=False
         )
         
         best_data, steps_df = climber.climb()
@@ -123,7 +127,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
             max_time=0.02,
-            step_spread=0.1
+            step_spread=0.1,
+            show_progress=False
         )
         
         best_data, _ = climber.climb()
@@ -156,7 +161,8 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             objective_func=objective_3d_simple,
             max_time=0.02,
             step_spread=0.1,
-            mode='maximize'
+            mode='maximize',
+            show_progress=False
         )
         
         best_data, steps_df = climber.climb()
@@ -172,7 +178,8 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             objective_func=objective_4d_simple,
             max_time=0.02,
             step_spread=0.1,
-            mode='maximize'
+            mode='maximize',
+            show_progress=False
         )
         
         best_data, steps_df = climber.climb()

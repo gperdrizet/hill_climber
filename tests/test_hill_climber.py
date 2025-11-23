@@ -29,7 +29,8 @@ class TestHillClimber(unittest.TestCase):
             data=data,
             objective_func=simple_objective,
             max_time=1,
-            n_replicas=2
+            n_replicas=2,
+            show_progress=False
         )
         
         self.assertEqual(climber.n_replicas, 2)
@@ -45,7 +46,8 @@ class TestHillClimber(unittest.TestCase):
             data=data,
             objective_func=simple_objective,
             max_time=0.05,
-            n_replicas=2
+            n_replicas=2,
+            show_progress=False
         )
         
         best_data, history = climber.climb()
@@ -69,7 +71,8 @@ class TestHillClimber(unittest.TestCase):
             objective_func=simple_objective,
             max_time=0.1,
             n_replicas=3,
-            exchange_interval=10
+            exchange_interval=10,
+            show_progress=False
         )
         
         best_data, history = climber.climb()

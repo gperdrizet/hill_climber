@@ -68,7 +68,8 @@ def perturb_vectors(data, perturb_fraction=0.1, bounds=None, step_spread=1.0):
     
     Args:
         data: Input data as numpy array
-        perturb_fraction: Fraction of total elements to perturb (default: 0.1)
+        perturb_fraction: Fraction of total elements to perturb (default: 0.1).
+                         Note: HillClimber uses 0.05 as its default.
         bounds: Tuple of (min_bounds, max_bounds) arrays for each column.
                 If None, uses data min/max (default: None)
         step_spread: Standard deviation of normal distribution for perturbations (default: 1.0)
