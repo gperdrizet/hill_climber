@@ -37,7 +37,7 @@ class HillClimber:
         cooling_rate: Temperature decay rate per step
         mode: 'maximize', 'minimize', or 'target'
         target_value: Target value (only used if mode='target')
-        checkpoint_file: Path to save checkpoints (saved after each batch)
+        checkpoint_file: Path to save checkpoints (default: 'data/hill_climber_checkpoint.pkl')
         plot_metrics: List of metric names to plot (None to plot all metrics)
         plot_type: Type of plot for progress snapshots ('scatter' or 'histogram')
         show_progress: Show progress plots during optimization (default: True)
@@ -49,6 +49,12 @@ class HillClimber:
         temperature_scheme: 'geometric' or 'linear' temperature spacing
         exchange_strategy: 'even_odd', 'random', or 'all_neighbors'
         n_workers: Number of worker processes (None = n_replicas, 0 = sequential)
+        db_enabled: Enable database logging for dashboard (default: False)
+        db_path: Path to SQLite database file (default: 'data/hill_climber_progress.db')
+        db_step_interval: Collect metrics every Nth step (default: exchange_interval // 1000)
+        db_buffer_size: Number of pooled steps before database write (default: 10)
+        db_connection_pool_size: SQLite connection pool size (default: 4)
+        checkpoint_interval: Batches between checkpoint saves (default: 1, i.e., every batch)
     """
     
     def __init__(
@@ -72,7 +78,13 @@ class HillClimber:
         exchange_interval: int = 1000,
         temperature_scheme: str = 'geometric',
         exchange_strategy: str = 'even_odd',
-        n_workers: Optional[int] = None
+        n_workers: Optional[int] = None,
+        db_enabled: bool = False,
+        db_path: Optional[str] = None,
+        db_step_interval: Optional[int] = None,
+        db_buffer_size: int = 10,
+        db_connection_pool_size: int = 4,
+        checkpoint_interval: int = 1
     ):
         # Convert data to numpy if needed
         if isinstance(data, pd.DataFrame):
@@ -106,7 +118,11 @@ class HillClimber:
         self.cooling_rate = cooling_rate
         self.mode = mode
         self.target_value = target_value
-        self.checkpoint_file = checkpoint_file
+        # Set default checkpoint path to data/ directory
+        if checkpoint_file is None:
+            self.checkpoint_file = 'data/hill_climber_checkpoint.pkl'
+        else:
+            self.checkpoint_file = checkpoint_file
         self.plot_metrics = plot_metrics
         self.plot_type = plot_type
         self.show_progress = show_progress
@@ -121,6 +137,32 @@ class HillClimber:
         self.temperature_scheme = temperature_scheme
         self.exchange_strategy = exchange_strategy
         
+        # Database parameters
+        self.db_enabled = db_enabled
+        self.checkpoint_interval = checkpoint_interval
+        
+        if db_enabled:
+            # Set database path (default to data/ directory)
+            if db_path is None:
+                self.db_path = 'data/hill_climber_progress.db'
+            else:
+                self.db_path = db_path
+            
+            # Set step interval (default: 0.1% of exchange interval)
+            self.db_step_interval = db_step_interval if db_step_interval is not None else max(1, exchange_interval // 1000)
+            self.db_buffer_size = db_buffer_size
+            self.db_connection_pool_size = db_connection_pool_size
+            
+            # Import database module only if enabled
+            from .database import DatabaseWriter
+            self.db_writer = DatabaseWriter(self.db_path, db_connection_pool_size)
+        else:
+            self.db_path = None
+            self.db_step_interval = None
+            self.db_buffer_size = None
+            self.db_connection_pool_size = None
+            self.db_writer = None
+        
         # Parallel processing parameters
         # None = use n_replicas workers, 0 = sequential mode, >0 = specified number
         if n_workers is None:
@@ -134,6 +176,7 @@ class HillClimber:
         self.replicas: List[OptimizerState] = []
         self.temperature_ladder: Optional[TemperatureLadder] = None
         self.exchange_stats: Optional[ExchangeStatistics] = None
+        self.batch_counter = 0  # Track batches for checkpoint_interval
 
 
     def climb(self) -> Tuple[np.ndarray, pd.DataFrame]:
@@ -147,6 +190,10 @@ class HillClimber:
         mode_str = f"parallel ({self.n_workers} workers)" if self.n_workers > 0 else "sequential"
         if self.verbose:
             print(f"Starting replica exchange with {self.n_replicas} replicas ({mode_str})...")
+        
+        # Initialize database if enabled
+        if self.db_enabled:
+            self._initialize_database()
         
         # Initialize temperature ladder
         if self.temperature_scheme == 'geometric':
@@ -189,12 +236,12 @@ class HillClimber:
             if self.replicas[0].step % self.exchange_interval == 0:
                 self._exchange_round(scheduler)
                 
-                # Checkpoint and plot after each batch (exchange interval)
-                if self.checkpoint_file:
-                    self.save_checkpoint(self.checkpoint_file)
+                # Increment batch counter
+                self.batch_counter += 1
                 
-                if self.show_progress:
-                    self._plot_progress()
+                # Checkpoint after every checkpoint_interval batches
+                if self.checkpoint_file and (self.batch_counter % self.checkpoint_interval == 0):
+                    self.save_checkpoint(self.checkpoint_file)
         
         return self._finalize_results()
     
@@ -212,12 +259,12 @@ class HillClimber:
                 # Attempt exchanges
                 self._exchange_round(scheduler)
                 
-                # Checkpoint and plot after each batch
-                if self.checkpoint_file:
-                    self.save_checkpoint(self.checkpoint_file)
+                # Increment batch counter
+                self.batch_counter += 1
                 
-                if self.show_progress:
-                    self._plot_progress()
+                # Checkpoint after every checkpoint_interval batches
+                if self.checkpoint_file and (self.batch_counter % self.checkpoint_interval == 0):
+                    self.save_checkpoint(self.checkpoint_file)
         
         return self._finalize_results()
     
@@ -226,6 +273,17 @@ class HillClimber:
         # Serialize current replica states
         state_dicts = [self._serialize_state(r) for r in self.replicas]
         
+        # Prepare database config if enabled
+        db_config = None
+        if self.db_enabled:
+            db_config = {
+                'enabled': True,
+                'path': self.db_path,
+                'step_interval': self.db_step_interval,
+                'buffer_size': self.db_buffer_size,
+                'pool_size': self.db_connection_pool_size
+            }
+        
         # Create partial function with fixed parameters
         worker_func = partial(
             run_replica_steps,
@@ -233,27 +291,46 @@ class HillClimber:
             bounds=self.bounds,
             n_steps=n_steps,
             mode=self.mode,
-            target_value=self.target_value
+            target_value=self.target_value,
+            db_config=db_config
         )
         
         # Execute in parallel
         updated_states = pool.map(worker_func, state_dicts)
         
-        # Update replicas with results, preserving temperature_history
+        # Collect database buffers and update replicas
+        all_db_buffers = []
         for i, state_dict in enumerate(updated_states):
+            # Extract and collect database buffer if present
+            if 'db_buffer' in state_dict:
+                all_db_buffers.extend(state_dict.pop('db_buffer'))
+            
             # Preserve temperature_history before updating
             temp_history = self.replicas[i].temperature_history
             self.replicas[i] = OptimizerState(**state_dict)
             self.replicas[i].temperature_history = temp_history
+        
+        # Flush all collected database buffers to database
+        if self.db_enabled and all_db_buffers:
+            self.db_writer.insert_metrics_batch(all_db_buffers)
+        
+        # Update replica status in database
+        if self.db_enabled:
+            for replica in self.replicas:
+                self.db_writer.update_replica_status(
+                    replica_id=replica.replica_id,
+                    step=replica.step,
+                    temperature=replica.temperature,
+                    best_objective=replica.best_objective,
+                    current_objective=replica.current_objective
+                )
     
     def _finalize_results(self) -> Tuple[np.ndarray, pd.DataFrame]:
         """Complete optimization and return results."""
-        # Final checkpoint and plot
+        # Final checkpoint
+        # Final checkpoint
         if self.checkpoint_file:
             self.save_checkpoint(self.checkpoint_file)
-        
-        if self.show_progress:
-            self._plot_progress(force=True)
         
         # Return results from best replica
         best_replica = self._get_best_replica()
@@ -270,6 +347,47 @@ class HillClimber:
             best_data_output = best_replica.best_data
         
         return best_data_output, best_replica.get_history_dataframe()
+    
+    def _initialize_database(self):
+        """Initialize database schema and insert run metadata."""
+        if not self.db_enabled or not self.db_writer:
+            return
+        
+        # Create database directory if needed
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+        
+        # Drop existing tables and create fresh schema
+        self.db_writer.initialize_schema(drop_existing=True)
+        
+        # Insert run metadata
+        hyperparameters = {
+            'max_time': self.max_time,
+            'perturb_fraction': self.perturb_fraction,
+            'temperature': self.temperature,
+            'cooling_rate': self.cooling_rate,
+            'mode': self.mode,
+            'target_value': self.target_value,
+            'step_spread': self.step_spread,
+            'T_min': self.T_min,
+            'T_max': self.T_max,
+            'temperature_scheme': self.temperature_scheme,
+            'exchange_strategy': self.exchange_strategy
+        }
+        
+        self.db_writer.insert_run_metadata(
+            n_replicas=self.n_replicas,
+            exchange_interval=self.exchange_interval,
+            db_step_interval=self.db_step_interval,
+            db_buffer_size=self.db_buffer_size,
+            hyperparameters=hyperparameters
+        )
+        
+        if self.verbose:
+            print(f"Database initialized: {self.db_path}")
+            print(f"  Step interval: {self.db_step_interval} (collecting every {self.db_step_interval}th step)")
+            print(f"  Buffer size: {self.db_buffer_size} (writing every {self.db_buffer_size} collected steps)")
     
     def _initialize_replicas(self):
         """Initialize all replica states."""
@@ -351,6 +469,9 @@ class HillClimber:
         """Perform one round of replica exchanges."""
         pairs = scheduler.get_pairs()
         
+        # Track exchanges for database logging
+        db_exchanges = []
+        
         for i, j in pairs:
             replica_i = self.replicas[i]
             replica_j = self.replicas[j]
@@ -373,6 +494,11 @@ class HillClimber:
                 current_step = replica_i.step  # Use step from replica i
                 replica_i.record_temperature_change(old_temp_j, current_step)
                 replica_j.record_temperature_change(old_temp_i, replica_j.step)
+                
+                # Collect for database logging
+                if self.db_enabled:
+                    db_exchanges.append((current_step, i, old_temp_j))
+                    db_exchanges.append((replica_j.step, j, old_temp_i))
             
             # Record statistics
             replica_i.record_exchange(j, accepted)
@@ -381,6 +507,10 @@ class HillClimber:
         
         if pairs:
             self.exchange_stats.round_count += 1
+        
+        # Log exchanges to database
+        if self.db_enabled and db_exchanges:
+            self.db_writer.insert_temperature_exchanges(db_exchanges)
     
     def _get_best_replica(self) -> OptimizerState:
         """Find replica with best objective value."""
@@ -433,17 +563,30 @@ class HillClimber:
             self.plot_results(results_list, plot_type=self.plot_type)
     
     def plot_results(self, results, plot_type: str = 'scatter', 
-                     metrics: Optional[List[str]] = None):
+                     metrics: Optional[List[str]] = None, all_replicas: bool = False):
         """Plot optimization results.
         
         Args:
-            results: Tuple of (best_data, steps_df)
+            results: Tuple of (best_data, steps_df) or list of such tuples
             plot_type: 'scatter' or 'histogram'
             metrics: List of metric names to plot (overrides plot_metrics from __init__)
+            all_replicas: If True, plot all replicas instead of just the results passed in
         """
         # Use provided metrics, or fall back to instance plot_metrics
         metrics_to_plot = metrics if metrics is not None else self.plot_metrics
-        plot_results_func(results, plot_type, metrics_to_plot, self.exchange_interval)
+        
+        # If all_replicas is True, gather results from all replicas
+        if all_replicas:
+            all_results = []
+            for replica in self.replicas:
+                if self.is_dataframe:
+                    replica_data = pd.DataFrame(replica.best_data, columns=self.column_names)
+                else:
+                    replica_data = replica.best_data
+                all_results.append((replica_data, replica.get_history_dataframe()))
+            plot_results_func(all_results, plot_type, metrics_to_plot, self.exchange_interval)
+        else:
+            plot_results_func(results, plot_type, metrics_to_plot, self.exchange_interval)
     
     def save_checkpoint(self, filepath: str):
         """Save current state to checkpoint file."""
@@ -469,7 +612,7 @@ class HillClimber:
         # Create checkpoint directory if needed
         checkpoint_dir = os.path.dirname(filepath)
         if checkpoint_dir and not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
+            os.makedirs(checkpoint_dir, exist_ok=True)
         
         with open(filepath, 'wb') as f:
             pickle.dump(checkpoint, f)

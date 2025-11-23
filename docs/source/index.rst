@@ -17,6 +17,12 @@ Installation
 
    pip install parallel-hill-climber
 
+For real-time monitoring dashboard support:
+
+.. code-block:: bash
+
+   pip install parallel-hill-climber[dashboard]
+
 See :doc:`installation` for more options including development setup.
 
 .. toctree::
@@ -26,6 +32,7 @@ See :doc:`installation` for more options including development setup.
    installation
    quickstart
    user_guide
+   dashboard
    api
    notebooks
    advanced
@@ -34,11 +41,12 @@ Features
 --------
 
 - **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
+- **Real-Time Monitoring Dashboard**: Streamlit-based dashboard for live progress visualization with SQLite backend
 - **Flexible objective functions**: Define custom objectives for any statistical property
 - **Simulated annealing**: Escape local optima and find global solutions
 - **Multi-column data**: Optimize datasets with any number of features
 - **Unified state management**: Clean dataclass architecture for internal state tracking
-- **Checkpointing**: Save and resume long-running optimizations
+- **Checkpointing**: Save and resume long-running optimizations with configurable checkpoint intervals
 - **Progress monitoring**: Live plotting during optimization runs
 - **Rich visualization**: Built-in plotting for results analysis
 - **JIT Compilation**: Numba-optimized core functions for performance

@@ -11,10 +11,11 @@ A Python package for hill climbing optimization of user-supplied objective funct
 ## 2. Features
 
 - **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
+- **Real-Time Monitoring Dashboard**: Streamlit-based dashboard for live progress visualization with SQLite backend
 - **Simulated Annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
 - **Flexible Objectives**: Support for any objective function with multiple metrics
 - **Multi-Column Support**: Optimize datasets with any number of features/columns
-- **Checkpoint/Resume**: Save and resume long-running optimizations
+- **Checkpoint/Resume**: Save and resume long-running optimizations with configurable checkpoint intervals
 - **Boundary Handling**: Reflection-based strategy prevents point accumulation at boundaries
 - **Visualization**: Built-in plotting for both input data and optimization results
 - **JIT Compilation**: Numba-optimized core functions for performance
@@ -27,6 +28,12 @@ Install the package directly from PyPI to use it in your own projects:
 
 ```bash
 pip install parallel-hill-climber
+```
+
+To use the real-time monitoring dashboard, install with dashboard extras:
+
+```bash
+pip install parallel-hill-climber[dashboard]
 ```
 
 For detailed usage, configuration options, and advanced features, see the <a href="https://gperdrizet.github.io/hill_climber" target="_blank">full documentation</a>.
@@ -69,7 +76,44 @@ best_data, history_df = climber.climb()
 climber.plot_results((best_data, history_df), plot_type='histogram')
 ```
 
-### 3.3. Example Notebooks
+### 3.3. Real-Time Monitoring Dashboard
+
+Monitor optimization progress in real-time with the Streamlit dashboard:
+
+```python
+from hill_climber import HillClimber
+
+# Enable database logging
+climber = HillClimber(
+    data=data,
+    objective_func=my_objective,
+    max_time=30,
+    n_replicas=8,
+    db_enabled=True,  # Enable real-time monitoring
+    db_path='optimization.db',
+    checkpoint_interval=10  # Checkpoint every 10 batches
+)
+
+# Run optimization
+best_data, history = climber.climb()
+```
+
+Launch the dashboard in a separate terminal:
+
+```bash
+streamlit run progress_dashboard.py
+```
+
+The dashboard provides:
+- Live replica status cards with current step, temperature, and objectives
+- Interactive time series plots for all metrics
+- Temperature exchange timeline visualization
+- Auto-refresh with configurable intervals
+- Metric selection and filtering
+
+See [DASHBOARD_README.md](DASHBOARD_README.md) for complete dashboard documentation.
+
+### 3.4. Example Notebooks
 
 The `notebooks/` directory contains demonstration of key concepts and complete worked examples demonstrating various use cases:
 

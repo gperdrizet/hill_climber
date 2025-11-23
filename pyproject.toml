@@ -40,6 +40,10 @@ dev = [
     "ipykernel>=6.0.0",
     "scikit-learn>=1.0.0",
 ]
+dashboard = [
+    "streamlit>=1.28.0",
+    "plotly>=5.14.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/gperdrizet/hill_climber"
