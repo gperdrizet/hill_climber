@@ -13,7 +13,8 @@ def run_replica_steps(
     bounds: Tuple[np.ndarray, np.ndarray],
     n_steps: int,
     mode: str,
-    target_value: float = None
+    target_value: float = None,
+    db_config: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """Run n optimization steps for a single replica.
     
@@ -28,12 +29,31 @@ def run_replica_steps(
         n_steps: Number of optimization steps to perform
         mode: 'maximize', 'minimize', or 'target'
         target_value: Target value (only used if mode='target')
+        db_config: Optional database configuration dict with keys:
+                  - enabled: bool
+                  - path: str
+                  - step_interval: int (collect every Nth step)
+                  - buffer_size: int (flush after N collected steps)
     
     Returns:
-        Updated serialized state dictionary
+        Updated serialized state dictionary with 'db_buffer' key if database enabled
     """
     # Deserialize state
     state = OptimizerState(**state_dict)
+    
+    # Initialize database buffer if enabled
+    db_buffer = []
+    db_enabled = db_config and db_config.get('enabled', False)
+    
+    if db_enabled:
+        db_step_interval = db_config['step_interval']
+        db_buffer_size = db_config['buffer_size']
+        db_path = db_config['path']
+        db_pool_size = db_config.get('pool_size', 4)
+        
+        # Import database writer only if needed
+        from .database import DatabaseWriter
+        db_writer = DatabaseWriter(db_path, db_pool_size)
     
     # Run n steps
     for _ in range(n_steps):
@@ -54,6 +74,9 @@ def run_replica_steps(
             perturbed, objective_func
         )
         
+        # Add objective value to metrics dict for database storage
+        metrics['Objective value'] = objective
+        
         # Acceptance criterion (simulated annealing)
         accept = _should_accept(
             objective, state.current_objective, state.temperature,
@@ -62,6 +85,17 @@ def run_replica_steps(
         
         if accept:
             state.record_improvement(perturbed, objective, metrics)
+            
+            # Collect metrics for database if enabled and on collection interval
+            if db_enabled and (state.step % db_step_interval == 0):
+                # Buffer metrics for this step
+                for metric_name, metric_value in metrics.items():
+                    db_buffer.append((state.replica_id, state.step, metric_name, metric_value))
+                
+                # Flush buffer if it reaches buffer_size
+                if len(db_buffer) >= db_buffer_size * len(metrics):
+                    db_writer.insert_metrics_batch(db_buffer)
+                    db_buffer = []
         # Note: We only record accepted steps to avoid misleading history
         # where rejected steps would show the old objective with a new step number
         
@@ -70,7 +104,13 @@ def run_replica_steps(
         state.temperature *= (1 - cooling_rate)
     
     # Serialize and return
-    return _serialize_state(state)
+    result = _serialize_state(state)
+    
+    # Include unflushed buffer for main process to handle
+    if db_enabled:
+        result['db_buffer'] = db_buffer
+    
+    return result
 
 
 def _should_accept(
