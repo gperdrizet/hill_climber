@@ -37,11 +37,12 @@ class HillClimber:
         cooling_rate: Temperature decay rate per step
         mode: 'maximize', 'minimize', or 'target'
         target_value: Target value (only used if mode='target')
-        checkpoint_file: Path to save checkpoints
-        save_interval: Checkpoint save interval in seconds
-        plot_progress: Plot results every N minutes (None to disable)
+        checkpoint_file: Path to save checkpoints (saved after each batch)
         plot_metrics: List of metric names to plot (None to plot all metrics)
-        step_spread: Standard deviation for perturbation distribution
+        plot_type: Type of plot for progress snapshots ('scatter' or 'histogram')
+        show_progress: Show progress plots during optimization (default: True)
+        verbose: Print progress messages (default: False)
+        step_spread: Perturbation spread as fraction of input range (default: 0.01 = 1%)
         n_replicas: Number of replicas for parallel tempering (default: 4)
         T_max: Maximum temperature for hottest replica (default: 10 * temperature)
         exchange_interval: Steps between exchange attempts
@@ -61,10 +62,11 @@ class HillClimber:
         mode: str = 'maximize',
         target_value: Optional[float] = None,
         checkpoint_file: Optional[str] = None,
-        save_interval: float = 60,
-        plot_progress: Optional[float] = None,
         plot_metrics: Optional[List[str]] = None,
-        step_spread: float = 1.0,
+        plot_type: str = 'scatter',
+        show_progress: bool = True,
+        verbose: bool = False,
+        step_spread: float = 0.01,
         n_replicas: int = 4,
         T_max: Optional[float] = None,
         exchange_interval: int = 1000,
@@ -85,6 +87,10 @@ class HillClimber:
         # Store bounds for boundary reflection
         self.bounds = (np.min(self.data, axis=0), np.max(self.data, axis=0))
         
+        # Calculate absolute step_spread from fraction of data range
+        data_range = self.bounds[1] - self.bounds[0]
+        self.step_spread_absolute = step_spread * np.mean(data_range)
+        
         # Validate mode
         if mode not in ['maximize', 'minimize', 'target']:
             raise ValueError(f"mode must be 'maximize', 'minimize', or 'target', got '{mode}'")
@@ -101,9 +107,10 @@ class HillClimber:
         self.mode = mode
         self.target_value = target_value
         self.checkpoint_file = checkpoint_file
-        self.save_interval = save_interval
-        self.plot_progress = plot_progress
         self.plot_metrics = plot_metrics
+        self.plot_type = plot_type
+        self.show_progress = show_progress
+        self.verbose = verbose
         self.step_spread = step_spread
         
         # Replica exchange parameters
@@ -127,8 +134,6 @@ class HillClimber:
         self.replicas: List[OptimizerState] = []
         self.temperature_ladder: Optional[TemperatureLadder] = None
         self.exchange_stats: Optional[ExchangeStatistics] = None
-        self.last_save_time: Optional[float] = None
-        self.last_plot_time: Optional[float] = None
 
 
     def climb(self) -> Tuple[np.ndarray, pd.DataFrame]:
@@ -140,7 +145,8 @@ class HillClimber:
                 steps_df: DataFrame with optimization history from best replica
         """
         mode_str = f"parallel ({self.n_workers} workers)" if self.n_workers > 0 else "sequential"
-        print(f"Starting replica exchange with {self.n_replicas} replicas ({mode_str})...")
+        if self.verbose:
+            print(f"Starting replica exchange with {self.n_replicas} replicas ({mode_str})...")
         
         # Initialize temperature ladder
         if self.temperature_scheme == 'geometric':
@@ -152,7 +158,8 @@ class HillClimber:
                 self.n_replicas, self.T_min, self.T_max
             )
         
-        print(f"Temperature ladder: {self.temperature_ladder.temperatures}")
+        if self.verbose:
+            print(f"Temperature ladder: {self.temperature_ladder.temperatures}")
         
         # Initialize replicas
         self._initialize_replicas()
@@ -171,8 +178,6 @@ class HillClimber:
         """Run optimization sequentially (original single-threaded approach)."""
         # Main optimization loop
         start_time = time.time()
-        self.last_save_time = start_time
-        self.last_plot_time = start_time
         
         while (time.time() - start_time) < (self.max_time * 60):
             
@@ -183,24 +188,19 @@ class HillClimber:
             # Attempt exchanges periodically
             if self.replicas[0].step % self.exchange_interval == 0:
                 self._exchange_round(scheduler)
-            
-            # Checkpointing
-            if self.checkpoint_file and (time.time() - self.last_save_time >= self.save_interval):
-                self.save_checkpoint(self.checkpoint_file)
-                self.last_save_time = time.time()
-            
-            # Progress plotting
-            if self.plot_progress and (time.time() - self.last_plot_time >= self.plot_progress * 60):
-                self._plot_progress()
-                self.last_plot_time = time.time()
+                
+                # Checkpoint and plot after each batch (exchange interval)
+                if self.checkpoint_file:
+                    self.save_checkpoint(self.checkpoint_file)
+                
+                if self.show_progress:
+                    self._plot_progress()
         
         return self._finalize_results()
     
     def _climb_parallel(self, scheduler: ExchangeScheduler) -> Tuple[np.ndarray, pd.DataFrame]:
         """Run optimization with parallel workers."""
         start_time = time.time()
-        self.last_save_time = start_time
-        self.last_plot_time = start_time
         
         # Create worker pool
         with Pool(processes=self.n_workers) as pool:
@@ -212,15 +212,12 @@ class HillClimber:
                 # Attempt exchanges
                 self._exchange_round(scheduler)
                 
-                # Checkpointing
-                if self.checkpoint_file and (time.time() - self.last_save_time >= self.save_interval):
+                # Checkpoint and plot after each batch
+                if self.checkpoint_file:
                     self.save_checkpoint(self.checkpoint_file)
-                    self.last_save_time = time.time()
                 
-                # Progress plotting
-                if self.plot_progress and (time.time() - self.last_plot_time >= self.plot_progress * 60):
+                if self.show_progress:
                     self._plot_progress()
-                    self.last_plot_time = time.time()
         
         return self._finalize_results()
     
@@ -242,23 +239,29 @@ class HillClimber:
         # Execute in parallel
         updated_states = pool.map(worker_func, state_dicts)
         
-        # Deserialize results back into replica objects
+        # Update replicas with results, preserving temperature_history
         for i, state_dict in enumerate(updated_states):
+            # Preserve temperature_history before updating
+            temp_history = self.replicas[i].temperature_history
             self.replicas[i] = OptimizerState(**state_dict)
+            self.replicas[i].temperature_history = temp_history
     
     def _finalize_results(self) -> Tuple[np.ndarray, pd.DataFrame]:
         """Complete optimization and return results."""
         # Final checkpoint and plot
         if self.checkpoint_file:
             self.save_checkpoint(self.checkpoint_file)
-        if self.plot_progress:
+        
+        if self.show_progress:
             self._plot_progress(force=True)
         
         # Return results from best replica
         best_replica = self._get_best_replica()
-        print(f"\nBest result from replica {best_replica.replica_id} "
-              f"(T={best_replica.temperature:.1f})")
-        print(f"Exchange acceptance rate: {self.exchange_stats.get_overall_acceptance_rate():.2%}")
+        
+        if self.verbose:
+            print(f"\nBest result from replica {best_replica.replica_id} "
+                  f"(T={best_replica.temperature:.1f})")
+            print(f"Exchange acceptance rate: {self.exchange_stats.get_overall_acceptance_rate():.2%}")
         
         # Convert to DataFrame if input was DataFrame
         if self.is_dataframe:
@@ -276,7 +279,7 @@ class HillClimber:
             'cooling_rate': self.cooling_rate,
             'mode': self.mode,
             'target_value': self.target_value,
-            'step_spread': self.step_spread
+            'step_spread': self.step_spread_absolute
         }
         
         # Evaluate initial objective
@@ -306,7 +309,7 @@ class HillClimber:
             replica.current_data,
             self.perturb_fraction,
             self.bounds,
-            self.step_spread
+            self.step_spread_absolute
         )
         
         # Evaluate
@@ -362,11 +365,14 @@ class HillClimber:
             )
             
             if accepted:
-                # Swap configurations (not temperatures!)
-                replica_i.current_data, replica_j.current_data = \
-                    replica_j.current_data.copy(), replica_i.current_data.copy()
-                replica_i.current_objective, replica_j.current_objective = \
-                    replica_j.current_objective, replica_i.current_objective
+                # Swap temperatures (not data!) to keep each replica's history continuous
+                old_temp_i = replica_i.temperature
+                old_temp_j = replica_j.temperature
+                
+                # Record temperature changes with current step number
+                current_step = replica_i.step  # Use step from replica i
+                replica_i.record_temperature_change(old_temp_j, current_step)
+                replica_j.record_temperature_change(old_temp_i, replica_j.step)
             
             # Record statistics
             replica_i.record_exchange(j, accepted)
@@ -387,16 +393,19 @@ class HillClimber:
                       key=lambda r: abs(r.best_objective - self.target_value))
     
     def _plot_progress(self, force: bool = False):
-        """Plot current progress of best replica."""
-        best_replica = self._get_best_replica()
+        """Plot current progress of all replicas."""
+        # Check if any replica has accepted steps
+        has_data = any(replica.metrics_history for replica in self.replicas)
         
-        if not best_replica.metrics_history:
+        if not has_data:
+            best_replica = self._get_best_replica()
             elapsed = (time.time() - best_replica.start_time) / 60
             if elapsed < 60:
                 time_str = f"{int(elapsed)} minutes"
             else:
                 time_str = f"{elapsed/60:.1f} hours"
-            print(f"No accepted steps yet (elapsed: {time_str})")
+            if self.verbose:
+                print(f"No accepted steps yet (elapsed: {time_str})")
             return
         
         # Clear previous plots
@@ -408,14 +417,20 @@ class HillClimber:
         except ImportError:
             pass
         
-        # Create results structure for plotting
-        if self.is_dataframe:
-            best_data_output = pd.DataFrame(best_replica.best_data, columns=self.column_names)
-        else:
-            best_data_output = best_replica.best_data
+        # Create results structure for all replicas
+        results_list = []
+        for replica in self.replicas:
+            if replica.metrics_history:  # Only include replicas with data
+                if self.is_dataframe:
+                    replica_data = pd.DataFrame(replica.best_data, columns=self.column_names)
+                else:
+                    replica_data = replica.best_data
+                
+                # Include temperature_history as first element of tuple
+                results_list.append((replica.temperature_history, replica_data, replica.get_history_dataframe()))
         
-        results = (best_data_output, best_replica.get_history_dataframe())
-        self.plot_results(results)
+        if results_list:
+            self.plot_results(results_list, plot_type=self.plot_type)
     
     def plot_results(self, results, plot_type: str = 'scatter', 
                      metrics: Optional[List[str]] = None):
@@ -428,7 +443,7 @@ class HillClimber:
         """
         # Use provided metrics, or fall back to instance plot_metrics
         metrics_to_plot = metrics if metrics is not None else self.plot_metrics
-        plot_results_func(results, plot_type, metrics_to_plot)
+        plot_results_func(results, plot_type, metrics_to_plot, self.exchange_interval)
     
     def save_checkpoint(self, filepath: str):
         """Save current state to checkpoint file."""
@@ -446,6 +461,8 @@ class HillClimber:
             'column_names': self.column_names,
             'bounds': self.bounds,
             'plot_metrics': self.plot_metrics,
+            'plot_type': self.plot_type,
+            'verbose': self.verbose,
             'n_workers': self.n_workers
         }
         
@@ -457,7 +474,8 @@ class HillClimber:
         with open(filepath, 'wb') as f:
             pickle.dump(checkpoint, f)
         
-        print(f"Checkpoint saved: {filepath}")
+        if self.verbose:
+            print(f"Checkpoint saved: {filepath}")
     
     @staticmethod
     def _serialize_state(state: OptimizerState) -> Dict[str, Any]:
@@ -471,6 +489,7 @@ class HillClimber:
             'best_objective': state.best_objective,
             'step': state.step,
             'metrics_history': state.metrics_history,
+            'temperature_history': state.temperature_history,
             'exchange_attempts': state.exchange_attempts,
             'exchange_acceptances': state.exchange_acceptances,
             'partner_history': state.partner_history,
@@ -480,12 +499,14 @@ class HillClimber:
         }
     
     @classmethod
-    def load_checkpoint(cls, filepath: str, objective_func: Callable):
+    def load_checkpoint(cls, filepath: str, objective_func: Callable, reset_temperatures: bool = False):
         """Load optimization state from checkpoint.
         
         Args:
             filepath: Path to checkpoint file
             objective_func: Objective function (must match original)
+            reset_temperatures: If True, reset replica temperatures to original ladder values
+                              If False (default), continue from saved temperatures
             
         Returns:
             HillClimber instance with restored state
@@ -502,6 +523,16 @@ class HillClimber:
         if checkpoint.get('is_dataframe', False):
             data = pd.DataFrame(data, columns=checkpoint['column_names'])
         
+        # Handle backward compatibility: old checkpoints stored absolute step_spread
+        # New version uses fractional step_spread, so we need to detect which format
+        step_spread_value = hyperparams['step_spread']
+        
+        # If step_spread > 1.0, it's likely an old absolute value
+        # Convert it to a fraction based on current data range
+        if step_spread_value > 1.0:
+            data_range = np.max(data, axis=0) - np.min(data, axis=0)
+            step_spread_value = step_spread_value / np.mean(data_range)
+        
         climber = cls(
             data=data,
             objective_func=objective_func,
@@ -511,9 +542,11 @@ class HillClimber:
             cooling_rate=hyperparams['cooling_rate'],
             mode=hyperparams['mode'],
             target_value=hyperparams.get('target_value'),
-            step_spread=hyperparams['step_spread'],
+            step_spread=step_spread_value,
             n_replicas=len(checkpoint['replicas']),
             plot_metrics=checkpoint.get('plot_metrics'),
+            plot_type=checkpoint.get('plot_type', 'scatter'),
+            verbose=checkpoint.get('verbose', False),
             n_workers=checkpoint.get('n_workers')
         )
         
@@ -527,6 +560,16 @@ class HillClimber:
         climber.temperature_ladder = TemperatureLadder(
             temperatures=np.array(checkpoint['temperature_ladder'])
         )
+        
+        # Reset temperatures if requested
+        if reset_temperatures:
+            for i, replica in enumerate(climber.replicas):
+                replica.temperature = climber.temperature_ladder.temperatures[i]
+            if climber.verbose:
+                print(f"Resumed from checkpoint with reset temperatures: {elapsed_seconds/60:.1f} minutes elapsed")
+        else:
+            if climber.verbose:
+                print(f"Resumed from checkpoint: {elapsed_seconds/60:.1f} minutes elapsed")
         
         # Restore exchange statistics
         stats_data = checkpoint['exchange_stats']
@@ -547,12 +590,5 @@ class HillClimber:
         
         for replica in climber.replicas:
             replica.start_time = adjusted_start_time
-        
-        # Set last_save_time and last_plot_time to current time to respect intervals
-        # This prevents immediate save/plot when resuming from a recently saved checkpoint
-        climber.last_save_time = current_time
-        climber.last_plot_time = current_time
-        
-        print(f"Resumed from checkpoint: {elapsed_seconds/60:.1f} minutes elapsed")
         
         return climber

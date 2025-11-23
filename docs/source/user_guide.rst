@@ -120,12 +120,12 @@ Hyperparameters
    - 'random': Random pair selection
    - 'all_neighbors': All neighboring pairs
 
-**step_spread** (default: 1.0)
-   Standard deviation of the normal distribution used for perturbations. Controls
-   the variability and typical magnitude of changes. Perturbations are sampled
-   from a normal distribution with mean 0 and this standard deviation. Larger 
-   values create more dramatic perturbations, smaller values make more subtle 
-   adjustments.
+**step_spread** (default: 0.01)
+   Perturbation spread as a fraction of the input data range (0.01 = 1% of range).
+   Controls the magnitude of changes relative to your data scale. The actual perturbation
+   standard deviation is calculated as ``step_spread * mean(data_range)``, making it
+   automatically scale-appropriate for your data. Larger values create more dramatic
+   perturbations, smaller values make more subtle adjustments.
 
 **perturb_fraction** (default: 0.1)
    Fraction of data points to modify in each iteration (0.0 to 1.0). 
@@ -139,10 +139,26 @@ Hyperparameters
 **max_time** (default: 30)
    Maximum optimization time in minutes.
 
-**plot_progress** (default: None)
-   Interval in minutes for plotting optimization progress during a run.
-   When set, creates scatter plots showing the current best solution at
-   regular intervals. For example, ``plot_progress=5`` plots every 5 minutes.
+**show_progress** (default: True)
+   Whether to display progress plots during optimization. Set to False to disable
+   plots (useful for automated scripts or testing).
+
+Checkpoints and Progress Plotting
+----------------------------------
+
+Hill Climber automatically saves checkpoints and updates progress plots after each
+batch of optimization steps (controlled by ``exchange_interval``). If you specify a
+``checkpoint_file`` path, the optimizer saves its state after every batch, allowing
+you to resume from the most recent state if interrupted. Progress plots are shown
+after each batch when ``show_progress=True`` (default).
+
+**Batch Size**
+   The batch size is determined by ``exchange_interval`` (default: 100 steps).
+   After each batch, the optimizer:
+   
+   - Attempts replica exchanges
+   - Saves a checkpoint (if ``checkpoint_file`` is specified)
+   - Updates progress plots (if ``show_progress=True``)
 
 Boundary Handling
 -----------------
@@ -227,9 +243,17 @@ Resume from a checkpoint:
 
 .. code-block:: python
 
+   # Continue with saved temperatures (default)
    resumed = HillClimber.load_checkpoint(
        filepath='optimization.pkl',
        objective_func=my_objective
+   )
+   
+   # Or reset temperatures to original ladder values
+   resumed = HillClimber.load_checkpoint(
+       filepath='optimization.pkl',
+       objective_func=my_objective,
+       reset_temperatures=True
    )
    
    # Continue optimizing

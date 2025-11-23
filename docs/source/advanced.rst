@@ -136,8 +136,7 @@ For long optimizations, save intermediate progress:
        data=data,
        objective_func=my_objective,
        max_time=60,
-       checkpoint_file='optimization.pkl',
-       save_interval=300  # Save every 5 minutes
+       checkpoint_file='long_run.pkl'  # Auto-saves after each batch
    )
    
    result = climber.climb()
@@ -146,21 +145,60 @@ Resume from a checkpoint:
 
 .. code-block:: python
 
+   # Continue with saved temperatures (default)
    resumed = HillClimber.load_checkpoint(
        filepath='optimization.pkl',
        objective_func=my_objective
    )
    
+   # Or reset temperatures to restart cooling schedule
+   resumed = HillClimber.load_checkpoint(
+       filepath='optimization.pkl',
+       objective_func=my_objective,
+       reset_temperatures=True  # Restart from hot temperatures
+   )
+   
    # Continue from where it left off
    best_data, history_df = resumed.climb()
+
+Temperature Reset on Resume
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, ``load_checkpoint`` preserves the cooled temperatures from the saved state,
+allowing the optimization to continue its cooling schedule. However, you can reset
+temperatures to their original ladder values:
+
+.. code-block:: python
+
+   # Reset temperatures when resuming
+   resumed = HillClimber.load_checkpoint(
+       filepath='optimization.pkl',
+       objective_func=my_objective,
+       reset_temperatures=True
+   )
+
+**When to reset temperatures:**
+
+- **Escaped local minimum**: If the optimization found a good solution but you want to explore more aggressively
+- **Multiple restart strategy**: Run multiple sessions with fresh temperatures for better exploration
+- **Stuck optimization**: Replicas have cooled too much and accept very few moves
+
+**When to keep saved temperatures (default):**
+
+- **Continuing long optimization**: Natural continuation of the cooling schedule
+- **Refining solution**: Cooler temperatures help fine-tune the current best solution
+- **Limited time remaining**: Use remaining time efficiently without re-exploring
+
+Note that resetting temperatures restarts the cooling schedule but preserves all other
+state including current configurations, best solutions, and optimization history.
 
 Progress Monitoring
 -------------------
 
-Live Progress Plots
-~~~~~~~~~~~~~~~~~~~
+Automatic Progress Plots
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-Monitor optimization progress in real-time with automatic plotting:
+Progress plots are automatically displayed after each batch in notebook environments:
 
 .. code-block:: python
 
@@ -168,12 +206,14 @@ Monitor optimization progress in real-time with automatic plotting:
        data=data,
        objective_func=my_objective,
        max_time=60,
-       plot_progress=5  # Plot every 5 minutes
+       plot_type='histogram',  # 'scatter' or 'histogram'
+       plot_metrics=['Correlation']  # Specific metrics to track
    )
    
    result = climber.climb()
 
-This is particularly useful for:
+Plots update automatically after each batch (every ``exchange_interval`` steps,
+default: 100). This is useful for:
 
 - Long-running optimizations (>10 minutes)
 - Interactive Jupyter notebooks
@@ -188,11 +228,12 @@ Perturbation Strategies
 
 **Perturbation distribution**:
 
-Perturbations are sampled from a normal distribution N(0, ``step_spread``):
+Perturbations are sampled from a normal distribution N(0, σ) where σ is calculated
+as ``step_spread * mean(data_range)``:
 
 - Mean is always 0 (symmetric perturbations around current values)
-- ``step_spread``: Standard deviation (controls magnitude variability)
-- Default ``step_spread=1.0`` provides moderate-sized perturbations
+- ``step_spread``: Fraction of data range (default: 0.01 = 1%)
+- Actual standard deviation scales with your data automatically
 
 Example:
 
@@ -202,7 +243,7 @@ Example:
        data=data,
        objective_func=my_objective,
        perturb_fraction=0.1,  # perturb 10% of elements
-       step_spread=0.5        # moderate variability
+       step_spread=0.02       # 2% of data range
    )
 
 Faster Convergence
@@ -210,7 +251,7 @@ Faster Convergence
 
 For quick convergence, use aggressive parameters:
 
-- **Large step_spread** (5.0-10.0): Allow bigger perturbations
+- **Large step_spread** (0.05-0.10): Allow bigger perturbations (5-10% of range)
 - **High perturb_fraction** (0.4-0.6): Modify more points
 - **Low temperature** (10-50): More greedy optimization
 - **Slower cooling** (0.0001): More exploration of suboptimal solutions
@@ -220,7 +261,7 @@ Better Exploration
 
 For thorough exploration of solution space:
 
-- **Small step_spread** (0.1-0.5): Precise adjustments
+- **Small step_spread** (0.001-0.005): Precise adjustments (0.1-0.5% of range)
 - **Low perturb_fraction** (0.1-0.2): Subtle changes
 - **High temperature** (100-500): Accept more suboptimal moves
 - **Faster cooling** (0.01-0.001): Gradual convergence
@@ -232,7 +273,7 @@ The hill climbing process can be visualized as searching a fitness landscape.
 The algorithm:
 
 1. Starts from initial data
-2. Makes random perturbations sampled from a normal distribution N(0, ``step_spread``)
+2. Makes random perturbations sampled from N(0, ``step_spread * mean(data_range)``)
 3. Evaluates fitness via objective function
 4. Accepts improvements (always) or worsening moves (with probability based on temperature)
 5. Gradually reduces temperature to focus on local optimization
@@ -248,7 +289,7 @@ No Progress After Many Steps
 
 **Solutions**:
 
-- Increase ``step_spread`` for larger perturbations
+- Increase ``step_spread`` for larger perturbations (try 0.05-0.10)
 - Increase ``perturb_fraction`` to modify more points
 - Decrease ``temperature`` for more greedy optimization
 - Check if objective function has bugs or is too constrained
@@ -273,7 +314,7 @@ Oscillating Objective Values
 
 **Solutions**:
 
-- Decrease ``step_spread`` for finer control
+- Decrease ``step_spread`` for finer control (try 0.005-0.01)
 - Decrease ``temperature`` to be more selective
 - Check for bugs in objective function
 - Ensure objective weights are balanced
