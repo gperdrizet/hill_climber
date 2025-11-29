@@ -1,20 +1,27 @@
 Real-Time Monitoring Dashboard
 ==============================
 
-The Hill Climber package includes a real-time monitoring dashboard built with Streamlit and SQLite for visualizing optimization progress as it runs.
+The Hill Climber package includes a real-time monitoring dashboard built with Streamlit and SQLite for visualizing optimization progress as it runs. The dashboard uses a modular architecture separating data loading, UI components, and plot generation.
 
 Features
 --------
 
 The dashboard provides:
 
-- **Live Progress Monitoring**: Auto-refreshing view of optimization progress
-- **Replica Status Cards**: Current state of all replicas (step, temperature, objectives)
+- **Replica Leaderboard**: Top-performing replicas with current objectives, steps, and temperatures
+- **Progress Statistics**: 
+  - Exploration rate (total perturbations per second across all replicas)
+  - Progress rate (accepted steps per second)
+  - Acceptance rate percentage
 - **Interactive Time Series Plots**: Plotly charts for metrics over time with zoom and pan
-- **Temperature Exchange Timeline**: Visualization of replica exchange events
-- **Configurable Refresh Rate**: Adjust polling frequency (1-30 seconds)
-- **Metric Selection**: Choose which metrics to display
-- **Performance Statistics**: Best replica, total exchanges, maximum steps
+- **Temperature Exchange Markers**: Optional visualization of replica exchange events
+- **Configurable Refresh Rate**: Adjust polling frequency (0.5-5 minutes)
+- **Plot Options**: 
+  - Metric selection (Best vs Current history)
+  - Normalization toggle
+  - Layout control (1 or 2 columns)
+  - Downsampling for performance
+- **Run Information**: Objective function name, dataset size, hyperparameters, and initial temperatures
 
 Installation
 ------------
@@ -62,19 +69,23 @@ While your optimization is running (or after it completes), launch the dashboard
 
 .. code-block:: bash
 
-   streamlit run progress_dashboard.py
+   hill-climber-dashboard
 
-Then navigate to http://localhost:8501 in your browser.
+Then navigate to http://localhost:8501 in your browser. The dashboard will automatically discover databases in common locations, or you can select a specific database file using the sidebar controls.
 
 Dashboard Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Configure the dashboard using the sidebar:
 
-- **Database Path**: Point to your SQLite database file
+- **Database Selection**: Choose directory and database file from dropdowns
 - **Auto-refresh**: Enable/disable automatic updates
-- **Refresh Interval**: Set polling frequency (1-30 seconds)
-- **Metrics to Display**: Select which metrics to visualize
+- **Refresh Interval**: Set polling frequency (0.5-5 minutes)
+- **History Type**: Select Best (monotonic improvement) or Current (includes exploration)
+- **Additional Metrics**: Select extra metrics beyond the objective to plot
+- **Normalize**: Toggle metric normalization to [0, 1]
+- **Exchange Markers**: Show vertical lines at temperature exchange events
+- **Plot Layout**: Choose 1 or 2 column display
 
 Database Configuration Parameters
 ----------------------------------

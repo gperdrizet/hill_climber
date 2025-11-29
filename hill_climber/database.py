@@ -14,16 +14,18 @@ class DatabaseWriter:
     Uses SQLite WAL mode for concurrent read/write access without
     explicit connection pooling.
     """
-    
+
     def __init__(self, db_path: str):
         """Initialize database writer.
         
         Args:
             db_path: Path to SQLite database file
         """
+
         self.db_path = db_path
         self._lock = threading.Lock()
-        
+
+
     @contextmanager
     def get_connection(self):
         """Context manager for database connections.
@@ -31,25 +33,33 @@ class DatabaseWriter:
         Yields:
             sqlite3.Connection: Database connection
         """
+
         conn = sqlite3.connect(self.db_path, timeout=30.0)
+        
         try:
             # Enable WAL mode for concurrent reads during writes
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA synchronous=NORMAL")
+
             yield conn
+
             conn.commit()
+
         except Exception as e:
             conn.rollback()
             raise e
+
         finally:
             conn.close()
-    
+
+
     def initialize_schema(self, drop_existing: bool = True):
         """Create database schema.
         
         Args:
             drop_existing: If True, drop existing tables first (default: True)
         """
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
@@ -68,7 +78,10 @@ class DatabaseWriter:
                     exchange_interval INTEGER NOT NULL,
                     db_step_interval INTEGER NOT NULL,
                     db_buffer_size INTEGER NOT NULL,
-                    hyperparameters TEXT NOT NULL
+                    hyperparameters TEXT NOT NULL,
+                    checkpoint_file TEXT,
+                    objective_function_name TEXT,
+                    dataset_size INTEGER
                 )
             """)
             
@@ -77,11 +90,18 @@ class DatabaseWriter:
                 CREATE TABLE IF NOT EXISTS replica_status (
                     replica_id INTEGER PRIMARY KEY,
                     step INTEGER NOT NULL,
+                    total_iterations INTEGER NOT NULL DEFAULT 0,
                     temperature REAL NOT NULL,
                     best_objective REAL NOT NULL,
                     current_objective REAL NOT NULL,
                     timestamp REAL NOT NULL
                 )
+            """)
+            
+            # Create index for leaderboard queries (optimized for ORDER BY best_objective DESC)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_replica_status_objective 
+                ON replica_status(best_objective DESC)
             """)
             
             # Metrics history table (time series)
@@ -96,10 +116,20 @@ class DatabaseWriter:
                 )
             """)
             
-            # Create index for faster time series queries
+            # Create indexes for faster time series queries
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_metrics_replica_step 
                 ON metrics_history(replica_id, step)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_metrics_name
+                ON metrics_history(metric_name)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_metrics_step
+                ON metrics_history(step)
             """)
             
             # Temperature exchanges table
@@ -118,10 +148,12 @@ class DatabaseWriter:
                 CREATE INDEX IF NOT EXISTS idx_temp_exchanges_step 
                 ON temperature_exchanges(step)
             """)
-    
+
+
     def insert_run_metadata(self, n_replicas: int, exchange_interval: int,
                            db_step_interval: int, db_buffer_size: int,
-                           hyperparameters: Dict[str, Any]):
+                           hyperparameters: Dict[str, Any], checkpoint_file: str = None,
+                           objective_function_name: str = None, dataset_size: int = None):
         """Insert run metadata.
         
         Args:
@@ -130,86 +162,112 @@ class DatabaseWriter:
             db_step_interval: Steps between metric collection
             db_buffer_size: Buffer size before database write
             hyperparameters: Dictionary of hyperparameters
+            checkpoint_file: Path to checkpoint file (optional)
+            objective_function_name: Name of objective function (optional)
+            dataset_size: Total size of input dataset (optional)
         """
+
         with self.get_connection() as conn:
+
             cursor = conn.cursor()
+
             cursor.execute("""
                 INSERT INTO run_metadata 
                 (run_id, start_time, n_replicas, exchange_interval, 
-                 db_step_interval, db_buffer_size, hyperparameters)
-                VALUES (1, ?, ?, ?, ?, ?, ?)
+                 db_step_interval, db_buffer_size, hyperparameters, checkpoint_file, objective_function_name, dataset_size)
+                VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 time.time(),
                 n_replicas,
                 exchange_interval,
                 db_step_interval,
                 db_buffer_size,
-                json.dumps(hyperparameters)
+                json.dumps(hyperparameters),
+                checkpoint_file,
+                objective_function_name,
+                dataset_size
             ))
-    
+
+
     def update_replica_status(self, replica_id: int, step: int,
+                             total_iterations: int,
                              temperature: float, best_objective: float,
                              current_objective: float):
         """Update current replica status.
         
         Args:
             replica_id: Replica ID
-            step: Current step number
+            step: Current step number (accepted steps)
+            total_iterations: Total iterations attempted (all perturbations)
             temperature: Current temperature
             best_objective: Best objective value found
             current_objective: Current objective value
         """
+
         with self.get_connection() as conn:
+
             cursor = conn.cursor()
+
             cursor.execute("""
                 INSERT OR REPLACE INTO replica_status
-                (replica_id, step, temperature, best_objective, current_objective, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (replica_id, step, temperature, best_objective, current_objective, time.time()))
-    
+                (replica_id, step, total_iterations, temperature, best_objective, current_objective, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (replica_id, step, total_iterations, temperature, best_objective, current_objective, time.time()))
+
+
     def insert_metrics_batch(self, metrics_data: List[tuple]):
         """Insert batch of metrics.
         
         Args:
             metrics_data: List of tuples (replica_id, step, metric_name, value)
         """
+
         if not metrics_data:
             return
             
         with self._lock:
             with self.get_connection() as conn:
+
                 cursor = conn.cursor()
+
                 cursor.executemany("""
                     INSERT OR REPLACE INTO metrics_history
                     (replica_id, step, metric_name, value)
                     VALUES (?, ?, ?, ?)
                 """, metrics_data)
-    
+
+
     def insert_temperature_exchanges(self, exchanges: List[tuple]):
         """Insert temperature exchange records.
         
         Args:
             exchanges: List of tuples (step, replica_id, new_temperature)
         """
+
         if not exchanges:
             return
             
         with self.get_connection() as conn:
+
             cursor = conn.cursor()
             timestamp = time.time()
+
             cursor.executemany("""
                 INSERT INTO temperature_exchanges
                 (step, replica_id, new_temperature, timestamp)
                 VALUES (?, ?, ?, ?)
             """, [(step, rid, temp, timestamp) for step, rid, temp in exchanges])
-    
+
+
     def get_run_metadata(self) -> Optional[Dict[str, Any]]:
         """Get run metadata.
         
         Returns:
             Dictionary with run metadata or None if not found
         """
+
         with self.get_connection() as conn:
+
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM run_metadata WHERE run_id = 1")
             row = cursor.fetchone()
@@ -224,14 +282,17 @@ class DatabaseWriter:
                     'db_buffer_size': row[5],
                     'hyperparameters': json.loads(row[6])
                 }
+
             return None
-    
+
+
     def get_replica_status(self) -> List[Dict[str, Any]]:
         """Get current status of all replicas.
         
         Returns:
             List of dictionaries with replica status
         """
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -249,10 +310,13 @@ class DatabaseWriter:
                 'current_objective': row[4],
                 'timestamp': row[5]
             } for row in cursor.fetchall()]
-    
-    def get_metrics_history(self, replica_id: Optional[int] = None,
-                           min_step: Optional[int] = None,
-                           max_step: Optional[int] = None) -> List[Dict[str, Any]]:
+
+
+    def get_metrics_history(
+            self, replica_id: Optional[int] = None,
+            min_step: Optional[int] = None,
+            max_step: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
         """Get metrics history.
         
         Args:
@@ -263,7 +327,9 @@ class DatabaseWriter:
         Returns:
             List of dictionaries with metrics history
         """
+
         with self.get_connection() as conn:
+
             cursor = conn.cursor()
             
             query = "SELECT replica_id, step, metric_name, value FROM metrics_history WHERE 1=1"
@@ -272,9 +338,11 @@ class DatabaseWriter:
             if replica_id is not None:
                 query += " AND replica_id = ?"
                 params.append(replica_id)
+
             if min_step is not None:
                 query += " AND step >= ?"
                 params.append(min_step)
+
             if max_step is not None:
                 query += " AND step <= ?"
                 params.append(max_step)
@@ -289,15 +357,19 @@ class DatabaseWriter:
                 'metric_name': row[2],
                 'value': row[3]
             } for row in cursor.fetchall()]
-    
+
+
     def get_temperature_exchanges(self) -> List[Dict[str, Any]]:
         """Get all temperature exchange records.
         
         Returns:
             List of dictionaries with temperature exchanges
         """
+
         with self.get_connection() as conn:
+
             cursor = conn.cursor()
+
             cursor.execute("""
                 SELECT step, replica_id, new_temperature, timestamp
                 FROM temperature_exchanges

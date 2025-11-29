@@ -11,7 +11,8 @@ A Python package for hill climbing optimization of user-supplied objective funct
 ## 2. Features
 
 - **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
-- **Real-Time Monitoring Dashboard**: Streamlit-based dashboard for live progress visualization with SQLite backend
+- **Real-Time Monitoring Dashboard**: Streamlit-based modular dashboard for live progress visualization with SQLite backend
+- **Type-Safe Configuration**: Dataclass-based configuration with automatic validation
 - **Simulated Annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
 - **Flexible Objectives**: Support for any objective function with multiple metrics
 - **Multi-Column Support**: Optimize datasets with any number of features/columns
@@ -28,12 +29,6 @@ Install the package directly from PyPI to use it in your own projects:
 
 ```bash
 pip install parallel-hill-climber
-```
-
-To use the real-time monitoring dashboard, install with dashboard extras:
-
-```bash
-pip install parallel-hill-climber[dashboard]
 ```
 
 For detailed usage, configuration options, and advanced features, see the <a href="https://gperdrizet.github.io/hill_climber" target="_blank">full documentation</a>.
@@ -101,15 +96,19 @@ best_data, history = climber.climb()
 Launch the dashboard in a separate terminal:
 
 ```bash
-streamlit run progress_dashboard.py
+pip install "parallel-hill-climber[dashboard]"
+hill-climber-dashboard
 ```
 
 The dashboard provides:
-- Live replica status cards with current step, temperature, and objectives
-- Interactive time series plots for all metrics
-- Temperature exchange timeline visualization
-- Auto-refresh with configurable intervals
-- Metric selection and filtering
+- Replica leaderboard showing top performers
+- Exploration rate (total perturbations/sec) and progress rate (accepted steps/sec)
+- Acceptance rate percentage
+- Interactive time series plots for all metrics across replicas
+- Temperature exchange event markers
+- Configurable auto-refresh intervals
+- Plot normalization and layout options
+- Run information including objective function name, dataset size, and hyperparameters
 
 See [DASHBOARD_README.md](DASHBOARD_README.md) for complete dashboard documentation.
 

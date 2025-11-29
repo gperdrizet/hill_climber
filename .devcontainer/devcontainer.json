@@ -80,10 +80,14 @@
 	// Configure port forwarding for the documentation server
 	// Port 8000 is used to serve the built Sphinx documentation locally
 	// This allows viewing docs at http://localhost:8000 during development
-	"forwardPorts": [8000],
+	"forwardPorts": [8000, 8501],
 	"portsAttributes": {
 		"8000": {
-			"label": "Documentation Server",
+			"label": "Documentation server",
+			"protocol": "http"
+		},
+		"8501": {
+			"label": "Progress dashboard",
 			"protocol": "http"
 		}
 	}

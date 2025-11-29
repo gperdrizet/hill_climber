@@ -3,7 +3,6 @@
 import numpy as np
 from typing import Dict, Any, Tuple, Callable
 
-from .optimizer_state import OptimizerState
 from .climber_functions import perturb_vectors, evaluate_objective
 
 
@@ -18,12 +17,12 @@ def run_replica_steps(
 ) -> Dict[str, Any]:
     """Run n optimization steps for a single replica.
     
-    This function is designed to run in a worker process. It deserializes
-    a replica state, performs n optimization steps, and returns the updated
-    serialized state.
+    This function is designed to run in a worker process. It takes
+    a replica state dict, performs n optimization steps, and returns
+    the updated state dict.
     
     Args:
-        state_dict: Serialized OptimizerState dictionary
+        state_dict: Replica state dictionary
         objective_func: Function taking M column arrays, returns (metrics_dict, objective_value)
         bounds: Tuple of (min_values, max_values) for boundary reflection
         n_steps: Number of optimization steps to perform
@@ -36,10 +35,11 @@ def run_replica_steps(
                   - buffer_size: int (flush after N collected steps)
     
     Returns:
-        Updated serialized state dictionary with 'db_buffer' key if database enabled
+        Updated state dictionary
     """
-    # Deserialize state
-    state = OptimizerState(**state_dict)
+
+    # State is already a dict
+    state = state_dict
     
     # Initialize database buffer if enabled
     db_buffer = []
@@ -49,21 +49,26 @@ def run_replica_steps(
         db_step_interval = db_config['step_interval']
         db_buffer_size = db_config['buffer_size']
         db_path = db_config['path']
-        db_pool_size = db_config.get('pool_size', 4)
+        # db_pool_size = db_config.get('pool_size', 4)
         
         # Import database writer only if needed
         from .database import DatabaseWriter
-        db_writer = DatabaseWriter(db_path, db_pool_size)
+        db_writer = DatabaseWriter(db_path)
     
     # Run n steps
-    for _ in range(n_steps):
+    for iteration in range(n_steps):
+        
+        # Increment total iterations counter (counts all perturbations, not just accepted)
+        state['total_iterations'] += 1
+
         # Get step spread from hyperparameters
-        step_spread = state.hyperparameters.get('step_spread', 1.0)
+        step_spread = state['hyperparameters'].get('step_spread', 1.0)
         
         # Perturb data
-        perturb_fraction = state.hyperparameters['perturb_fraction']
+        perturb_fraction = state['hyperparameters']['perturb_fraction']
+
         perturbed = perturb_vectors(
-            state.current_data,
+            state['current_data'],
             perturb_fraction,
             bounds,
             step_spread
@@ -74,43 +79,86 @@ def run_replica_steps(
             perturbed, objective_func
         )
         
-        # Add objective value to metrics dict for database storage
-        metrics['Objective value'] = objective
-        
         # Acceptance criterion (simulated annealing)
         accept = _should_accept(
-            objective, state.current_objective, state.temperature,
+            objective, state['current_objective'], state['temperature'],
             mode, target_value
         )
         
-        if accept:
-            state.record_improvement(perturbed, objective, metrics)
-            
-            # Collect metrics for database if enabled and on collection interval
-            if db_enabled and (state.step % db_step_interval == 0):
-                # Buffer metrics for this step
-                for metric_name, metric_value in metrics.items():
-                    db_buffer.append((state.replica_id, state.step, metric_name, metric_value))
-                
-                # Flush buffer if it reaches buffer_size
-                if len(db_buffer) >= db_buffer_size * len(metrics):
-                    db_writer.insert_metrics_batch(db_buffer)
-                    db_buffer = []
         # Note: We only record accepted steps to avoid misleading history
         # where rejected steps would show the old objective with a new step number
+        if accept:
+
+            # Update current state
+            state['current_data'] = perturbed
+            state['current_objective'] = objective
+            
+            # Update best state if this is better
+            # Use mode-aware comparison
+            is_better = False
+            if mode == 'maximize':
+                is_better = objective > state['best_objective']
+            elif mode == 'minimize':
+                is_better = objective < state['best_objective']
+            else:  # target mode
+                current_dist = abs(state['best_objective'] - target_value)
+                new_dist = abs(objective - target_value)
+                is_better = new_dist < current_dist
+            
+            if is_better:
+                state['best_data'] = perturbed.copy()
+                state['best_objective'] = objective
+            
+            state['step'] += 1
+            
+            # CRITICAL FIX: Record BEST objective in history, not current
+            # This ensures history shows monotonic improvement
+            # Add current objective as separate metric for SA analysis
+            metrics['Objective value'] = state['best_objective']  # Best so far
+            metrics['Current Objective'] = objective  # This step's value (may be worse due to SA)
+            state['metrics_history'].append(metrics.copy())
         
-        # Cool temperature
-        cooling_rate = state.hyperparameters['cooling_rate']
-        state.temperature *= (1 - cooling_rate)
+            # Cool temperature
+            cooling_rate = state['hyperparameters']['cooling_rate']
+            state['temperature'] *= (1 - cooling_rate)
+        
+        # Collect metrics for database at regular intervals (regardless of acceptance)
+        # Record both BEST and CURRENT state metrics for dashboard flexibility
+        if db_enabled and (iteration > 0) and (iteration % db_step_interval == 0):
+            # Re-evaluate best data to get its metrics
+            best_metrics, best_obj = evaluate_objective(
+                state['best_data'], objective_func
+            )
+            
+            # Re-evaluate current data to get its metrics (may differ due to SA)
+            current_metrics, current_obj = evaluate_objective(
+                state['current_data'], objective_func
+            )
+            
+            # Create a combined metrics dictionary with proper prefixes
+            all_metrics = {}
+            
+            # Add BEST metrics with "Best " prefix
+            all_metrics['Best Objective'] = state['best_objective']
+            for metric_name, metric_value in best_metrics.items():
+                all_metrics[f'Best {metric_name}'] = metric_value
+            
+            # Add CURRENT metrics with "Current " prefix
+            all_metrics['Current Objective'] = state['current_objective']
+            for metric_name, metric_value in current_metrics.items():
+                all_metrics[f'Current {metric_name}'] = metric_value
+            
+            # Buffer all metrics for this step
+            for metric_name, metric_value in all_metrics.items():
+                db_buffer.append((state['replica_id'], state['step'], metric_name, metric_value))
+            
+            # Flush buffer if it reaches buffer_size
+            if len(db_buffer) >= db_buffer_size * len(all_metrics):
+                db_writer.insert_metrics_batch(db_buffer)
+                db_buffer = []
     
-    # Serialize and return
-    result = _serialize_state(state)
-    
-    # Include unflushed buffer for main process to handle
-    if db_enabled:
-        result['db_buffer'] = db_buffer
-    
-    return result
+    # Return state (already in dict format)
+    return state
 
 
 def _should_accept(
@@ -121,10 +169,13 @@ def _should_accept(
     target_value: float = None
 ) -> bool:
     """Determine if new state should be accepted (simulated annealing)."""
+
     if mode == 'maximize':
         delta = new_obj - current_obj
+
     elif mode == 'minimize':
         delta = current_obj - new_obj
+
     else:  # target mode
         current_dist = abs(current_obj - target_value)
         new_dist = abs(new_obj - target_value)
@@ -132,26 +183,7 @@ def _should_accept(
     
     if delta > 0:
         return True
+
     else:
         prob = np.exp(delta / temp) if temp > 0 else 0
         return np.random.random() < prob
-
-
-def _serialize_state(state: OptimizerState) -> Dict[str, Any]:
-    """Convert OptimizerState to dictionary for pickling."""
-    return {
-        'replica_id': state.replica_id,
-        'temperature': state.temperature,
-        'current_data': state.current_data,
-        'current_objective': state.current_objective,
-        'best_data': state.best_data,
-        'best_objective': state.best_objective,
-        'step': state.step,
-        'metrics_history': state.metrics_history,
-        'exchange_attempts': state.exchange_attempts,
-        'exchange_acceptances': state.exchange_acceptances,
-        'partner_history': state.partner_history,
-        'original_data': state.original_data,
-        'hyperparameters': state.hyperparameters,
-        'start_time': state.start_time
-    }

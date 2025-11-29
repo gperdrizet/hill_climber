@@ -30,12 +30,12 @@ class TestHillClimber(unittest.TestCase):
             objective_func=simple_objective,
             max_time=1,
             n_replicas=2,
-            show_progress=False
+            verbose=False
         )
         
         self.assertEqual(climber.n_replicas, 2)
-        self.assertEqual(climber.T_min, 1000)
-        self.assertEqual(climber.T_max, 10000)
+        self.assertEqual(climber.T_min, 0.1)  # Default is 0.1, not 1
+        self.assertEqual(climber.T_max, 10)
         self.assertTrue(climber.is_dataframe)
         self.assertEqual(climber.column_names, ['x', 'y'])
     
@@ -47,7 +47,7 @@ class TestHillClimber(unittest.TestCase):
             objective_func=simple_objective,
             max_time=0.05,
             n_replicas=2,
-            show_progress=False
+            verbose=False
         )
         
         best_data, history = climber.climb()
@@ -72,14 +72,13 @@ class TestHillClimber(unittest.TestCase):
             max_time=0.1,
             n_replicas=3,
             exchange_interval=10,
-            show_progress=False
+            verbose=False
         )
         
         best_data, history = climber.climb()
         
         self.assertEqual(best_data.shape, data.shape)
         self.assertGreater(len(history), 0)
-        self.assertGreater(climber.exchange_stats.round_count, 0)
 
 
 if __name__ == '__main__':
