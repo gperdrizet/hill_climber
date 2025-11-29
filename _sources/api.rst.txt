@@ -9,8 +9,31 @@ HillClimber
    :undoc-members:
    :show-inheritance:
 
-OptimizerState
---------------
+Configuration
+-------------
+
+OptimizerConfig
+~~~~~~~~~~~~~~~
+
+.. autoclass:: hill_climber.OptimizerConfig
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+State Management
+----------------
+
+ReplicaState
+~~~~~~~~~~~~
+
+.. autoclass:: hill_climber.ReplicaState
+   :members: to_dict, from_dict
+   :show-inheritance:
+
+.. autofunction:: hill_climber.create_replica_state
+
+OptimizerState (Legacy)
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: hill_climber.OptimizerState
    :members: record_step, record_improvement, record_exchange, get_history_dataframe, get_acceptance_rate

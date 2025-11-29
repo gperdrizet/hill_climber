@@ -41,11 +41,12 @@ Features
 --------
 
 - **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
-- **Real-Time Monitoring Dashboard**: Streamlit-based dashboard for live progress visualization with SQLite backend
+- **Real-Time Monitoring Dashboard**: Streamlit-based modular dashboard for live progress visualization with SQLite backend
+- **Type-Safe Configuration**: Dataclass-based configuration with automatic validation
 - **Flexible objective functions**: Define custom objectives for any statistical property
 - **Simulated annealing**: Escape local optima and find global solutions
 - **Multi-column data**: Optimize datasets with any number of features
-- **Unified state management**: Clean dataclass architecture for internal state tracking
+- **Structured state management**: ReplicaState dataclass with type hints for clarity and IDE support
 - **Checkpointing**: Save and resume long-running optimizations with configurable checkpoint intervals
 - **Progress monitoring**: Live plotting during optimization runs
 - **Rich visualization**: Built-in plotting for results analysis

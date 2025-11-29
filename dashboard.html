@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Real-Time Monitoring Dashboard &mdash; Hill Climber 1.1.0 documentation</title>
+  <title>Real-Time Monitoring Dashboard &mdash; Hill Climber 2.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=fc837d61"></script>
+      <script src="_static/documentation_options.js?v=20623aea"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -115,18 +115,25 @@
              
   <section id="real-time-monitoring-dashboard">
 <h1>Real-Time Monitoring Dashboard<a class="headerlink" href="#real-time-monitoring-dashboard" title="Link to this heading"></a></h1>
-<p>The Hill Climber package includes a real-time monitoring dashboard built with Streamlit and SQLite for visualizing optimization progress as it runs.</p>
+<p>The Hill Climber package includes a real-time monitoring dashboard built with Streamlit and SQLite for visualizing optimization progress as it runs. The dashboard uses a modular architecture separating data loading, UI components, and plot generation.</p>
 <section id="features">
 <h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
 <p>The dashboard provides:</p>
 <ul class="simple">
-<li><p><strong>Live Progress Monitoring</strong>: Auto-refreshing view of optimization progress</p></li>
-<li><p><strong>Replica Status Cards</strong>: Current state of all replicas (step, temperature, objectives)</p></li>
+<li><p><strong>Replica Leaderboard</strong>: Top-performing replicas with current objectives, steps, and temperatures</p></li>
+<li><p><strong>Progress Statistics</strong>:
+- Exploration rate (total perturbations per second across all replicas)
+- Progress rate (accepted steps per second)
+- Acceptance rate percentage</p></li>
 <li><p><strong>Interactive Time Series Plots</strong>: Plotly charts for metrics over time with zoom and pan</p></li>
-<li><p><strong>Temperature Exchange Timeline</strong>: Visualization of replica exchange events</p></li>
-<li><p><strong>Configurable Refresh Rate</strong>: Adjust polling frequency (1-30 seconds)</p></li>
-<li><p><strong>Metric Selection</strong>: Choose which metrics to display</p></li>
-<li><p><strong>Performance Statistics</strong>: Best replica, total exchanges, maximum steps</p></li>
+<li><p><strong>Temperature Exchange Markers</strong>: Optional visualization of replica exchange events</p></li>
+<li><p><strong>Configurable Refresh Rate</strong>: Adjust polling frequency (0.5-5 minutes)</p></li>
+<li><p><strong>Plot Options</strong>:
+- Metric selection (Best vs Current history)
+- Normalization toggle
+- Layout control (1 or 2 columns)
+- Downsampling for performance</p></li>
+<li><p><strong>Run Information</strong>: Objective function name, dataset size, hyperparameters, and initial temperatures</p></li>
 </ul>
 </section>
 <section id="installation">
@@ -166,19 +173,23 @@
 <section id="launching-the-dashboard">
 <h3>Launching the Dashboard<a class="headerlink" href="#launching-the-dashboard" title="Link to this heading"></a></h3>
 <p>While your optimization is running (or after it completes), launch the dashboard:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>streamlit<span class="w"> </span>run<span class="w"> </span>progress_dashboard.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>hill-climber-dashboard
 </pre></div>
 </div>
-<p>Then navigate to <a class="reference external" href="http://localhost:8501">http://localhost:8501</a> in your browser.</p>
+<p>Then navigate to <a class="reference external" href="http://localhost:8501">http://localhost:8501</a> in your browser. The dashboard will automatically discover databases in common locations, or you can select a specific database file using the sidebar controls.</p>
 </section>
 <section id="dashboard-configuration">
 <h3>Dashboard Configuration<a class="headerlink" href="#dashboard-configuration" title="Link to this heading"></a></h3>
 <p>Configure the dashboard using the sidebar:</p>
 <ul class="simple">
-<li><p><strong>Database Path</strong>: Point to your SQLite database file</p></li>
+<li><p><strong>Database Selection</strong>: Choose directory and database file from dropdowns</p></li>
 <li><p><strong>Auto-refresh</strong>: Enable/disable automatic updates</p></li>
-<li><p><strong>Refresh Interval</strong>: Set polling frequency (1-30 seconds)</p></li>
-<li><p><strong>Metrics to Display</strong>: Select which metrics to visualize</p></li>
+<li><p><strong>Refresh Interval</strong>: Set polling frequency (0.5-5 minutes)</p></li>
+<li><p><strong>History Type</strong>: Select Best (monotonic improvement) or Current (includes exploration)</p></li>
+<li><p><strong>Additional Metrics</strong>: Select extra metrics beyond the objective to plot</p></li>
+<li><p><strong>Normalize</strong>: Toggle metric normalization to [0, 1]</p></li>
+<li><p><strong>Exchange Markers</strong>: Show vertical lines at temperature exchange events</p></li>
+<li><p><strong>Plot Layout</strong>: Choose 1 or 2 column display</p></li>
 </ul>
 </section>
 </section>

@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hill_climber.optimizer_state &mdash; Hill Climber 1.1.0 documentation</title>
+  <title>hill_climber.optimizer_state &mdash; Hill Climber 2.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=fc837d61"></script>
+      <script src="../../_static/documentation_options.js?v=20623aea"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -76,26 +76,42 @@
            <div itemprop="articleBody">
              
   <h1>Source code for hill_climber.optimizer_state</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Dataclass for managing hill climber optimization state.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;Helper functions and dataclass for managing hill climber optimization state.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 
 
-<div class="viewcode-block" id="OptimizerState">
-<a class="viewcode-back" href="../../api.html#hill_climber.OptimizerState">[docs]</a>
+<div class="viewcode-block" id="ReplicaState">
+<a class="viewcode-back" href="../../api.html#hill_climber.ReplicaState">[docs]</a>
 <span class="nd">@dataclass</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">OptimizerState</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;State for a single replica in replica exchange optimization.</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReplicaState</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;State container for a single replica in the hill climber optimization.</span>
 <span class="sd">    </span>
-<span class="sd">    This dataclass manages the state and history for a single optimization replica,</span>
-<span class="sd">    including current configuration, best found solution, metrics history, and </span>
-<span class="sd">    exchange statistics.</span>
+<span class="sd">    This dataclass provides type safety and IDE autocomplete for replica state,</span>
+<span class="sd">    replacing the previous dictionary-based approach.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        replica_id: Replica identifier</span>
+<span class="sd">        temperature: Current temperature</span>
+<span class="sd">        current_data: Current data configuration</span>
+<span class="sd">        current_objective: Current objective value</span>
+<span class="sd">        best_data: Best data found so far</span>
+<span class="sd">        best_objective: Best objective value found</span>
+<span class="sd">        step: Number of accepted steps</span>
+<span class="sd">        total_iterations: Total number of perturbations attempted</span>
+<span class="sd">        metrics_history: List of metric dictionaries for each accepted step</span>
+<span class="sd">        temperature_history: List of (step, temperature) tuples for temperature changes</span>
+<span class="sd">        exchange_attempts: Total number of exchange attempts</span>
+<span class="sd">        exchange_acceptances: Number of successful exchanges</span>
+<span class="sd">        partner_history: List of partner replica IDs for successful exchanges</span>
+<span class="sd">        original_data: Original input data before optimization</span>
+<span class="sd">        hyperparameters: Optimization hyperparameters dictionary</span>
+<span class="sd">        start_time: Unix timestamp when replica started</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    
     <span class="n">replica_id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">current_data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
@@ -103,8 +119,9 @@
     <span class="n">best_data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
     <span class="n">best_objective</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">step</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">metrics_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
-    <span class="n">temperature_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>  <span class="c1"># (step, new_temperature)</span>
+    <span class="n">total_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">metrics_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">temperature_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
     <span class="n">exchange_attempts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">exchange_acceptances</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">partner_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
@@ -112,129 +129,158 @@
     <span class="n">hyperparameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
     <span class="n">start_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
     
-<div class="viewcode-block" id="OptimizerState.record_step">
-<a class="viewcode-back" href="../../api.html#hill_climber.OptimizerState.record_step">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">record_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">objective_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Record a step in the optimization.</span>
+<div class="viewcode-block" id="ReplicaState.to_dict">
+<a class="viewcode-back" href="../../api.html#hill_climber.ReplicaState.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert ReplicaState to dictionary for backwards compatibility.</span>
 <span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            metrics_dict: Dictionary of metric values</span>
-<span class="sd">            objective_value: Current objective value</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary representation of replica state</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">metrics_history</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">objective_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">best_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="o">+=</span> <span class="mi">1</span></div>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;replica_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">replica_id</span><span class="p">,</span>
+            <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
+            <span class="s1">&#39;current_data&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_data</span><span class="p">,</span>
+            <span class="s1">&#39;current_objective&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_objective</span><span class="p">,</span>
+            <span class="s1">&#39;best_data&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">best_data</span><span class="p">,</span>
+            <span class="s1">&#39;best_objective&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">best_objective</span><span class="p">,</span>
+            <span class="s1">&#39;step&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">,</span>
+            <span class="s1">&#39;total_iterations&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_iterations</span><span class="p">,</span>
+            <span class="s1">&#39;metrics_history&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_history</span><span class="p">,</span>
+            <span class="s1">&#39;temperature_history&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_history</span><span class="p">,</span>
+            <span class="s1">&#39;exchange_attempts&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_attempts</span><span class="p">,</span>
+            <span class="s1">&#39;exchange_acceptances&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_acceptances</span><span class="p">,</span>
+            <span class="s1">&#39;partner_history&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">partner_history</span><span class="p">,</span>
+            <span class="s1">&#39;original_data&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_data</span><span class="p">,</span>
+            <span class="s1">&#39;hyperparameters&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hyperparameters</span><span class="p">,</span>
+            <span class="s1">&#39;start_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span>
+        <span class="p">}</span></div>
 
     
-<div class="viewcode-block" id="OptimizerState.record_improvement">
-<a class="viewcode-back" href="../../api.html#hill_climber.OptimizerState.record_improvement">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">record_improvement</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">new_objective</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> 
-                          <span class="n">metrics_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Record an improvement (accepted step).</span>
+<div class="viewcode-block" id="ReplicaState.from_dict">
+<a class="viewcode-back" href="../../api.html#hill_climber.ReplicaState.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ReplicaState&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create ReplicaState from dictionary for backwards compatibility.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
-<span class="sd">            new_data: New data configuration</span>
-<span class="sd">            new_objective: New objective value</span>
-<span class="sd">            metrics_dict: Dictionary of metric values</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">current_data</span> <span class="o">=</span> <span class="n">new_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">current_objective</span> <span class="o">=</span> <span class="n">new_objective</span>
-        
-        <span class="c1"># Update best if this is better</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_better</span><span class="p">(</span><span class="n">new_objective</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">best_objective</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">best_data</span> <span class="o">=</span> <span class="n">new_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">best_objective</span> <span class="o">=</span> <span class="n">new_objective</span>
-        
-        <span class="bp">self</span><span class="o">.</span><span class="n">record_step</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">,</span> <span class="n">new_objective</span><span class="p">)</span></div>
-
-    
-<div class="viewcode-block" id="OptimizerState.record_exchange">
-<a class="viewcode-back" href="../../api.html#hill_climber.OptimizerState.record_exchange">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">record_exchange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">partner_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">accepted</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Record an exchange attempt.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            partner_id: ID of the partner replica</span>
-<span class="sd">            accepted: Whether the exchange was accepted</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">exchange_attempts</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">accepted</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">exchange_acceptances</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">partner_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">partner_id</span><span class="p">)</span></div>
-
-    
-<div class="viewcode-block" id="OptimizerState.record_temperature_change">
-<a class="viewcode-back" href="../../api.html#hill_climber.OptimizerState.record_temperature_change">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">record_temperature_change</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Record a temperature change from replica exchange.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            new_temperature: New temperature after exchange</span>
-<span class="sd">            step: Step number when exchange occurred (uses self.step if not provided)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">exchange_step</span> <span class="o">=</span> <span class="n">step</span> <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">temperature_history</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">exchange_step</span><span class="p">,</span> <span class="n">new_temperature</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">new_temperature</span></div>
-
-    
-    <span class="k">def</span><span class="w"> </span><span class="nf">_is_better</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">current_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if new value is better based on mode.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            new_val: New objective value</span>
-<span class="sd">            current_val: Current best objective value</span>
+<span class="sd">            state_dict: Dictionary containing replica state</span>
 <span class="sd">            </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            True if new value is better</span>
+<span class="sd">            ReplicaState instance</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">mode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hyperparameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mode&#39;</span><span class="p">,</span> <span class="s1">&#39;maximize&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;maximize&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">new_val</span> <span class="o">&gt;</span> <span class="n">current_val</span>
-        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;minimize&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">new_val</span> <span class="o">&lt;</span> <span class="n">current_val</span>
-        <span class="k">else</span><span class="p">:</span>  <span class="c1"># target mode</span>
-            <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hyperparameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;target_value&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">new_val</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">current_val</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span>
-    
-<div class="viewcode-block" id="OptimizerState.get_history_dataframe">
-<a class="viewcode-back" href="../../api.html#hill_climber.OptimizerState.get_history_dataframe">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_history_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert history to DataFrame.</span>
-<span class="sd">        </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            DataFrame with step, objective, metric columns, and best_data snapshots</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_history</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-        
-        <span class="n">steps</span><span class="p">,</span> <span class="n">metrics_dicts</span><span class="p">,</span> <span class="n">objectives</span><span class="p">,</span> <span class="n">best_data_snapshots</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics_history</span><span class="p">)</span>
-        
-        <span class="n">df_data</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;Step&#39;</span><span class="p">:</span> <span class="n">steps</span><span class="p">,</span>
-            <span class="s1">&#39;Objective value&#39;</span><span class="p">:</span> <span class="n">objectives</span><span class="p">,</span>
-            <span class="s1">&#39;Best_data&#39;</span><span class="p">:</span> <span class="n">best_data_snapshots</span><span class="p">,</span>
-        <span class="p">}</span>
-        
-        <span class="c1"># Add metric columns</span>
-        <span class="k">if</span> <span class="n">metrics_dicts</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">metrics_dicts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="n">df_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">metrics_dicts</span><span class="p">]</span>
-        
-        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">df_data</span><span class="p">)</span></div>
-
-    
-<div class="viewcode-block" id="OptimizerState.get_acceptance_rate">
-<a class="viewcode-back" href="../../api.html#hill_climber.OptimizerState.get_acceptance_rate">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_acceptance_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get exchange acceptance rate.</span>
-<span class="sd">        </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            Acceptance rate as a fraction</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_attempts</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="mf">0.0</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_acceptances</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_attempts</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">replica_id</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;replica_id&#39;</span><span class="p">],</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">],</span>
+            <span class="n">current_data</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;current_data&#39;</span><span class="p">],</span>
+            <span class="n">current_objective</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;current_objective&#39;</span><span class="p">],</span>
+            <span class="n">best_data</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">],</span>
+            <span class="n">best_objective</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">],</span>
+            <span class="n">step</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">total_iterations</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;total_iterations&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">metrics_history</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">temperature_history</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">exchange_attempts</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exchange_attempts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">exchange_acceptances</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exchange_acceptances&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">partner_history</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;partner_history&#39;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">original_data</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;original_data&#39;</span><span class="p">),</span>
+            <span class="n">hyperparameters</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hyperparameters&#39;</span><span class="p">,</span> <span class="p">{}),</span>
+            <span class="n">start_time</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;start_time&#39;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+        <span class="p">)</span></div>
 </div>
 
+
+
+<div class="viewcode-block" id="create_replica_state">
+<a class="viewcode-back" href="../../api.html#hill_climber.create_replica_state">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_replica_state</span><span class="p">(</span>
+    <span class="n">replica_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">current_data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">current_objective</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">best_data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">best_objective</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">original_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">hyperparameters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new replica state dictionary (legacy function for backwards compatibility).</span>
+<span class="sd">    </span>
+<span class="sd">    Note: For new code, prefer using ReplicaState dataclass directly.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        replica_id: Replica identifier</span>
+<span class="sd">        temperature: Initial temperature</span>
+<span class="sd">        current_data: Current data configuration</span>
+<span class="sd">        current_objective: Current objective value</span>
+<span class="sd">        best_data: Best data found so far</span>
+<span class="sd">        best_objective: Best objective value found</span>
+<span class="sd">        original_data: Original input data</span>
+<span class="sd">        hyperparameters: Optimization hyperparameters</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Dictionary containing replica state</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">ReplicaState</span><span class="p">(</span>
+        <span class="n">replica_id</span><span class="o">=</span><span class="n">replica_id</span><span class="p">,</span>
+        <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
+        <span class="n">current_data</span><span class="o">=</span><span class="n">current_data</span><span class="p">,</span>
+        <span class="n">current_objective</span><span class="o">=</span><span class="n">current_objective</span><span class="p">,</span>
+        <span class="n">best_data</span><span class="o">=</span><span class="n">best_data</span><span class="p">,</span>
+        <span class="n">best_objective</span><span class="o">=</span><span class="n">best_objective</span><span class="p">,</span>
+        <span class="n">original_data</span><span class="o">=</span><span class="n">original_data</span><span class="p">,</span>
+        <span class="n">hyperparameters</span><span class="o">=</span><span class="n">hyperparameters</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">record_temperature_change</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">new_temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Record a temperature change from replica exchange.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        state: Replica state dictionary</span>
+<span class="sd">        new_temperature: New temperature after exchange</span>
+<span class="sd">        step: Step number when exchange occurred (uses state[&#39;step&#39;] if not provided)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">exchange_step</span> <span class="o">=</span> <span class="n">step</span> <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">]</span>
+    <span class="n">state</span><span class="p">[</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">exchange_step</span><span class="p">,</span> <span class="n">new_temperature</span><span class="p">))</span>
+    <span class="n">state</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_temperature</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">record_exchange</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">partner_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">accepted</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Record an exchange attempt.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        state: Replica state dictionary</span>
+<span class="sd">        partner_id: ID of the partner replica</span>
+<span class="sd">        accepted: Whether the exchange was accepted</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">state</span><span class="p">[</span><span class="s1">&#39;exchange_attempts&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">accepted</span><span class="p">:</span>
+        <span class="n">state</span><span class="p">[</span><span class="s1">&#39;exchange_acceptances&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">state</span><span class="p">[</span><span class="s1">&#39;partner_history&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">partner_id</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_history_dataframe</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert replica history to DataFrame.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        state: Replica state dictionary</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        DataFrame with step and metric columns</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+    
+    <span class="c1"># metrics_history is now a list of metric dicts</span>
+    <span class="c1"># Each dict contains all metrics including &#39;Objective value&#39;</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">])</span>
+    
+    <span class="c1"># Add step numbers (1-indexed, based on number of accepted steps)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Step&#39;</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    
+    <span class="k">return</span> <span class="n">df</span>
 </pre></div>
 
            </div>

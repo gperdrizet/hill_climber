@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hill_climber.replica_exchange &mdash; Hill Climber 1.1.0 documentation</title>
+  <title>hill_climber.replica_exchange &mdash; Hill Climber 2.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=fc837d61"></script>
+      <script src="../../_static/documentation_options.js?v=20623aea"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -156,77 +156,6 @@
 
 
 
-<div class="viewcode-block" id="ExchangeStatistics">
-<a class="viewcode-back" href="../../api.html#hill_climber.ExchangeStatistics">[docs]</a>
-<span class="nd">@dataclass</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">ExchangeStatistics</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Track exchange statistics across all replicas.</span>
-<span class="sd">    </span>
-<span class="sd">    Maintains matrices of exchange attempts and acceptances between all</span>
-<span class="sd">    replica pairs, enabling analysis of exchange efficiency.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    
-    <span class="n">n_replicas</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="n">attempts</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">acceptances</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">round_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-    
-<div class="viewcode-block" id="ExchangeStatistics.__post_init__">
-<a class="viewcode-back" href="../../api.html#hill_climber.ExchangeStatistics.__post_init__">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize attempt and acceptance matrices.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">attempts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span></div>
-
-    
-<div class="viewcode-block" id="ExchangeStatistics.record_attempt">
-<a class="viewcode-back" href="../../api.html#hill_climber.ExchangeStatistics.record_attempt">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">record_attempt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">j</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">accepted</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Record an exchange attempt between replicas i and j.</span>
-<span class="sd">        </span>
-<span class="sd">        Args:</span>
-<span class="sd">            i: First replica index</span>
-<span class="sd">            j: Second replica index</span>
-<span class="sd">            accepted: Whether the exchange was accepted</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">attempts</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">attempts</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">accepted</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">acceptances</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">acceptances</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span></div>
-
-    
-<div class="viewcode-block" id="ExchangeStatistics.get_acceptance_matrix">
-<a class="viewcode-back" href="../../api.html#hill_climber.ExchangeStatistics.get_acceptance_matrix">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_acceptance_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get matrix of acceptance rates.</span>
-<span class="sd">        </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            Matrix where element [i,j] is acceptance rate between replicas i and j</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
-            <span class="n">rates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptances</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">attempts</span>
-            <span class="n">rates</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">rates</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="k">return</span> <span class="n">rates</span></div>
-
-    
-<div class="viewcode-block" id="ExchangeStatistics.get_overall_acceptance_rate">
-<a class="viewcode-back" href="../../api.html#hill_climber.ExchangeStatistics.get_overall_acceptance_rate">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_overall_acceptance_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get overall acceptance rate across all exchanges.</span>
-<span class="sd">        </span>
-<span class="sd">        Returns:</span>
-<span class="sd">            Overall acceptance rate as a fraction</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">total_attempts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attempts</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># Divide by 2 (symmetric matrix)</span>
-        <span class="n">total_acceptances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptances</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span>
-        <span class="k">if</span> <span class="n">total_attempts</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="mf">0.0</span>
-        <span class="k">return</span> <span class="n">total_acceptances</span> <span class="o">/</span> <span class="n">total_attempts</span></div>
-</div>
-
-
-
 <div class="viewcode-block" id="ExchangeScheduler">
 <a class="viewcode-back" href="../../api.html#hill_climber.ExchangeScheduler">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ExchangeScheduler</span><span class="p">:</span>
@@ -241,6 +170,7 @@
 <span class="sd">            n_replicas: Number of replicas</span>
 <span class="sd">            strategy: Exchange strategy (&#39;even_odd&#39;, &#39;random&#39;, &#39;all_neighbors&#39;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span> <span class="o">=</span> <span class="n">n_replicas</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span> <span class="o">=</span> <span class="n">strategy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">round</span> <span class="o">=</span> <span class="mi">0</span></div>
@@ -254,22 +184,29 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            List of (i, j) tuples where i &lt; j</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span> <span class="o">==</span> <span class="s1">&#39;even_odd&#39;</span><span class="p">:</span>
+
             <span class="c1"># Alternate between even and odd pairs for better mixing</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">round</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]</span>
+
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]</span>
         
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+
             <span class="c1"># Random pair selection</span>
             <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="p">)</span>
+
             <span class="n">pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span> 
                     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]</span>
+
             <span class="c1"># Ensure i &lt; j</span>
             <span class="n">pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="nb">min</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">]</span>
         
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span> <span class="o">==</span> <span class="s1">&#39;all_neighbors&#39;</span><span class="p">:</span>
+
             <span class="c1"># All neighboring pairs</span>
             <span class="n">pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
         
@@ -277,6 +214,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown strategy: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">strategy</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">round</span> <span class="o">+=</span> <span class="mi">1</span>
+
         <span class="k">return</span> <span class="n">pairs</span></div>
 </div>
 
