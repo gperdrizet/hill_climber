@@ -66,62 +66,6 @@ class TemperatureLadder:
         return cls(temperatures=np.array(sorted(temperatures)))
 
 
-@dataclass
-class ExchangeStatistics:
-    """Track exchange statistics across all replicas.
-    
-    Maintains matrices of exchange attempts and acceptances between all
-    replica pairs, enabling analysis of exchange efficiency.
-    """
-    
-    n_replicas: int
-    attempts: np.ndarray = field(init=False)
-    acceptances: np.ndarray = field(init=False)
-    round_count: int = 0
-    
-    def __post_init__(self):
-        """Initialize attempt and acceptance matrices."""
-        self.attempts = np.zeros((self.n_replicas, self.n_replicas), dtype=int)
-        self.acceptances = np.zeros((self.n_replicas, self.n_replicas), dtype=int)
-    
-    def record_attempt(self, i: int, j: int, accepted: bool):
-        """Record an exchange attempt between replicas i and j.
-        
-        Args:
-            i: First replica index
-            j: Second replica index
-            accepted: Whether the exchange was accepted
-        """
-        self.attempts[i, j] += 1
-        self.attempts[j, i] += 1
-        if accepted:
-            self.acceptances[i, j] += 1
-            self.acceptances[j, i] += 1
-    
-    def get_acceptance_matrix(self) -> np.ndarray:
-        """Get matrix of acceptance rates.
-        
-        Returns:
-            Matrix where element [i,j] is acceptance rate between replicas i and j
-        """
-        with np.errstate(divide='ignore', invalid='ignore'):
-            rates = self.acceptances / self.attempts
-            rates[np.isnan(rates)] = 0.0
-        return rates
-    
-    def get_overall_acceptance_rate(self) -> float:
-        """Get overall acceptance rate across all exchanges.
-        
-        Returns:
-            Overall acceptance rate as a fraction
-        """
-        total_attempts = self.attempts.sum() / 2  # Divide by 2 (symmetric matrix)
-        total_acceptances = self.acceptances.sum() / 2
-        if total_attempts == 0:
-            return 0.0
-        return total_acceptances / total_attempts
-
-
 class ExchangeScheduler:
     """Determines which replica pairs attempt exchanges each round."""
     
@@ -132,6 +76,7 @@ class ExchangeScheduler:
             n_replicas: Number of replicas
             strategy: Exchange strategy ('even_odd', 'random', 'all_neighbors')
         """
+
         self.n_replicas = n_replicas
         self.strategy = strategy
         self.round = 0
@@ -142,22 +87,29 @@ class ExchangeScheduler:
         Returns:
             List of (i, j) tuples where i < j
         """
+
         if self.strategy == 'even_odd':
+
             # Alternate between even and odd pairs for better mixing
             if self.round % 2 == 0:
                 pairs = [(i, i+1) for i in range(0, self.n_replicas-1, 2)]
+
             else:
                 pairs = [(i, i+1) for i in range(1, self.n_replicas-1, 2)]
         
         elif self.strategy == 'random':
+
             # Random pair selection
             indices = np.random.permutation(self.n_replicas)
+
             pairs = [(indices[i], indices[i+1]) 
                     for i in range(0, len(indices)-1, 2)]
+
             # Ensure i < j
             pairs = [(min(i,j), max(i,j)) for i, j in pairs]
         
         elif self.strategy == 'all_neighbors':
+
             # All neighboring pairs
             pairs = [(i, i+1) for i in range(self.n_replicas-1)]
         
@@ -165,6 +117,7 @@ class ExchangeScheduler:
             raise ValueError(f"Unknown strategy: {self.strategy}")
         
         self.round += 1
+
         return pairs
 
 

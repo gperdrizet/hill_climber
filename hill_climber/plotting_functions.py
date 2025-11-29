@@ -1,5 +1,9 @@
 """Plotting functions for hill climbing optimization."""
 
+import os
+import pickle
+from typing import Optional, List
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -80,7 +84,7 @@ def plot_input_data(data, plot_type='scatter'):
     plt.show()
 
 
-def plot_results(results, plot_type='scatter', metrics=None, exchange_interval=None):
+def plot_results(results, plot_type='scatter', metrics=None, exchange_interval=None, show_current=False):
     """Visualize hill climbing results with progress and snapshots.
     
     Creates a comprehensive visualization showing:
@@ -98,6 +102,8 @@ def plot_results(results, plot_type='scatter', metrics=None, exchange_interval=N
                  If None (default), all available metrics are shown.
                  Example: ``['Pearson', 'Spearman']`` or ``['Mean X', 'Std X']``
         exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)
+        show_current: If True, plot 'Current Objective' instead of 'Objective value'.
+                     Current shows SA exploration, Objective shows only improvements. (default: False)
     
     Raises:
         ValueError: If plot_type is not ``'scatter'`` or ``'histogram'``
@@ -123,7 +129,7 @@ def plot_results(results, plot_type='scatter', metrics=None, exchange_interval=N
     # Validate metrics if provided
     if metrics is not None:
         available_metrics = [col for col in steps_df.columns 
-                            if col not in ['Step', 'Objective value', 'Best_data']]
+                            if col not in ['Step', 'Objective value', 'Current Objective']]
 
         invalid_metrics = [m for m in metrics if m not in available_metrics]
 
@@ -132,19 +138,20 @@ def plot_results(results, plot_type='scatter', metrics=None, exchange_interval=N
                            f"Available metrics: {available_metrics}")
     
     if plot_type == 'scatter':
-        _plot_results_scatter(results_list, metrics)
+        _plot_results_scatter(results_list, metrics, exchange_interval, show_current)
 
     else:
-        _plot_results_histogram(results_list, metrics)
+        _plot_results_histogram(results_list, metrics, exchange_interval, show_current)
 
 
-def _plot_results_scatter(results, metrics=None, exchange_interval=None):
+def _plot_results_scatter(results, metrics=None, exchange_interval=None, show_current=False):
     """Internal function: Visualize results with scatter plots.
     
     Args:
         results: List of result tuples - handles both (data, df) and (_, data, df) formats
         metrics: List of metric names to display, or None for all metrics
         exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)
+        show_current: If True, plot Current Objective; if False, plot Objective value
     """
 
     n_replicates = len(results)
@@ -167,10 +174,14 @@ def _plot_results_scatter(results, metrics=None, exchange_interval=None):
         
         # Get metric columns
         all_metric_columns = [col for col in steps_df.columns 
-                              if col not in ['Step', 'Objective value', 'Best_data']]
+                              if col not in ['Step', 'Objective value', 'Current Objective']]
         
         # Use specified metrics or all available metrics
         metric_columns = metrics if metrics is not None else all_metric_columns
+        
+        # Select objective column based on show_current parameter
+        objective_col = 'Current Objective' if show_current and 'Current Objective' in steps_df.columns else 'Objective value'
+        objective_label = 'Current Obj' if objective_col == 'Current Objective' else 'Objective'
         
         # Calculate x-axis values (batch numbers if exchange_interval provided, else steps)
         if exchange_interval is not None:
@@ -199,8 +210,8 @@ def _plot_results_scatter(results, metrics=None, exchange_interval=None):
         ax.ticklabel_format(style='scientific', axis='x', scilimits=(0,0))
         
         ax2 = ax.twinx()
-        lines.extend(ax2.plot(x_values, steps_df['Objective value'], 
-                              label='Objective', color='black'))
+        lines.extend(ax2.plot(x_values, steps_df[objective_col], 
+                              label=objective_label, color='black'))
 
         ax2.set_ylabel('Objective value', color='black')
         ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
@@ -218,8 +229,8 @@ def _plot_results_scatter(results, metrics=None, exchange_interval=None):
                        ha='left', va='top', rotation=0,
                        bbox=dict(facecolor='white', edgecolor='none', alpha=0.7, pad=1))
         
-        # Get initial data from step 0
-        initial_data = steps_df['Best_data'].iloc[0]
+        # Get initial data (use best_data from beginning of optimization)
+        initial_data = best_data
         initial_step = steps_df['Step'].iloc[0]
         
         # Input data snapshot (bottom row, first column)
@@ -256,7 +267,8 @@ def _plot_results_scatter(results, metrics=None, exchange_interval=None):
             ax = fig.add_subplot(spec[2*i+1, j+1])
             
             step_idx = max(0, min(int(len(steps_df) * pct) - 1, len(steps_df) - 1))
-            snapshot_data = steps_df['Best_data'].iloc[step_idx]
+            # Use best_data for all snapshots (final state after optimization)
+            snapshot_data = best_data
             snapshot_step = steps_df['Step'].iloc[step_idx]
             
             # For scatter plots, we can only show 2D projections
@@ -280,7 +292,7 @@ def _plot_results_scatter(results, metrics=None, exchange_interval=None):
             ax.locator_params(axis='y', nbins=4)
             
             # Build stats text
-            obj_val = steps_df['Objective value'].iloc[step_idx]
+            obj_val = steps_df[objective_col].iloc[step_idx]
             stats_text = f'Obj={obj_val:.4f}\n'
 
             for metric_name in metric_columns:
@@ -301,13 +313,14 @@ def _plot_results_scatter(results, metrics=None, exchange_interval=None):
     plt.show()
 
 
-def _plot_results_histogram(results, metrics=None, exchange_interval=None):
+def _plot_results_histogram(results, metrics=None, exchange_interval=None, show_current=False):
     """Internal function: Visualize results with histogram/KDE plots.
     
     Args:
         results: List of result tuples - handles both (data, df) and (_, data, df) formats
         metrics: List of metric names to display, or None for all metrics
         exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)
+        show_current: If True, plot Current Objective; if False, plot Objective value
     """
 
     n_replicates = len(results)
@@ -331,10 +344,14 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None):
         
         # Get metric columns
         all_metric_columns = [col for col in steps_df.columns 
-                              if col not in ['Step', 'Objective value', 'Best_data']]
+                              if col not in ['Step', 'Objective value', 'Current Objective']]
         
         # Use specified metrics or all available metrics
         metric_columns = metrics if metrics is not None else all_metric_columns
+        
+        # Select objective column based on show_current parameter
+        objective_col = 'Current Objective' if show_current and 'Current Objective' in steps_df.columns else 'Objective value'
+        objective_label = 'Current Obj' if objective_col == 'Current Objective' else 'Objective'
         
         # Calculate x-axis values (batch numbers if exchange_interval provided, else steps)
         if exchange_interval is not None:
@@ -364,8 +381,8 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None):
         
         ax2 = ax.twinx()
 
-        lines.extend(ax2.plot(x_values, steps_df['Objective value'], 
-                              label='Objective', color='black'))
+        lines.extend(ax2.plot(x_values, steps_df[objective_col], 
+                              label=objective_label, color='black'))
 
         ax2.set_ylabel('Objective value', color='black')
         ax2.legend(lines, [l.get_label() for l in lines], loc='upper left', fontsize=7, edgecolor='black')
@@ -388,8 +405,8 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None):
                     bbox=dict(facecolor='white', edgecolor='none', alpha=0.7, pad=1)
                 )
         
-        # Get initial data from step 0
-        initial_data = steps_df['Best_data'].iloc[0]
+        # Get initial data (use best_data from beginning of optimization)
+        initial_data = best_data
         initial_step = steps_df['Step'].iloc[0]
         
         # Input data KDE (bottom row, first column)
@@ -466,7 +483,8 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None):
             ax = fig.add_subplot(spec[2*i+1, j+1])
             
             step_idx = max(0, min(int(len(steps_df) * pct) - 1, len(steps_df) - 1))
-            snapshot_data = steps_df['Best_data'].iloc[step_idx]
+            # Use best_data for all snapshots (final state after optimization)
+            snapshot_data = best_data
             snapshot_step = steps_df['Step'].iloc[step_idx]
             
             # Extract all columns dynamically
@@ -546,7 +564,7 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None):
                 # ax.locator_params(axis='y', nbins=4)
             
             # Build stats text
-            obj_val = steps_df['Objective value'].iloc[step_idx]
+            obj_val = steps_df[objective_col].iloc[step_idx]
             stats_text = f'Obj={obj_val:.4f}\n'
 
             for metric_name in metric_columns:
@@ -564,4 +582,154 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None):
             )
 
     plt.show()
+
+
+def plot_optimization_results(
+    source,
+    plot_type: str = 'scatter',
+    metrics: Optional[List[str]] = None,
+    all_replicas: bool = False,
+    show_current: bool = False
+):
+    """Plot optimization results from a HillClimber instance or checkpoint file.
+    
+    This is a convenience function that extracts results data from either a completed
+    HillClimber optimization run or a saved checkpoint file, then visualizes the results
+    using the plot_results function.
+    
+    Args:
+        source: Either a HillClimber instance (after climb() has been called) or
+                a string path to a checkpoint file
+        plot_type: Type of plot - 'scatter' or 'histogram' (default: 'scatter')
+        metrics: List of metric names to plot. If None, all metrics are plotted.
+                 Example: ['Pearson', 'Spearman'] or ['Mean X', 'Std X']
+        all_replicas: If True, plot all replicas. If False, plot only the best replica
+                     (default: False)
+        show_current: If True, plot 'Current Objective' (shows SA exploration with fluctuations).
+                     If False, plot 'Objective value' (only accepted steps, always improving).
+                     (default: False)
+    
+    Raises:
+        ValueError: If source is neither a HillClimber instance nor a valid checkpoint path
+        ValueError: If plot_type is not 'scatter' or 'histogram'
+    
+    Examples:
+        >>> # From a HillClimber instance
+        >>> from hill_climber import HillClimber, plot_optimization_results
+        >>> climber = HillClimber(data, objective_func)
+        >>> best_data, steps_df = climber.climb()
+        >>> plot_optimization_results(climber, plot_type='scatter')
+        
+        >>> # From a checkpoint file
+        >>> plot_optimization_results('checkpoints/run_001.pkl', all_replicas=True)
+        
+        >>> # Plot specific metrics only
+        >>> plot_optimization_results(climber, metrics=['Pearson', 'Spearman'])
+        
+        >>> # Show current objective to see SA exploration
+        >>> plot_optimization_results(climber, show_current=True)
+    """
+    # Import here to avoid circular dependency
+    from .optimizer_state import get_history_dataframe
+    
+    if plot_type not in ['scatter', 'histogram']:
+        raise ValueError(f"plot_type must be 'scatter' or 'histogram', got '{plot_type}'")
+    
+    # Handle checkpoint file path
+    if isinstance(source, str):
+        if not os.path.exists(source):
+            raise ValueError(f"Checkpoint file not found: {source}")
+        
+        with open(source, 'rb') as f:
+            checkpoint = pickle.load(f)
+        
+        # Extract data from checkpoint
+        replicas = checkpoint['replicas']
+        is_dataframe = checkpoint.get('is_dataframe', False)
+        column_names = checkpoint.get('column_names', [])
+        # Get exchange_interval from first replica's hyperparameters if available
+        exchange_interval = None
+        if replicas and 'hyperparameters' in replicas[0]:
+            # Note: exchange_interval is stored at the optimizer level, not in hyperparameters
+            # For checkpoints, we need to get it from the checkpoint metadata if available
+            exchange_interval = checkpoint.get('exchange_interval')
+        
+        # Build results list
+        if all_replicas:
+            results_list = []
+            for replica in replicas:
+                if replica['metrics_history']:
+                    if is_dataframe:
+                        replica_data = pd.DataFrame(replica['best_data'], columns=column_names)
+                    else:
+                        replica_data = replica['best_data']
+                    results_list.append((
+                        replica['temperature_history'],
+                        replica_data,
+                        get_history_dataframe(replica)
+                    ))
+        else:
+            # Get best replica
+            mode = replicas[0]['hyperparameters']['mode']
+            target_value = replicas[0]['hyperparameters'].get('target_value')
+            
+            if mode == 'maximize':
+                best_replica = max(replicas, key=lambda r: r['best_objective'])
+            elif mode == 'minimize':
+                best_replica = min(replicas, key=lambda r: r['best_objective'])
+            else:  # target mode
+                best_replica = min(replicas, key=lambda r: abs(r['best_objective'] - target_value))
+            
+            if is_dataframe:
+                best_data = pd.DataFrame(best_replica['best_data'], columns=column_names)
+            else:
+                best_data = best_replica['best_data']
+            
+            results_list = [(
+                best_replica['temperature_history'],
+                best_data,
+                get_history_dataframe(best_replica)
+            )]
+    
+    # Handle HillClimber instance
+    else:
+        # Check if it's a HillClimber instance by checking for required attributes
+        if not (hasattr(source, 'replicas') and hasattr(source, 'exchange_interval')):
+            raise ValueError(
+                "source must be either a HillClimber instance or a path to a checkpoint file"
+            )
+        
+        if not source.replicas:
+            raise ValueError("HillClimber instance has not been run yet. Call climb() first.")
+        
+        exchange_interval = source.exchange_interval
+        
+        if all_replicas:
+            results_list = []
+            for replica in source.replicas:
+                if replica['metrics_history']:
+                    if source.is_dataframe:
+                        replica_data = pd.DataFrame(replica['best_data'], columns=source.column_names)
+                    else:
+                        replica_data = replica['best_data']
+                    results_list.append((
+                        replica['temperature_history'],
+                        replica_data,
+                        get_history_dataframe(replica)
+                    ))
+        else:
+            best_replica = source._get_best_replica()
+            if source.is_dataframe:
+                best_data = pd.DataFrame(best_replica['best_data'], columns=source.column_names)
+            else:
+                best_data = best_replica['best_data']
+            
+            results_list = [(
+                best_replica['temperature_history'],
+                best_data,
+                get_history_dataframe(best_replica)
+            )]
+    
+    # Call the plotting function
+    plot_results(results_list, plot_type, metrics, exchange_interval, show_current)
 

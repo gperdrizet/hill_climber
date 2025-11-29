@@ -5,14 +5,13 @@ This package provides hill climbing optimization using replica exchange
 
 Main Components:
     HillClimber: Main optimization class with replica exchange
-    OptimizerState: Replica state management dataclass
     TemperatureLadder: Temperature ladder for replica exchange
     ExchangeStatistics: Track exchange acceptance rates
     Helper functions: Data manipulation and objective calculation utilities
     Plotting functions: Visualization tools for input data and results
 
 Example:
-    >>> from hill_climber import HillClimber
+    >>> from hill_climber import HillClimber, plot_optimization_results
     >>> import pandas as pd
     >>> import numpy as np
     >>> 
@@ -38,17 +37,19 @@ Example:
     >>> best_data, steps_df = climber.climb()
     >>> 
     >>> # Visualize results
-    >>> climber.plot_results((best_data, steps_df), plot_type='histogram')
+    >>> plot_optimization_results(climber, plot_type='scatter')
+    >>> # Or from a checkpoint file
+    >>> plot_optimization_results('checkpoint.pkl', all_replicas=True)
 """
 
-__version__ = '1.1.0'
+__version__ = '2.1.0'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber
-from .optimizer_state import OptimizerState
+from .config import OptimizerConfig
+from .optimizer_state import ReplicaState, create_replica_state
 from .replica_exchange import (
     TemperatureLadder,
-    ExchangeStatistics,
     ExchangeScheduler
 )
 from .climber_functions import (
@@ -59,19 +60,20 @@ from .climber_functions import (
 )
 from .plotting_functions import (
     plot_input_data,
-    plot_results
+    plot_optimization_results
 )
 
 __all__ = [
     'HillClimber',
-    'OptimizerState',
+    'OptimizerConfig',
+    'ReplicaState',
+    'create_replica_state',
     'TemperatureLadder',
-    'ExchangeStatistics',
     'ExchangeScheduler',
     'perturb_vectors',
     'extract_columns',
     'calculate_objective',
     'evaluate_objective',
     'plot_input_data',
-    'plot_results',
+    'plot_optimization_results',
 ]

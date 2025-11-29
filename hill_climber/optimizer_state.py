@@ -1,21 +1,37 @@
-"""Dataclass for managing hill climber optimization state."""
+"""Helper functions and dataclass for managing hill climber optimization state."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, List, Tuple, Any
 import numpy as np
 import pandas as pd
 import time
 
 
 @dataclass
-class OptimizerState:
-    """State for a single replica in replica exchange optimization.
+class ReplicaState:
+    """State container for a single replica in the hill climber optimization.
     
-    This dataclass manages the state and history for a single optimization replica,
-    including current configuration, best found solution, metrics history, and 
-    exchange statistics.
+    This dataclass provides type safety and IDE autocomplete for replica state,
+    replacing the previous dictionary-based approach.
+    
+    Attributes:
+        replica_id: Replica identifier
+        temperature: Current temperature
+        current_data: Current data configuration
+        current_objective: Current objective value
+        best_data: Best data found so far
+        best_objective: Best objective value found
+        step: Number of accepted steps
+        total_iterations: Total number of perturbations attempted
+        metrics_history: List of metric dictionaries for each accepted step
+        temperature_history: List of (step, temperature) tuples for temperature changes
+        exchange_attempts: Total number of exchange attempts
+        exchange_acceptances: Number of successful exchanges
+        partner_history: List of partner replica IDs for successful exchanges
+        original_data: Original input data before optimization
+        hyperparameters: Optimization hyperparameters dictionary
+        start_time: Unix timestamp when replica started
     """
-    
     replica_id: int
     temperature: float
     current_data: np.ndarray
@@ -23,8 +39,9 @@ class OptimizerState:
     best_data: np.ndarray
     best_objective: float
     step: int = 0
-    metrics_history: List[tuple] = field(default_factory=list)
-    temperature_history: List[tuple] = field(default_factory=list)  # (step, new_temperature)
+    total_iterations: int = 0
+    metrics_history: List[Dict[str, Any]] = field(default_factory=list)
+    temperature_history: List[Tuple[int, float]] = field(default_factory=list)
     exchange_attempts: int = 0
     exchange_acceptances: int = 0
     partner_history: List[int] = field(default_factory=list)
@@ -32,107 +49,145 @@ class OptimizerState:
     hyperparameters: Dict[str, Any] = field(default_factory=dict)
     start_time: float = field(default_factory=time.time)
     
-    def record_step(self, metrics_dict: Dict, objective_value: float):
-        """Record a step in the optimization.
+    def to_dict(self) -> Dict:
+        """Convert ReplicaState to dictionary for backwards compatibility.
         
-        Args:
-            metrics_dict: Dictionary of metric values
-            objective_value: Current objective value
+        Returns:
+            Dictionary representation of replica state
         """
-        self.metrics_history.append((self.step, metrics_dict, objective_value, self.best_data.copy()))
-        self.step += 1
+        return {
+            'replica_id': self.replica_id,
+            'temperature': self.temperature,
+            'current_data': self.current_data,
+            'current_objective': self.current_objective,
+            'best_data': self.best_data,
+            'best_objective': self.best_objective,
+            'step': self.step,
+            'total_iterations': self.total_iterations,
+            'metrics_history': self.metrics_history,
+            'temperature_history': self.temperature_history,
+            'exchange_attempts': self.exchange_attempts,
+            'exchange_acceptances': self.exchange_acceptances,
+            'partner_history': self.partner_history,
+            'original_data': self.original_data,
+            'hyperparameters': self.hyperparameters,
+            'start_time': self.start_time
+        }
     
-    def record_improvement(self, new_data: np.ndarray, new_objective: float, 
-                          metrics_dict: Dict):
-        """Record an improvement (accepted step).
+    @classmethod
+    def from_dict(cls, state_dict: Dict) -> 'ReplicaState':
+        """Create ReplicaState from dictionary for backwards compatibility.
         
         Args:
-            new_data: New data configuration
-            new_objective: New objective value
-            metrics_dict: Dictionary of metric values
-        """
-        self.current_data = new_data.copy()
-        self.current_objective = new_objective
-        
-        # Update best if this is better
-        if self._is_better(new_objective, self.best_objective):
-            self.best_data = new_data.copy()
-            self.best_objective = new_objective
-        
-        self.record_step(metrics_dict, new_objective)
-    
-    def record_exchange(self, partner_id: int, accepted: bool):
-        """Record an exchange attempt.
-        
-        Args:
-            partner_id: ID of the partner replica
-            accepted: Whether the exchange was accepted
-        """
-        self.exchange_attempts += 1
-        if accepted:
-            self.exchange_acceptances += 1
-            self.partner_history.append(partner_id)
-    
-    def record_temperature_change(self, new_temperature: float, step: Optional[int] = None):
-        """Record a temperature change from replica exchange.
-        
-        Args:
-            new_temperature: New temperature after exchange
-            step: Step number when exchange occurred (uses self.step if not provided)
-        """
-        exchange_step = step if step is not None else self.step
-        self.temperature_history.append((exchange_step, new_temperature))
-        self.temperature = new_temperature
-    
-    def _is_better(self, new_val: float, current_val: float) -> bool:
-        """Check if new value is better based on mode.
-        
-        Args:
-            new_val: New objective value
-            current_val: Current best objective value
+            state_dict: Dictionary containing replica state
             
         Returns:
-            True if new value is better
+            ReplicaState instance
         """
-        mode = self.hyperparameters.get('mode', 'maximize')
-        if mode == 'maximize':
-            return new_val > current_val
-        elif mode == 'minimize':
-            return new_val < current_val
-        else:  # target mode
-            target = self.hyperparameters.get('target_value', 0)
-            return abs(new_val - target) < abs(current_val - target)
+        return cls(
+            replica_id=state_dict['replica_id'],
+            temperature=state_dict['temperature'],
+            current_data=state_dict['current_data'],
+            current_objective=state_dict['current_objective'],
+            best_data=state_dict['best_data'],
+            best_objective=state_dict['best_objective'],
+            step=state_dict.get('step', 0),
+            total_iterations=state_dict.get('total_iterations', 0),
+            metrics_history=state_dict.get('metrics_history', []),
+            temperature_history=state_dict.get('temperature_history', []),
+            exchange_attempts=state_dict.get('exchange_attempts', 0),
+            exchange_acceptances=state_dict.get('exchange_acceptances', 0),
+            partner_history=state_dict.get('partner_history', []),
+            original_data=state_dict.get('original_data'),
+            hyperparameters=state_dict.get('hyperparameters', {}),
+            start_time=state_dict.get('start_time', time.time())
+        )
+
+
+def create_replica_state(
+    replica_id: int,
+    temperature: float,
+    current_data: np.ndarray,
+    current_objective: float,
+    best_data: np.ndarray,
+    best_objective: float,
+    original_data: Optional[np.ndarray] = None,
+    hyperparameters: Optional[Dict] = None
+) -> Dict:
+    """Create a new replica state dictionary (legacy function for backwards compatibility).
     
-    def get_history_dataframe(self) -> pd.DataFrame:
-        """Convert history to DataFrame.
-        
-        Returns:
-            DataFrame with step, objective, metric columns, and best_data snapshots
-        """
-        if not self.metrics_history:
-            return pd.DataFrame()
-        
-        steps, metrics_dicts, objectives, best_data_snapshots = zip(*self.metrics_history)
-        
-        df_data = {
-            'Step': steps,
-            'Objective value': objectives,
-            'Best_data': best_data_snapshots,
-        }
-        
-        # Add metric columns
-        if metrics_dicts[0]:
-            for key in metrics_dicts[0].keys():
-                df_data[key] = [m[key] for m in metrics_dicts]
-        
-        return pd.DataFrame(df_data)
+    Note: For new code, prefer using ReplicaState dataclass directly.
     
-    def get_acceptance_rate(self) -> float:
-        """Get exchange acceptance rate.
+    Args:
+        replica_id: Replica identifier
+        temperature: Initial temperature
+        current_data: Current data configuration
+        current_objective: Current objective value
+        best_data: Best data found so far
+        best_objective: Best objective value found
+        original_data: Original input data
+        hyperparameters: Optimization hyperparameters
         
-        Returns:
-            Acceptance rate as a fraction
-        """
-        if self.exchange_attempts == 0:
-            return 0.0
-        return self.exchange_acceptances / self.exchange_attempts
+    Returns:
+        Dictionary containing replica state
+    """
+    state = ReplicaState(
+        replica_id=replica_id,
+        temperature=temperature,
+        current_data=current_data,
+        current_objective=current_objective,
+        best_data=best_data,
+        best_objective=best_objective,
+        original_data=original_data,
+        hyperparameters=hyperparameters or {}
+    )
+    return state.to_dict()
+
+
+def record_temperature_change(state: Dict, new_temperature: float, step: Optional[int] = None):
+    """Record a temperature change from replica exchange.
+    
+    Args:
+        state: Replica state dictionary
+        new_temperature: New temperature after exchange
+        step: Step number when exchange occurred (uses state['step'] if not provided)
+    """
+    exchange_step = step if step is not None else state['step']
+    state['temperature_history'].append((exchange_step, new_temperature))
+    state['temperature'] = new_temperature
+
+
+def record_exchange(state: Dict, partner_id: int, accepted: bool):
+    """Record an exchange attempt.
+    
+    Args:
+        state: Replica state dictionary
+        partner_id: ID of the partner replica
+        accepted: Whether the exchange was accepted
+    """
+    state['exchange_attempts'] += 1
+    if accepted:
+        state['exchange_acceptances'] += 1
+        state['partner_history'].append(partner_id)
+
+
+def get_history_dataframe(state: Dict) -> pd.DataFrame:
+    """Convert replica history to DataFrame.
+    
+    Args:
+        state: Replica state dictionary
+        
+    Returns:
+        DataFrame with step and metric columns
+    """
+    if not state['metrics_history']:
+        return pd.DataFrame()
+    
+    # metrics_history is now a list of metric dicts
+    # Each dict contains all metrics including 'Objective value'
+    df = pd.DataFrame(state['metrics_history'])
+    
+    # Add step numbers (1-indexed, based on number of accepted steps)
+    df.insert(0, 'Step', range(1, len(df) + 1))
+    
+    return df

@@ -26,3 +26,13 @@ sphinx-autodoc-typehints    # Enhanced type hints in API documentation
 
 ipykernel      # Jupyter kernel for running notebooks
 scikit-learn   # Machine learning utilities used in some examples
+
+# ==============================================================================
+# Progress dashboard dependencies
+# ==============================================================================
+# Additional packages needed to run the progress dashboard
+
+streamlit      # Web app framework for the progress dashboard
+plotly         # Interactive plotting library for dashboard visualizations
+pandas>=2.0.0
+streamlit-file-browser>=0.3.0

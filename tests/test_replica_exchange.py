@@ -3,7 +3,6 @@ import numpy as np
 import unittest
 from hill_climber.replica_exchange import (
     TemperatureLadder,
-    ExchangeStatistics,
     ExchangeScheduler,
     compute_exchange_probability,
     should_exchange
@@ -31,33 +30,6 @@ class TestTemperatureLadder(unittest.TestCase):
         self.assertEqual(ladder.temperatures[0], 10.0)
         self.assertEqual(ladder.temperatures[-1], 50.0)
         self.assertTrue(np.allclose(np.diff(ladder.temperatures), 10.0))
-
-
-class TestExchangeStatistics(unittest.TestCase):
-    """Tests for exchange statistics tracking."""
-    
-    def test_record_attempts(self):
-        """Test recording exchange attempts."""
-        stats = ExchangeStatistics(n_replicas=3)
-        
-        stats.record_attempt(0, 1, accepted=True)
-        stats.record_attempt(0, 1, accepted=False)
-        stats.record_attempt(1, 2, accepted=True)
-        
-        self.assertEqual(stats.attempts[0, 1], 2)
-        self.assertEqual(stats.acceptances[0, 1], 1)
-    
-    def test_acceptance_rate(self):
-        """Test acceptance rate calculation."""
-        stats = ExchangeStatistics(n_replicas=4)
-        
-        stats.record_attempt(0, 1, accepted=True)
-        stats.record_attempt(1, 2, accepted=True)
-        stats.record_attempt(2, 3, accepted=False)
-        stats.record_attempt(0, 1, accepted=False)
-        
-        overall = stats.get_overall_acceptance_rate()
-        self.assertEqual(overall, 0.5)
 
 
 class TestExchangeScheduler(unittest.TestCase):
