@@ -15,10 +15,10 @@ def get_connection(db_path_str: str) -> sqlite3.Connection:
     """Create a read-only SQLite connection.
     
     Args:
-        db_path_str: Path to the SQLite database file
+        db_path_str (str): Path to the SQLite database file.
         
     Returns:
-        SQLite connection object
+        sqlite3.Connection: Read-only SQLite connection object.
     """
     return sqlite3.connect(
         f"file:{db_path_str}?mode=ro", 
@@ -31,10 +31,10 @@ def load_run_metadata(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
     """Load run metadata from database.
     
     Args:
-        conn: SQLite connection
+        conn (sqlite3.Connection): SQLite connection.
         
     Returns:
-        Dictionary with run metadata or None if not found
+        Dict[str, Any]: Dictionary with run metadata, or None if not found.
     """
     query = "SELECT * FROM run_metadata WHERE run_id = 1"
     cursor = conn.cursor()
@@ -48,11 +48,10 @@ def load_run_metadata(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
             'n_replicas': row[2],
             'exchange_interval': row[3],
             'db_step_interval': row[4],
-            'db_buffer_size': row[5],
-            'hyperparameters': json.loads(row[6]),
-            'checkpoint_file': row[7] if len(row) > 7 else None,
-            'objective_function_name': row[8] if len(row) > 8 else None,
-            'dataset_size': row[9] if len(row) > 9 else None
+            'hyperparameters': json.loads(row[5]) if row[5] else {},
+            'checkpoint_file': row[6] if len(row) > 6 else None,
+            'objective_function_name': row[7] if len(row) > 7 else None,
+            'dataset_size': row[8] if len(row) > 8 else None
         }
     return None
 
@@ -65,12 +64,13 @@ def load_metrics_history(
     """Load metrics history with optional downsampling for performance.
     
     Args:
-        conn: SQLite connection
-        metric_names: List of metric names to load
-        max_points_per_replica: Downsample if more points exist
+        conn (sqlite3.Connection): SQLite connection.
+        metric_names (List[str], optional): List of metric names to load. Default is None.
+        max_points_per_replica (int): Downsample if more points exist. Default is 1000.
         
     Returns:
-        DataFrame with columns: replica_id, step, metric_name, value
+        pd.DataFrame: DataFrame with columns: replica_id, step, metric_name, value.
+            Returns empty DataFrame if no data found.
     """
     if not metric_names:
         return pd.DataFrame()
@@ -104,10 +104,11 @@ def load_temperature_exchanges(conn: sqlite3.Connection) -> pd.DataFrame:
     """Load temperature exchange events.
     
     Args:
-        conn: SQLite connection
+        conn (sqlite3.Connection): SQLite connection.
         
     Returns:
-        DataFrame with columns: step, replica_id, new_temperature, timestamp
+        pd.DataFrame: DataFrame with columns: step, replica_id, new_temperature, timestamp.
+            Returns empty DataFrame if no data found.
     """
     query = """
         SELECT step, replica_id, new_temperature, timestamp
@@ -124,10 +125,10 @@ def get_available_metrics(conn: sqlite3.Connection) -> List[str]:
     """Get list of all metric names in the database.
     
     Args:
-        conn: SQLite connection
+        conn (sqlite3.Connection): SQLite connection.
         
     Returns:
-        Sorted list of metric names
+        List[str]: Sorted list of unique metric names.
     """
     query = "SELECT DISTINCT metric_name FROM metrics_history ORDER BY metric_name"
     cursor = conn.cursor()
@@ -144,7 +145,7 @@ def get_available_directories() -> List[Path]:
     - Immediate subdirectories (non-hidden)
     
     Returns:
-        De-duplicated list in deterministic order
+        List[Path]: De-duplicated list of directories in deterministic order.
     """
     cwd = Path.cwd()
     dirs = [cwd, cwd.parent]
@@ -173,11 +174,12 @@ def load_leaderboard(conn: sqlite3.Connection, limit: int = 3) -> pd.DataFrame:
     """Load replica leaderboard data.
     
     Args:
-        conn: SQLite connection
-        limit: Maximum number of replicas to return
+        conn (sqlite3.Connection): SQLite connection.
+        limit (int): Maximum number of replicas to return. Default is 3.
         
     Returns:
-        DataFrame with replica_id, best_objective, step, temperature
+        pd.DataFrame: DataFrame with replica_id, best_objective, step, temperature.
+            Returns empty DataFrame if no data found.
     """
     query = """
         SELECT replica_id, best_objective, step, temperature
@@ -195,10 +197,10 @@ def load_replica_temperatures(conn: sqlite3.Connection) -> Dict[int, float]:
     """Load current temperatures for all replicas.
     
     Args:
-        conn: SQLite connection
+        conn (sqlite3.Connection): SQLite connection.
         
     Returns:
-        Dictionary mapping replica_id to temperature
+        Dict[int, float]: Dictionary mapping replica_id to temperature.
     """
     query = "SELECT replica_id, temperature FROM replica_status"
     try:
@@ -212,10 +214,11 @@ def load_temperature_ladder(conn: sqlite3.Connection) -> pd.DataFrame:
     """Load initial temperatures from temperature ladder table.
     
     Args:
-        conn: SQLite connection
+        conn (sqlite3.Connection): SQLite connection.
         
     Returns:
-        DataFrame with replica_id and temperature columns
+        pd.DataFrame: DataFrame with replica_id and temperature columns.
+            Falls back to replica_status if temperature_ladder doesn't exist.
     """
     query = """
         SELECT replica_id, temperature 
@@ -237,10 +240,11 @@ def load_progress_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
     """Load progress statistics including iteration counts and acceptance rates.
     
     Args:
-        conn: SQLite connection
+        conn (sqlite3.Connection): SQLite connection.
         
     Returns:
-        Dictionary with total_iterations, total_accepted, and other stats
+        Dict[str, Any]: Dictionary with total_iterations and total_accepted.
+            Returns zeros if no data found.
     """
     query = """
         SELECT 

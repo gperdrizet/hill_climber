@@ -53,7 +53,7 @@ class ReplicaState:
         """Convert ReplicaState to dictionary for backwards compatibility.
         
         Returns:
-            Dictionary representation of replica state
+            Dict: Dictionary representation of replica state with all attributes.
         """
         return {
             'replica_id': self.replica_id,
@@ -79,10 +79,11 @@ class ReplicaState:
         """Create ReplicaState from dictionary for backwards compatibility.
         
         Args:
-            state_dict: Dictionary containing replica state
+            state_dict (Dict): Dictionary containing replica state with keys matching
+                ReplicaState attributes.
             
         Returns:
-            ReplicaState instance
+            ReplicaState: New ReplicaState instance populated from dictionary.
         """
         return cls(
             replica_id=state_dict['replica_id'],
@@ -114,22 +115,24 @@ def create_replica_state(
     original_data: Optional[np.ndarray] = None,
     hyperparameters: Optional[Dict] = None
 ) -> Dict:
-    """Create a new replica state dictionary (legacy function for backwards compatibility).
+    """Create a new replica state dictionary.
     
-    Note: For new code, prefer using ReplicaState dataclass directly.
+    Legacy function for backwards compatibility. For new code, prefer using 
+    ReplicaState dataclass directly.
     
     Args:
-        replica_id: Replica identifier
-        temperature: Initial temperature
-        current_data: Current data configuration
-        current_objective: Current objective value
-        best_data: Best data found so far
-        best_objective: Best objective value found
-        original_data: Original input data
-        hyperparameters: Optimization hyperparameters
+        replica_id (int): Replica identifier.
+        temperature (float): Initial temperature.
+        current_data (np.ndarray): Current data configuration.
+        current_objective (float): Current objective value.
+        best_data (np.ndarray): Best data found so far.
+        best_objective (float): Best objective value found.
+        original_data (np.ndarray, optional): Original input data before optimization.
+            Default is None.
+        hyperparameters (Dict, optional): Optimization hyperparameters. Default is None.
         
     Returns:
-        Dictionary containing replica state
+        Dict: Dictionary containing replica state.
     """
     state = ReplicaState(
         replica_id=replica_id,
@@ -144,26 +147,27 @@ def create_replica_state(
     return state.to_dict()
 
 
-def record_temperature_change(state: Dict, new_temperature: float, step: Optional[int] = None):
+def record_temperature_change(state: Dict, new_temperature: float, step: Optional[int] = None) -> None:
     """Record a temperature change from replica exchange.
     
     Args:
-        state: Replica state dictionary
-        new_temperature: New temperature after exchange
-        step: Step number when exchange occurred (uses state['step'] if not provided)
+        state (Dict): Replica state dictionary.
+        new_temperature (float): New temperature after exchange.
+        step (int, optional): Step number when exchange occurred. Uses state['step'] 
+            if not provided. Default is None.
     """
     exchange_step = step if step is not None else state['step']
     state['temperature_history'].append((exchange_step, new_temperature))
     state['temperature'] = new_temperature
 
 
-def record_exchange(state: Dict, partner_id: int, accepted: bool):
+def record_exchange(state: Dict, partner_id: int, accepted: bool) -> None:
     """Record an exchange attempt.
     
     Args:
-        state: Replica state dictionary
-        partner_id: ID of the partner replica
-        accepted: Whether the exchange was accepted
+        state (Dict): Replica state dictionary.
+        partner_id (int): ID of the partner replica.
+        accepted (bool): Whether the exchange was accepted.
     """
     state['exchange_attempts'] += 1
     if accepted:
@@ -175,10 +179,11 @@ def get_history_dataframe(state: Dict) -> pd.DataFrame:
     """Convert replica history to DataFrame.
     
     Args:
-        state: Replica state dictionary
+        state (Dict): Replica state dictionary containing metrics_history.
         
     Returns:
-        DataFrame with step and metric columns
+        pd.DataFrame: DataFrame with step and metric columns. Returns empty DataFrame
+            if no history exists.
     """
     if not state['metrics_history']:
         return pd.DataFrame()

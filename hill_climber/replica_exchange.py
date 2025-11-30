@@ -1,7 +1,7 @@
 """Replica exchange coordination and utilities."""
 import numpy as np
 from typing import List, Tuple
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -16,7 +16,11 @@ class TemperatureLadder:
     
     @property
     def n_replicas(self) -> int:
-        """Number of replicas in the ladder."""
+        """Number of replicas in the ladder.
+        
+        Returns:
+            int: Number of replicas.
+        """
         return len(self.temperatures)
     
     @classmethod
@@ -24,12 +28,12 @@ class TemperatureLadder:
         """Create geometric temperature ladder.
         
         Args:
-            n_replicas: Number of replicas
-            T_min: Minimum (coldest) temperature
-            T_max: Maximum (hottest) temperature
+            n_replicas (int): Number of replicas.
+            T_min (float): Minimum (coldest) temperature.
+            T_max (float): Maximum (hottest) temperature.
             
         Returns:
-            TemperatureLadder instance
+            TemperatureLadder: Instance with geometrically spaced temperatures.
         """
         if n_replicas == 1:
             temps = np.array([T_min])
@@ -43,12 +47,12 @@ class TemperatureLadder:
         """Create linear temperature ladder.
         
         Args:
-            n_replicas: Number of replicas
-            T_min: Minimum (coldest) temperature
-            T_max: Maximum (hottest) temperature
+            n_replicas (int): Number of replicas.
+            T_min (float): Minimum (coldest) temperature.
+            T_max (float): Maximum (hottest) temperature.
             
         Returns:
-            TemperatureLadder instance
+            TemperatureLadder: Instance with linearly spaced temperatures.
         """
         temps = np.linspace(T_min, T_max, n_replicas)
         return cls(temperatures=temps)
@@ -58,10 +62,10 @@ class TemperatureLadder:
         """Create custom temperature ladder.
         
         Args:
-            temperatures: List of temperatures (will be sorted)
+            temperatures (List[float]): List of temperatures (will be sorted).
             
         Returns:
-            TemperatureLadder instance
+            TemperatureLadder: Instance with custom temperatures.
         """
         return cls(temperatures=np.array(sorted(temperatures)))
 
@@ -73,8 +77,9 @@ class ExchangeScheduler:
         """Initialize scheduler.
         
         Args:
-            n_replicas: Number of replicas
-            strategy: Exchange strategy ('even_odd', 'random', 'all_neighbors')
+            n_replicas (int): Number of replicas.
+            strategy (str): Exchange strategy - 'even_odd', 'random', or 'all_neighbors'.
+                Default is 'even_odd'.
         """
 
         self.n_replicas = n_replicas
@@ -85,7 +90,10 @@ class ExchangeScheduler:
         """Get list of replica pairs to attempt exchange.
         
         Returns:
-            List of (i, j) tuples where i < j
+            List[Tuple[int, int]]: List of (i, j) tuples where i < j.
+        
+        Raises:
+            ValueError: If strategy is unknown.
         """
 
         if self.strategy == 'even_odd':
@@ -123,22 +131,23 @@ class ExchangeScheduler:
 
 def compute_exchange_probability(obj1: float, obj2: float, 
                                  temp1: float, temp2: float,
-                                 mode: str = 'maximize') -> float:
+                 mode: str = 'maximize') -> float:
     """Compute probability of exchanging configurations.
     
     Uses Metropolis criterion for replica exchange:
     P(exchange) = min(1, exp(ΔE * Δβ))
-    where ΔE depends on mode and Δβ = 1/T1 - 1/T2
+    where ΔE depends on mode and Δβ = 1/T1 - 1/T2.
     
     Args:
-        obj1: Objective value of replica 1
-        obj2: Objective value of replica 2
-        temp1: Temperature of replica 1
-        temp2: Temperature of replica 2
-        mode: 'maximize', 'minimize', or 'target'
+        obj1 (float): Objective value of replica 1.
+        obj2 (float): Objective value of replica 2.
+        temp1 (float): Temperature of replica 1.
+        temp2 (float): Temperature of replica 2.
+        mode (str): Optimization mode - 'maximize', 'minimize', or 'target'.
+            Default is 'maximize'.
         
     Returns:
-        Probability of accepting exchange (0 to 1)
+        float: Probability of accepting exchange (0 to 1).
     """
     # Convert to energy (lower is better)
     if mode == 'maximize':
@@ -168,14 +177,15 @@ def should_exchange(obj1: float, obj2: float,
     """Determine if exchange should occur.
     
     Args:
-        obj1: Objective value of replica 1
-        obj2: Objective value of replica 2
-        temp1: Temperature of replica 1  
-        temp2: Temperature of replica 2
-        mode: Optimization mode
+        obj1 (float): Objective value of replica 1.
+        obj2 (float): Objective value of replica 2.
+        temp1 (float): Temperature of replica 1.
+        temp2 (float): Temperature of replica 2.
+        mode (str): Optimization mode - 'maximize', 'minimize', or 'target'.
+            Default is 'maximize'.
         
     Returns:
-        True if exchange should occur
+        bool: True if exchange should occur, False otherwise.
     """
     prob = compute_exchange_probability(obj1, obj2, temp1, temp2, mode)
     return np.random.random() < prob

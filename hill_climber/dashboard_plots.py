@@ -24,18 +24,18 @@ def create_replica_plot(
     """Create a plot for a single replica showing objective and additional metrics.
     
     Args:
-        metrics_df: DataFrame with columns: replica_id, step, metric_name, value
-        replica_id: ID of the replica to plot
-        objective_metric: Name of the objective metric to plot
-        additional_metrics: List of additional metric names to plot
-        exchange_interval: Steps between exchange attempts
-        replica_temps: Dictionary mapping replica_id to current temperature
-        exchanges_df: DataFrame with temperature exchange events
-        normalize_metrics: If True, normalize all metrics to [0, 1]
-        show_exchanges: If True, draw vertical lines at exchange events
+        metrics_df (pd.DataFrame): DataFrame with columns: replica_id, step, metric_name, value.
+        replica_id (int): ID of the replica to plot.
+        objective_metric (str): Name of the objective metric to plot on primary y-axis.
+        additional_metrics (List[str]): List of additional metric names to plot.
+        exchange_interval (int): Steps between exchange attempts (for x-axis scaling).
+        replica_temps (Dict[int, float]): Dictionary mapping replica_id to current temperature.
+        exchanges_df (pd.DataFrame): DataFrame with temperature exchange events.
+        normalize_metrics (bool): If True, normalize all metrics to [0, 1]. Default is False.
+        show_exchanges (bool): If True, draw vertical lines at exchange events. Default is False.
         
     Returns:
-        Plotly Figure object
+        go.Figure: Plotly Figure object with replica metrics plot.
     """
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     

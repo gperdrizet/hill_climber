@@ -22,51 +22,55 @@ def run_replica_steps(
     the updated state dict.
     
     Args:
-        state_dict: Replica state dictionary
-        objective_func: Function taking M column arrays, returns (metrics_dict, objective_value)
-        bounds: Tuple of (min_values, max_values) for boundary reflection
-        n_steps: Number of optimization steps to perform
-        mode: 'maximize', 'minimize', or 'target'
-        target_value: Target value (only used if mode='target')
-        db_config: Optional database configuration dict with keys:
-                  - enabled: bool
-                  - path: str
-                  - step_interval: int (collect every Nth step)
-                  - buffer_size: int (flush after N collected steps)
+        state_dict (Dict[str, Any]): Replica state dictionary containing current state,
+            best state, hyperparameters, and history.
+        objective_func (Callable): Function taking M column arrays, returns 
+            (metrics_dict, objective_value).
+        bounds (Tuple[np.ndarray, np.ndarray]): Tuple of (min_values, max_values) for 
+            boundary reflection.
+        n_steps (int): Number of optimization steps to perform.
+        mode (str): Optimization mode - 'maximize', 'minimize', or 'target'.
+        target_value (float, optional): Target value, only used if mode='target'. 
+            Default is None.
+        db_config (Dict[str, Any], optional): Optional database configuration dict with keys:
+            - enabled (bool): Whether database logging is enabled.
+            - path (str): Path to database file.
+            - step_interval (int): Collect every Nth step.
+            Default is None.
     
     Returns:
-        Updated state dictionary
+        Dict[str, Any]: Updated state dictionary with new current/best states and history.
     """
 
     # State is already a dict
     state = state_dict
     
-    # Initialize database buffer if enabled
+    # Pre-extract frequently accessed variables to avoid repeated dict lookups
+    perturb_fraction = state['hyperparameters']['perturb_fraction']
+    step_spread = state['hyperparameters'].get('step_spread', 1.0)
+    cooling_rate = state['hyperparameters']['cooling_rate']
+    replica_id = state['replica_id']
+    
+    # Pre-compute mode integer for faster comparison (avoid string comparisons)
+    MODE_MAXIMIZE = 0
+    MODE_MINIMIZE = 1
+    MODE_TARGET = 2
+    mode_int = {'maximize': MODE_MAXIMIZE, 'minimize': MODE_MINIMIZE, 'target': MODE_TARGET}[mode]
+    
+    # Initialize database buffer if enabled (worker only collects, doesn't write)
     db_buffer = []
     db_enabled = db_config and db_config.get('enabled', False)
     
     if db_enabled:
         db_step_interval = db_config['step_interval']
-        db_buffer_size = db_config['buffer_size']
-        db_path = db_config['path']
-        # db_pool_size = db_config.get('pool_size', 4)
-        
-        # Import database writer only if needed
-        from .database import DatabaseWriter
-        db_writer = DatabaseWriter(db_path)
     
     # Run n steps
     for iteration in range(n_steps):
         
         # Increment total iterations counter (counts all perturbations, not just accepted)
         state['total_iterations'] += 1
-
-        # Get step spread from hyperparameters
-        step_spread = state['hyperparameters'].get('step_spread', 1.0)
         
-        # Perturb data
-        perturb_fraction = state['hyperparameters']['perturb_fraction']
-
+        # Perturb data (using pre-extracted variables)
         perturbed = perturb_vectors(
             state['current_data'],
             perturb_fraction,
@@ -78,6 +82,10 @@ def run_replica_steps(
         metrics, objective = evaluate_objective(
             perturbed, objective_func
         )
+        
+        # Track metrics for potential DB write (always use most recent evaluation)
+        last_metrics = metrics
+        last_objective = objective
         
         # Acceptance criterion (simulated annealing)
         accept = _should_accept(
@@ -94,11 +102,11 @@ def run_replica_steps(
             state['current_objective'] = objective
             
             # Update best state if this is better
-            # Use mode-aware comparison
+            # Use mode-aware comparison (with integer mode for speed)
             is_better = False
-            if mode == 'maximize':
+            if mode_int == MODE_MAXIMIZE:
                 is_better = objective > state['best_objective']
-            elif mode == 'minimize':
+            elif mode_int == MODE_MINIMIZE:
                 is_better = objective < state['best_objective']
             else:  # target mode
                 current_dist = abs(state['best_objective'] - target_value)
@@ -118,44 +126,34 @@ def run_replica_steps(
             metrics['Current Objective'] = objective  # This step's value (may be worse due to SA)
             state['metrics_history'].append(metrics.copy())
         
-            # Cool temperature
-            cooling_rate = state['hyperparameters']['cooling_rate']
+            # Cool temperature (using pre-extracted cooling_rate)
             state['temperature'] *= (1 - cooling_rate)
         
         # Collect metrics for database at regular intervals (regardless of acceptance)
-        # Record both BEST and CURRENT state metrics for dashboard flexibility
+        # Use metrics from most recent evaluation (avoids redundant objective calls)
         if db_enabled and (iteration > 0) and (iteration % db_step_interval == 0):
-            # Re-evaluate best data to get its metrics
-            best_metrics, best_obj = evaluate_objective(
-                state['best_data'], objective_func
-            )
-            
-            # Re-evaluate current data to get its metrics (may differ due to SA)
-            current_metrics, current_obj = evaluate_objective(
-                state['current_data'], objective_func
-            )
-            
             # Create a combined metrics dictionary with proper prefixes
             all_metrics = {}
             
-            # Add BEST metrics with "Best " prefix
+            # Add BEST metrics with "Best " prefix (from state)
             all_metrics['Best Objective'] = state['best_objective']
-            for metric_name, metric_value in best_metrics.items():
+            # For best metrics, use last_metrics if this was accepted, otherwise they haven't changed
+            for metric_name, metric_value in last_metrics.items():
                 all_metrics[f'Best {metric_name}'] = metric_value
             
-            # Add CURRENT metrics with "Current " prefix
+            # Add CURRENT metrics with "Current " prefix (from most recent evaluation)
             all_metrics['Current Objective'] = state['current_objective']
-            for metric_name, metric_value in current_metrics.items():
+            for metric_name, metric_value in last_metrics.items():
                 all_metrics[f'Current {metric_name}'] = metric_value
             
-            # Buffer all metrics for this step
+            # Buffer all metrics for this step (using pre-extracted replica_id)
+            current_step = state['step']
             for metric_name, metric_value in all_metrics.items():
-                db_buffer.append((state['replica_id'], state['step'], metric_name, metric_value))
-            
-            # Flush buffer if it reaches buffer_size
-            if len(db_buffer) >= db_buffer_size * len(all_metrics):
-                db_writer.insert_metrics_batch(db_buffer)
-                db_buffer = []
+                db_buffer.append((replica_id, current_step, metric_name, metric_value))
+    
+    # Return DB buffer to main process for centralized writing
+    if db_enabled and db_buffer:
+        state['db_buffer'] = db_buffer
     
     # Return state (already in dict format)
     return state
@@ -168,7 +166,22 @@ def _should_accept(
     mode: str,
     target_value: float = None
 ) -> bool:
-    """Determine if new state should be accepted (simulated annealing)."""
+    """Determine if new state should be accepted using simulated annealing.
+    
+    Uses the Metropolis criterion: always accept improvements, accept
+    worse solutions with probability exp(delta/T).
+    
+    Args:
+        new_obj (float): New objective value.
+        current_obj (float): Current objective value.
+        temp (float): Current temperature.
+        mode (str): Optimization mode - 'maximize', 'minimize', or 'target'.
+        target_value (float, optional): Target value, only used if mode='target'.
+            Default is None.
+        
+    Returns:
+        bool: True if new state should be accepted, False otherwise.
+    """
 
     if mode == 'maximize':
         delta = new_obj - current_obj
