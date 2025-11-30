@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Guide &mdash; Hill Climber 2.1.0 documentation</title>
+  <title>User Guide &mdash; Hill Climber 2.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=20623aea"></script>
+      <script src="_static/documentation_options.js?v=b3e23499"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -52,7 +52,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#optimization-modes">Optimization Modes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#objective-functions">Objective Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hyperparameters">Hyperparameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#checkpoints-and-progress-plotting">Checkpoints and Progress Plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#checkpoints">Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#boundary-handling">Boundary Handling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#replica-exchange-parallel-tempering">Replica Exchange (Parallel Tempering)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
@@ -125,13 +125,17 @@ shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <s
 </section>
 <section id="optimization-modes">
 <h2>Optimization Modes<a class="headerlink" href="#optimization-modes" title="Link to this heading"></a></h2>
-<p>Hill Climber supports two modes:</p>
+<p>Hill Climber supports three modes:</p>
 <dl class="simple">
 <dt><strong>Maximize Mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='maximize'</span></code>)</dt><dd><p>Searches for solutions that maximize the objective function value.
 Use this when higher objective values are better.</p>
 </dd>
 <dt><strong>Minimize Mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='minimize'</span></code>)</dt><dd><p>Searches for solutions that minimize the objective function value.
 Use this when lower objective values are better.</p>
+</dd>
+<dt><strong>Target Mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='target'</span></code>)</dt><dd><p>Searches for solutions that approach a specific target value.
+Requires setting <code class="docutils literal notranslate"><span class="pre">target_value</span></code> parameter. The objective function
+should return the distance from the target (minimized internally).</p>
 </dd>
 </dl>
 </section>
@@ -182,20 +186,22 @@ in your input data.</p>
 <dl class="simple">
 <dt><strong>n_replicas</strong> (default: 4)</dt><dd><p>Number of replicas for parallel tempering (replica exchange). More replicas
 provide better exploration but use more memory. Each replica runs at a different
-temperature from the temperature ladder.</p>
+temperature from the temperature ladder. Set to 1 for simulated annealing without
+replica exchange.</p>
 </dd>
-<dt><strong>temperature</strong> (default: 1000)</dt><dd><p>Minimum temperature (T_min) for the coldest replica in the temperature ladder.
+<dt><strong>T_min</strong> (default: 0.1)</dt><dd><p>Minimum temperature for the coldest replica in the temperature ladder.
 Also used as the base temperature for simulated annealing. Higher temperatures
 allow more exploration of suboptimal solutions.</p>
 </dd>
-<dt><strong>T_max</strong> (default: 10000)</dt><dd><p>Maximum temperature for the hottest replica in the temperature ladder. Should
-be significantly higher than T_min for effective replica exchange.</p>
+<dt><strong>T_max</strong> (default: 100 * T_min)</dt><dd><p>Maximum temperature for the hottest replica in the temperature ladder. Should
+be significantly higher than T_min for effective replica exchange. Defaults to
+100 times T_min if not specified.</p>
 </dd>
 <dt><strong>temperature_scheme</strong> (default: ‘geometric’)</dt><dd><p>How to space temperatures in the ladder: ‘geometric’ or ‘linear’. Geometric
 spacing typically provides better exchange acceptance rates.</p>
 </dd>
-<dt><strong>exchange_interval</strong> (default: 100)</dt><dd><p>Number of optimization steps between replica exchange attempts. Smaller values
-attempt exchanges more frequently.</p>
+<dt><strong>exchange_interval</strong> (default: 10000)</dt><dd><p>Number of optimization steps between replica exchange attempts. Smaller values
+attempt exchanges more frequently but increase overhead.</p>
 </dd>
 <dt><strong>exchange_strategy</strong> (default: ‘even_odd’)</dt><dd><p>Strategy for selecting replica pairs for exchange:</p>
 <ul class="simple">
@@ -210,35 +216,58 @@ standard deviation is calculated as <code class="docutils literal notranslate"><
 automatically scale-appropriate for your data. Larger values create more dramatic
 perturbations, smaller values make more subtle adjustments.</p>
 </dd>
-<dt><strong>perturb_fraction</strong> (default: 0.1)</dt><dd><p>Fraction of data points to modify in each iteration (0.0 to 1.0).
+<dt><strong>perturb_fraction</strong> (default: 0.001)</dt><dd><p>Fraction of data points to modify in each iteration (0.0 to 1.0).
 Higher values create more dramatic changes per step.</p>
 </dd>
-<dt><strong>cooling_rate</strong> (default: 0.000001)</dt><dd><p>Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
+<dt><strong>cooling_rate</strong> (default: 1e-8)</dt><dd><p>Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
 is multiplied by <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">-</span> <span class="pre">cooling_rate)</span></code> each iteration. Smaller values result in slower
-cooling and longer exploration. For example, <code class="docutils literal notranslate"><span class="pre">0.000001</span></code> means <code class="docutils literal notranslate"><span class="pre">temp</span> <span class="pre">*=</span> <span class="pre">0.999999</span></code> each step.</p>
+cooling and longer exploration. For example, <code class="docutils literal notranslate"><span class="pre">1e-8</span></code> means <code class="docutils literal notranslate"><span class="pre">temp</span> <span class="pre">*=</span> <span class="pre">0.99999999</span></code> each step.</p>
 </dd>
 <dt><strong>max_time</strong> (default: 30)</dt><dd><p>Maximum optimization time in minutes.</p>
 </dd>
-<dt><strong>show_progress</strong> (default: True)</dt><dd><p>Whether to display progress plots during optimization. Set to False to disable
-plots (useful for automated scripts or testing).</p>
+<dt><strong>checkpoint_file</strong> (default: None)</dt><dd><p>Path to save checkpoints. If specified, the optimizer saves its state after each
+batch, allowing resumption if interrupted.</p>
+</dd>
+<dt><strong>checkpoint_interval</strong> (default: 1)</dt><dd><p>Number of batches between checkpoint saves. Default is 1 (save every batch).
+Set higher to reduce I/O overhead.</p>
+</dd>
+<dt><strong>db_enabled</strong> (default: False)</dt><dd><p>Enable database logging for real-time dashboard monitoring. Requires installing
+with dashboard extras.</p>
+</dd>
+<dt><strong>db_path</strong> (default: ‘data/hill_climber_progress.db’)</dt><dd><p>Path to SQLite database file for dashboard data.</p>
+</dd>
+<dt><strong>db_step_interval</strong> (default: exchange_interval // 1000)</dt><dd><p>Collect metrics every Nth step for database logging. Defaults to 0.1% sampling.</p>
+</dd>
+<dt><strong>db_buffer_size</strong> (default: 10)</dt><dd><p>Number of pooled steps before writing to database.</p>
+</dd>
+<dt><strong>verbose</strong> (default: False)</dt><dd><p>Print progress messages during optimization.</p>
+</dd>
+<dt><strong>n_workers</strong> (default: n_replicas)</dt><dd><p>Number of worker processes for parallel execution. Defaults to number of replicas.</p>
 </dd>
 </dl>
 </section>
-<section id="checkpoints-and-progress-plotting">
-<h2>Checkpoints and Progress Plotting<a class="headerlink" href="#checkpoints-and-progress-plotting" title="Link to this heading"></a></h2>
-<p>Hill Climber automatically saves checkpoints and updates progress plots after each
-batch of optimization steps (controlled by <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code>). If you specify a
-<code class="docutils literal notranslate"><span class="pre">checkpoint_file</span></code> path, the optimizer saves its state after every batch, allowing
-you to resume from the most recent state if interrupted. Progress plots are shown
-after each batch when <code class="docutils literal notranslate"><span class="pre">show_progress=True</span></code> (default).</p>
+<section id="checkpoints">
+<h2>Checkpoints<a class="headerlink" href="#checkpoints" title="Link to this heading"></a></h2>
+<p>If you specify a <code class="docutils literal notranslate"><span class="pre">checkpoint_file</span></code> path, the optimizer saves its state periodically,
+allowing you to resume from the most recent state if interrupted or continue optimization
+after the run ends.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Checkpoints store the entire optimizer state, including current solutions,
+best solutions, temperatures, and history. This allows seamless resumption.</p>
+</div>
 <dl class="simple">
-<dt><strong>Batch Size</strong></dt><dd><p>The batch size is determined by <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> (default: 100 steps).
+<dt><strong>Batch Size</strong></dt><dd><p>The batch size is determined by <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> (default: 10000 steps).
 After each batch, the optimizer:</p>
 <ul class="simple">
 <li><p>Attempts replica exchanges</p></li>
-<li><p>Saves a checkpoint (if <code class="docutils literal notranslate"><span class="pre">checkpoint_file</span></code> is specified)</p></li>
-<li><p>Updates progress plots (if <code class="docutils literal notranslate"><span class="pre">show_progress=True</span></code>)</p></li>
+<li><p>Saves a checkpoint (if <code class="docutils literal notranslate"><span class="pre">checkpoint_file</span></code> is specified and checkpoint_interval condition is met)</p></li>
+<li><p>Updates the progress dashboard database (if <code class="docutils literal notranslate"><span class="pre">db_enabled</span></code> is True)</p></li>
 </ul>
+</dd>
+<dt><strong>Checkpoint Frequency</strong></dt><dd><p>The actual frequency of checkpoints is controlled by <code class="docutils literal notranslate"><span class="pre">checkpoint_interval</span></code>. By default,
+a checkpoint is saved after every batch (i.e., every <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> steps). You can
+save checkpoints less frequently by setting <code class="docutils literal notranslate"><span class="pre">checkpoint_interval</span></code> to a higher value to reduce I/O.</p>
 </dd>
 </dl>
 </section>
@@ -278,17 +307,6 @@ replicas run simultaneously at different temperatures:</p>
 <span class="nb">print</span><span class="p">(</span><span class="n">ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="p">)</span>  <span class="c1"># [1000, 4000, 7000, 10000]</span>
 </pre></div>
 </div>
-<p><strong>Exchange Statistics:</strong></p>
-<p>After optimization, check exchange acceptance rates:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_data</span><span class="p">,</span> <span class="n">history_df</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
-
-<span class="c1"># Exchange statistics are printed during optimization</span>
-<span class="c1"># Exchange acceptance rate: 15.4%</span>
-
-<span class="c1"># For detailed analysis, access the climber&#39;s exchange statistics:</span>
-<span class="c1"># climber.exchange_stats.get_acceptance_matrix()</span>
-</pre></div>
-</div>
 <p><strong>Benefits:</strong></p>
 <ul class="simple">
 <li><p>Better global optimization compared to single-temperature annealing</p></li>
@@ -305,7 +323,6 @@ replicas run simultaneously at different temperatures:</p>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
     <span class="n">max_time</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
     <span class="n">checkpoint_file</span><span class="o">=</span><span class="s1">&#39;optimization.pkl&#39;</span><span class="p">,</span>
-    <span class="n">save_interval</span><span class="o">=</span><span class="mi">300</span>  <span class="c1"># Save every 5 minutes</span>
 <span class="p">)</span>
 
 <span class="n">result</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
@@ -328,6 +345,11 @@ replicas run simultaneously at different temperatures:</p>
 <span class="c1"># Continue optimizing</span>
 <span class="n">best_data</span><span class="p">,</span> <span class="n">history_df</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is also possible to resume a run while it is still in memory by simply calling
+<code class="docutils literal notranslate"><span class="pre">climb()</span></code> again on the existing <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code> instance.</p>
 </div>
 </section>
 <section id="results-structure">
@@ -352,17 +374,16 @@ replicas run simultaneously at different temperatures:</p>
 </section>
 <section id="internal-architecture">
 <h2>Internal Architecture<a class="headerlink" href="#internal-architecture" title="Link to this heading"></a></h2>
-<p>Hill Climber uses a unified <code class="docutils literal notranslate"><span class="pre">OptimizerState</span></code> dataclass to manage all optimization
-progress internally. This provides:</p>
+<p>Hill Climber uses a <code class="docutils literal notranslate"><span class="pre">ReplicaState</span></code> dataclass to manage the state of each replica
+during optimization. This provides:</p>
 <ul class="simple">
-<li><p><strong>Clean separation</strong>: Hyperparameters stay in <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code>, runtime state in <code class="docutils literal notranslate"><span class="pre">OptimizerState</span></code></p></li>
+<li><p><strong>Clean separation</strong>: Hyperparameters stay in <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code>, runtime state in <code class="docutils literal notranslate"><span class="pre">ReplicaState</span></code></p></li>
 <li><p><strong>Easy checkpointing</strong>: State can be serialized/deserialized as a unit</p></li>
 <li><p><strong>Better organization</strong>: All tracking data (current/best solutions, metrics, history, timing) in one place</p></li>
 <li><p><strong>Type safety</strong>: Dataclass provides clear typing for all state attributes</p></li>
 </ul>
-<p>You don’t need to interact with <code class="docutils literal notranslate"><span class="pre">OptimizerState</span></code> directly - it’s used internally
-by the <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code> class. However, if you’re extending or debugging the code,
-you can access it via <code class="docutils literal notranslate"><span class="pre">climber.state</span></code>.</p>
+<p>You don’t need to interact with <code class="docutils literal notranslate"><span class="pre">ReplicaState</span></code> directly - it’s used internally
+by the <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code> class to manage each replica’s optimization state.</p>
 </section>
 </section>
 

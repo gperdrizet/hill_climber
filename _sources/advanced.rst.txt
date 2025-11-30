@@ -80,8 +80,8 @@ Choose the appropriate temperature range and spacing:
        data=data,
        objective_func=my_objective,
        n_replicas=8,
-       temperature=100,      # T_min: coldest replica
-       T_max=100000,         # T_max: hottest replica  
+       T_min=0.1,            # Coldest replica
+       T_max=100.0,          # Hottest replica  
        temperature_scheme='geometric'  # Recommended for better mixing
    )
 
@@ -90,8 +90,8 @@ Choose the appropriate temperature range and spacing:
        data=data,
        objective_func=my_objective,
        n_replicas=4,
-       temperature=1000,
-       T_max=5000,
+       T_min=1.0,
+       T_max=5.0,
        temperature_scheme='linear'
    )
 
@@ -110,7 +110,7 @@ Different strategies for replica pairing:
        data=data,
        objective_func=my_objective,
        exchange_strategy='random',  # or 'even_odd', 'all_neighbors'
-       exchange_interval=50  # Exchange attempts every 50 steps
+       exchange_interval=10000  # Exchange attempts every 10000 steps
    )
 
 Choosing Number of Replicas
@@ -192,34 +192,6 @@ temperatures to their original ladder values:
 Note that resetting temperatures restarts the cooling schedule but preserves all other
 state including current configurations, best solutions, and optimization history.
 
-Progress Monitoring
--------------------
-
-Automatic Progress Plots
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Progress plots are automatically displayed after each batch in notebook environments:
-
-.. code-block:: python
-
-   climber = HillClimber(
-       data=data,
-       objective_func=my_objective,
-       max_time=60,
-       plot_type='histogram',  # 'scatter' or 'histogram'
-       plot_metrics=['Correlation']  # Specific metrics to track
-   )
-   
-   result = climber.climb()
-
-Plots update automatically after each batch (every ``exchange_interval`` steps,
-default: 100). This is useful for:
-
-- Long-running optimizations (>10 minutes)
-- Interactive Jupyter notebooks
-- Debugging objective functions
-- Monitoring convergence behavior
-
 Performance Optimization
 ------------------------
 
@@ -229,7 +201,7 @@ Perturbation Strategies
 **Perturbation distribution**:
 
 Perturbations are sampled from a normal distribution N(0, σ) where σ is calculated
-as ``step_spread * mean(data_range)``:
+as ``step_spread * mean(data_range)``:  
 
 - Mean is always 0 (symmetric perturbations around current values)
 - ``step_spread``: Fraction of data range (default: 0.01 = 1%)
@@ -242,19 +214,17 @@ Example:
    climber = HillClimber(
        data=data,
        objective_func=my_objective,
-       perturb_fraction=0.1,  # perturb 10% of elements
-       step_spread=0.02       # 2% of data range
-   )
-
-Faster Convergence
+       perturb_fraction=0.001,  # perturb 0.1% of elements (default)
+       step_spread=0.02         # 2% of data range
+   )Faster Convergence
 ~~~~~~~~~~~~~~~~~~
 
 For quick convergence, use aggressive parameters:
 
 - **Large step_spread** (0.05-0.10): Allow bigger perturbations (5-10% of range)
-- **High perturb_fraction** (0.4-0.6): Modify more points
-- **Low temperature** (10-50): More greedy optimization
-- **Slower cooling** (0.0001): More exploration of suboptimal solutions
+- **High perturb_fraction** (0.01-0.1): Modify more points
+- **Low T_min** (0.01-0.1): More greedy optimization
+- **Higher cooling_rate** (1e-6): Faster temperature reduction
 
 Better Exploration
 ~~~~~~~~~~~~~~~~~~
@@ -262,9 +232,9 @@ Better Exploration
 For thorough exploration of solution space:
 
 - **Small step_spread** (0.001-0.005): Precise adjustments (0.1-0.5% of range)
-- **Low perturb_fraction** (0.1-0.2): Subtle changes
-- **High temperature** (100-500): Accept more suboptimal moves
-- **Faster cooling** (0.01-0.001): Gradual convergence
+- **Low perturb_fraction** (0.0001-0.001): Subtle changes
+- **High T_min** (1.0-10.0): Accept more suboptimal moves
+- **Lower cooling_rate** (1e-9 to 1e-10): Gradual convergence
 
 Algorithm Visualization
 -----------------------
@@ -291,7 +261,7 @@ No Progress After Many Steps
 
 - Increase ``step_spread`` for larger perturbations (try 0.05-0.10)
 - Increase ``perturb_fraction`` to modify more points
-- Decrease ``temperature`` for more greedy optimization
+- Decrease ``T_min`` for more greedy optimization
 - Check if objective function has bugs or is too constrained
 
 Converging to Local Optima

@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Topics &mdash; Hill Climber 2.1.0 documentation</title>
+  <title>Advanced Topics &mdash; Hill Climber 2.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=20623aea"></script>
+      <script src="_static/documentation_options.js?v=b3e23499"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -66,13 +66,8 @@
 <li class="toctree-l3"><a class="reference internal" href="#temperature-reset-on-resume">Temperature Reset on Resume</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#progress-monitoring">Progress Monitoring</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#automatic-progress-plots">Automatic Progress Plots</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="#performance-optimization">Performance Optimization</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#perturbation-strategies">Perturbation Strategies</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#faster-convergence">Faster Convergence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#better-exploration">Better Exploration</a></li>
 </ul>
 </li>
@@ -189,8 +184,8 @@ as many arguments as you have columns. Combine multiple objectives with differen
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
     <span class="n">n_replicas</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-    <span class="n">temperature</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>      <span class="c1"># T_min: coldest replica</span>
-    <span class="n">T_max</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>         <span class="c1"># T_max: hottest replica</span>
+    <span class="n">T_min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>            <span class="c1"># Coldest replica</span>
+    <span class="n">T_max</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>          <span class="c1"># Hottest replica</span>
     <span class="n">temperature_scheme</span><span class="o">=</span><span class="s1">&#39;geometric&#39;</span>  <span class="c1"># Recommended for better mixing</span>
 <span class="p">)</span>
 
@@ -199,8 +194,8 @@ as many arguments as you have columns. Combine multiple objectives with differen
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
     <span class="n">n_replicas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-    <span class="n">temperature</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
-    <span class="n">T_max</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+    <span class="n">T_min</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">T_max</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
     <span class="n">temperature_scheme</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span>
 <span class="p">)</span>
 </pre></div>
@@ -218,7 +213,7 @@ as many arguments as you have columns. Combine multiple objectives with differen
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
     <span class="n">exchange_strategy</span><span class="o">=</span><span class="s1">&#39;random&#39;</span><span class="p">,</span>  <span class="c1"># or &#39;even_odd&#39;, &#39;all_neighbors&#39;</span>
-    <span class="n">exchange_interval</span><span class="o">=</span><span class="mi">50</span>  <span class="c1"># Exchange attempts every 50 steps</span>
+    <span class="n">exchange_interval</span><span class="o">=</span><span class="mi">10000</span>  <span class="c1"># Exchange attempts every 10000 steps</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -296,32 +291,6 @@ temperatures to their original ladder values:</p>
 state including current configurations, best solutions, and optimization history.</p>
 </section>
 </section>
-<section id="progress-monitoring">
-<h2>Progress Monitoring<a class="headerlink" href="#progress-monitoring" title="Link to this heading"></a></h2>
-<section id="automatic-progress-plots">
-<h3>Automatic Progress Plots<a class="headerlink" href="#automatic-progress-plots" title="Link to this heading"></a></h3>
-<p>Progress plots are automatically displayed after each batch in notebook environments:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
-    <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
-    <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
-    <span class="n">max_time</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
-    <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;histogram&#39;</span><span class="p">,</span>  <span class="c1"># &#39;scatter&#39; or &#39;histogram&#39;</span>
-    <span class="n">plot_metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Correlation&#39;</span><span class="p">]</span>  <span class="c1"># Specific metrics to track</span>
-<span class="p">)</span>
-
-<span class="n">result</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>Plots update automatically after each batch (every <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> steps,
-default: 100). This is useful for:</p>
-<ul class="simple">
-<li><p>Long-running optimizations (&gt;10 minutes)</p></li>
-<li><p>Interactive Jupyter notebooks</p></li>
-<li><p>Debugging objective functions</p></li>
-<li><p>Monitoring convergence behavior</p></li>
-</ul>
-</section>
-</section>
 <section id="performance-optimization">
 <h2>Performance Optimization<a class="headerlink" href="#performance-optimization" title="Link to this heading"></a></h2>
 <section id="perturbation-strategies">
@@ -338,20 +307,18 @@ as <code class="docutils literal notranslate"><span class="pre">step_spread</spa
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
-    <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>  <span class="c1"># perturb 10% of elements</span>
-    <span class="n">step_spread</span><span class="o">=</span><span class="mf">0.02</span>       <span class="c1"># 2% of data range</span>
-<span class="p">)</span>
+    <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>  <span class="c1"># perturb 0.1% of elements (default)</span>
+    <span class="n">step_spread</span><span class="o">=</span><span class="mf">0.02</span>         <span class="c1"># 2% of data range</span>
+<span class="p">)</span><span class="n">Faster</span> <span class="n">Convergence</span>
 </pre></div>
 </div>
-</section>
-<section id="faster-convergence">
-<h3>Faster Convergence<a class="headerlink" href="#faster-convergence" title="Link to this heading"></a></h3>
+<hr class="docutils" />
 <p>For quick convergence, use aggressive parameters:</p>
 <ul class="simple">
 <li><p><strong>Large step_spread</strong> (0.05-0.10): Allow bigger perturbations (5-10% of range)</p></li>
-<li><p><strong>High perturb_fraction</strong> (0.4-0.6): Modify more points</p></li>
-<li><p><strong>Low temperature</strong> (10-50): More greedy optimization</p></li>
-<li><p><strong>Slower cooling</strong> (0.0001): More exploration of suboptimal solutions</p></li>
+<li><p><strong>High perturb_fraction</strong> (0.01-0.1): Modify more points</p></li>
+<li><p><strong>Low T_min</strong> (0.01-0.1): More greedy optimization</p></li>
+<li><p><strong>Higher cooling_rate</strong> (1e-6): Faster temperature reduction</p></li>
 </ul>
 </section>
 <section id="better-exploration">
@@ -359,9 +326,9 @@ as <code class="docutils literal notranslate"><span class="pre">step_spread</spa
 <p>For thorough exploration of solution space:</p>
 <ul class="simple">
 <li><p><strong>Small step_spread</strong> (0.001-0.005): Precise adjustments (0.1-0.5% of range)</p></li>
-<li><p><strong>Low perturb_fraction</strong> (0.1-0.2): Subtle changes</p></li>
-<li><p><strong>High temperature</strong> (100-500): Accept more suboptimal moves</p></li>
-<li><p><strong>Faster cooling</strong> (0.01-0.001): Gradual convergence</p></li>
+<li><p><strong>Low perturb_fraction</strong> (0.0001-0.001): Subtle changes</p></li>
+<li><p><strong>High T_min</strong> (1.0-10.0): Accept more suboptimal moves</p></li>
+<li><p><strong>Lower cooling_rate</strong> (1e-9 to 1e-10): Gradual convergence</p></li>
 </ul>
 </section>
 </section>
@@ -387,7 +354,7 @@ The algorithm:</p>
 <ul class="simple">
 <li><p>Increase <code class="docutils literal notranslate"><span class="pre">step_spread</span></code> for larger perturbations (try 0.05-0.10)</p></li>
 <li><p>Increase <code class="docutils literal notranslate"><span class="pre">perturb_fraction</span></code> to modify more points</p></li>
-<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">temperature</span></code> for more greedy optimization</p></li>
+<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">T_min</span></code> for more greedy optimization</p></li>
 <li><p>Check if objective function has bugs or is too constrained</p></li>
 </ul>
 </section>
