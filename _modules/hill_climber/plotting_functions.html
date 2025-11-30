@@ -80,7 +80,7 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -90,16 +90,23 @@
 
 <div class="viewcode-block" id="plot_input_data">
 <a class="viewcode-back" href="../../api.html#hill_climber.plotting_functions.plot_input_data">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">plot_input_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;scatter&#39;</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_input_data</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">plot_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;scatter&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot input data distribution.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        data: numpy array (Nx2) or pandas DataFrame with 2 columns</span>
-<span class="sd">        plot_type: Type of plot, either ``&#39;scatter&#39;`` or ``&#39;kde&#39;``</span>
-<span class="sd">                   (default is ``&#39;scatter&#39;``)</span>
+<span class="sd">        data (Union[np.ndarray, pd.DataFrame]): Numpy array (Nx2) or pandas DataFrame </span>
+<span class="sd">            with 2 columns.</span>
+<span class="sd">        plot_type (str): Type of plot - &#39;scatter&#39; or &#39;kde&#39;. Default is &#39;scatter&#39;.</span>
 <span class="sd">    </span>
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If plot_type is not ``&#39;scatter&#39;`` or ``&#39;kde&#39;``</span>
+<span class="sd">        ValueError: If plot_type is not &#39;scatter&#39; or &#39;kde&#39;.</span>
+<span class="sd">        </span>
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; from hill_climber import plot_input_data</span>
+<span class="sd">        &gt;&gt;&gt; data = np.random.randn(100, 2)</span>
+<span class="sd">        &gt;&gt;&gt; plot_input_data(data, plot_type=&#39;scatter&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plot_input_data(data, plot_type=&#39;kde&#39;)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">plot_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;scatter&#39;</span><span class="p">,</span> <span class="s1">&#39;kde&#39;</span><span class="p">]:</span>
@@ -167,7 +174,13 @@
 
 <div class="viewcode-block" id="plot_results">
 <a class="viewcode-back" href="../../api.html#hill_climber.plotting_functions.plot_results">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">plot_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;scatter&#39;</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exchange_interval</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_current</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_results</span><span class="p">(</span>
+    <span class="n">results</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">Any</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">Any</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]]],</span>
+    <span class="n">plot_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;scatter&#39;</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">exchange_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">show_current</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Visualize hill climbing results with progress and snapshots.</span>
 <span class="sd">    </span>
 <span class="sd">    Creates a comprehensive visualization showing:</span>
@@ -175,22 +188,30 @@
 <span class="sd">    - Snapshot plots at 25%, 50%, 75%, and 100% completion</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        results: Results from climb(). Can be:</span>
-<span class="sd">                 - Tuple (best_data, steps_df) from single climb() call</span>
-<span class="sd">                 - List of result tuples for multi-replica visualization</span>
-<span class="sd">        plot_type: Type of snapshot plots, either ``&#39;scatter&#39;`` or ``&#39;histogram&#39;``</span>
-<span class="sd">                   (default is ``&#39;scatter&#39;``).</span>
-<span class="sd">                   Note: ``&#39;histogram&#39;`` uses KDE (Kernel Density Estimation) plots</span>
-<span class="sd">        metrics: List of metric names to display in progress plots and snapshots.</span>
-<span class="sd">                 If None (default), all available metrics are shown.</span>
-<span class="sd">                 Example: ``[&#39;Pearson&#39;, &#39;Spearman&#39;]`` or ``[&#39;Mean X&#39;, &#39;Std X&#39;]``</span>
-<span class="sd">        exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)</span>
-<span class="sd">        show_current: If True, plot &#39;Current Objective&#39; instead of &#39;Objective value&#39;.</span>
-<span class="sd">                     Current shows SA exploration, Objective shows only improvements. (default: False)</span>
+<span class="sd">        results (Union[Tuple, List[Tuple]]): Results from climb(). Can be:</span>
+<span class="sd">            - Tuple (best_data, steps_df) from single climb() call</span>
+<span class="sd">            - Tuple (temp_history, best_data, steps_df) with replica exchange</span>
+<span class="sd">            - List of result tuples for multi-replica visualization</span>
+<span class="sd">        plot_type (str): Type of snapshot plots - &#39;scatter&#39; or &#39;histogram&#39;. </span>
+<span class="sd">            Default is &#39;scatter&#39;. Note: &#39;histogram&#39; uses KDE plots.</span>
+<span class="sd">        metrics (List[str], optional): List of metric names to display. If None, all </span>
+<span class="sd">            available metrics are shown. Default is None.</span>
+<span class="sd">        exchange_interval (int, optional): Number of steps per batch. If provided, </span>
+<span class="sd">            x-axis shows batches instead of steps. Default is None.</span>
+<span class="sd">        show_current (bool): If True, plot &#39;Current Objective&#39; (shows SA exploration).</span>
+<span class="sd">            If False, plot &#39;Objective value&#39; (only improvements). Default is False.</span>
 <span class="sd">    </span>
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If plot_type is not ``&#39;scatter&#39;`` or ``&#39;histogram&#39;``</span>
-<span class="sd">        ValueError: If any specified metric is not found in the results</span>
+<span class="sd">        ValueError: If plot_type is not &#39;scatter&#39; or &#39;histogram&#39;.</span>
+<span class="sd">        ValueError: If any specified metric is not found in the results.</span>
+<span class="sd">        </span>
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from hill_climber import HillClimber, plot_results</span>
+<span class="sd">        &gt;&gt;&gt; climber = HillClimber(data, objective_func)</span>
+<span class="sd">        &gt;&gt;&gt; results = climber.climb()</span>
+<span class="sd">        &gt;&gt;&gt; plot_results(results, plot_type=&#39;scatter&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plot_results(results, metrics=[&#39;Pearson&#39;, &#39;Spearman&#39;])</span>
+<span class="sd">        &gt;&gt;&gt; plot_results(results, show_current=True)  # Show SA exploration</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="n">plot_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;scatter&#39;</span><span class="p">,</span> <span class="s1">&#39;histogram&#39;</span><span class="p">]:</span>
@@ -228,14 +249,23 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_plot_results_scatter</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exchange_interval</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_current</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_plot_results_scatter</span><span class="p">(</span>
+    <span class="n">results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">Any</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]],</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">exchange_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">show_current</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Internal function: Visualize results with scatter plots.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        results: List of result tuples - handles both (data, df) and (_, data, df) formats</span>
-<span class="sd">        metrics: List of metric names to display, or None for all metrics</span>
-<span class="sd">        exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)</span>
-<span class="sd">        show_current: If True, plot Current Objective; if False, plot Objective value</span>
+<span class="sd">        results (List[Tuple]): List of result tuples - handles both (data, df) and </span>
+<span class="sd">            (temp_history, data, df) formats.</span>
+<span class="sd">        metrics (List[str], optional): List of metric names to display, or None for all. </span>
+<span class="sd">            Default is None.</span>
+<span class="sd">        exchange_interval (int, optional): Number of steps per batch. If provided, x-axis </span>
+<span class="sd">            shows batches instead of steps. Default is None.</span>
+<span class="sd">        show_current (bool): If True, plot Current Objective; if False, plot Objective value.</span>
+<span class="sd">            Default is False.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">n_replicates</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
@@ -397,14 +427,23 @@
     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_plot_results_histogram</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exchange_interval</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_current</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_plot_results_histogram</span><span class="p">(</span>
+    <span class="n">results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">Any</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]],</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">exchange_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">show_current</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Internal function: Visualize results with histogram/KDE plots.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        results: List of result tuples - handles both (data, df) and (_, data, df) formats</span>
-<span class="sd">        metrics: List of metric names to display, or None for all metrics</span>
-<span class="sd">        exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)</span>
-<span class="sd">        show_current: If True, plot Current Objective; if False, plot Objective value</span>
+<span class="sd">        results (List[Tuple]): List of result tuples - handles both (data, df) and </span>
+<span class="sd">            (temp_history, data, df) formats.</span>
+<span class="sd">        metrics (List[str], optional): List of metric names to display, or None for all.</span>
+<span class="sd">            Default is None.</span>
+<span class="sd">        exchange_interval (int, optional): Number of steps per batch. If provided, x-axis </span>
+<span class="sd">            shows batches instead of steps. Default is None.</span>
+<span class="sd">        show_current (bool): If True, plot Current Objective; if False, plot Objective value.</span>
+<span class="sd">            Default is False.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">n_replicates</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
@@ -536,9 +575,6 @@
             
             <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Value&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
             <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Density&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
-            <span class="c1"># ax.tick_params(axis=&#39;both&#39;, which=&#39;major&#39;, labelsize=7)</span>
-            <span class="c1"># ax.locator_params(axis=&#39;x&#39;, nbins=4)</span>
-            <span class="c1"># ax.locator_params(axis=&#39;y&#39;, nbins=4)</span>
             
         <span class="k">except</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
             <span class="c1"># If KDE fails, fall back to histogram</span>
@@ -549,7 +585,6 @@
             
             <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Value&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
             <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Frequency&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
-            <span class="c1"># ax.tick_params(axis=&#39;both&#39;, which=&#39;major&#39;, labelsize=7)</span>
         
         <span class="c1"># Add metrics annotation</span>
         <span class="n">initial_metrics</span> <span class="o">=</span> <span class="n">steps_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -559,8 +594,6 @@
             <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="n">metric_text</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
                    <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span>
                    <span class="n">bbox</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
-            <span class="c1"># ax.locator_params(axis=&#39;x&#39;, nbins=4)</span>
-            <span class="c1"># ax.locator_params(axis=&#39;y&#39;, nbins=4)</span>
         
         <span class="c1"># Snapshot histograms at 25%, 50%, 75%, 100% (bottom row, columns 1-4)</span>
         <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">pct</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.50</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]):</span>
@@ -671,12 +704,12 @@
 <div class="viewcode-block" id="plot_optimization_results">
 <a class="viewcode-back" href="../../api.html#hill_climber.plotting_functions.plot_optimization_results">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">plot_optimization_results</span><span class="p">(</span>
-    <span class="n">source</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">plot_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;scatter&#39;</span><span class="p">,</span>
     <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">all_replicas</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">show_current</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="p">):</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot optimization results from a HillClimber instance or checkpoint file.</span>
 <span class="sd">    </span>
 <span class="sd">    This is a convenience function that extracts results data from either a completed</span>
@@ -684,20 +717,20 @@
 <span class="sd">    using the plot_results function.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        source: Either a HillClimber instance (after climb() has been called) or</span>
-<span class="sd">                a string path to a checkpoint file</span>
-<span class="sd">        plot_type: Type of plot - &#39;scatter&#39; or &#39;histogram&#39; (default: &#39;scatter&#39;)</span>
-<span class="sd">        metrics: List of metric names to plot. If None, all metrics are plotted.</span>
-<span class="sd">                 Example: [&#39;Pearson&#39;, &#39;Spearman&#39;] or [&#39;Mean X&#39;, &#39;Std X&#39;]</span>
-<span class="sd">        all_replicas: If True, plot all replicas. If False, plot only the best replica</span>
-<span class="sd">                     (default: False)</span>
-<span class="sd">        show_current: If True, plot &#39;Current Objective&#39; (shows SA exploration with fluctuations).</span>
-<span class="sd">                     If False, plot &#39;Objective value&#39; (only accepted steps, always improving).</span>
-<span class="sd">                     (default: False)</span>
+<span class="sd">        source (Union[str, Any]): Either a HillClimber instance (after climb() has been </span>
+<span class="sd">            called) or a string path to a checkpoint file.</span>
+<span class="sd">        plot_type (str): Type of plot - &#39;scatter&#39; or &#39;histogram&#39;. Default is &#39;scatter&#39;.</span>
+<span class="sd">        metrics (List[str], optional): List of metric names to plot. If None, all metrics </span>
+<span class="sd">            are plotted. Default is None.</span>
+<span class="sd">        all_replicas (bool): If True, plot all replicas. If False, plot only the best </span>
+<span class="sd">            replica. Default is False.</span>
+<span class="sd">        show_current (bool): If True, plot &#39;Current Objective&#39; (shows SA exploration with </span>
+<span class="sd">            fluctuations). If False, plot &#39;Objective value&#39; (only accepted steps, always </span>
+<span class="sd">            improving). Default is False.</span>
 <span class="sd">    </span>
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If source is neither a HillClimber instance nor a valid checkpoint path</span>
-<span class="sd">        ValueError: If plot_type is not &#39;scatter&#39; or &#39;histogram&#39;</span>
+<span class="sd">        ValueError: If source is neither a HillClimber instance nor a valid checkpoint path.</span>
+<span class="sd">        ValueError: If plot_type is not &#39;scatter&#39; or &#39;histogram&#39;.</span>
 <span class="sd">    </span>
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; # From a HillClimber instance</span>

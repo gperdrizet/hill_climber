@@ -90,14 +90,14 @@
 <span class="sd">    which prevents pile-up of values at the boundaries.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        data_array: 2D numpy array to perturb</span>
-<span class="sd">        step_spread: Standard deviation of normal distribution for perturbation</span>
-<span class="sd">        n_perturb: Number of elements to perturb</span>
-<span class="sd">        min_bounds: 1D array of minimum bounds for each column</span>
-<span class="sd">        max_bounds: 1D array of maximum bounds for each column</span>
+<span class="sd">        data_array (np.ndarray): 2D numpy array to perturb with shape (N, M).</span>
+<span class="sd">        step_spread (float): Standard deviation of normal distribution for perturbation.</span>
+<span class="sd">        n_perturb (int): Number of elements to perturb.</span>
+<span class="sd">        min_bounds (np.ndarray): 1D array of minimum bounds for each column.</span>
+<span class="sd">        max_bounds (np.ndarray): 1D array of maximum bounds for each column.</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        Perturbed numpy array</span>
+<span class="sd">        np.ndarray: Perturbed numpy array with same shape as input.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">n_rows</span><span class="p">,</span> <span class="n">n_cols</span> <span class="o">=</span> <span class="n">data_array</span><span class="o">.</span><span class="n">shape</span>
@@ -147,15 +147,16 @@
 <span class="sd">    Perturbations are sampled from a normal distribution with mean 0.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        data: Input data as numpy array</span>
-<span class="sd">        perturb_fraction: Fraction of total elements to perturb (default: 0.1).</span>
-<span class="sd">                         Note: HillClimber uses 0.05 as its default.</span>
-<span class="sd">        bounds: Tuple of (min_bounds, max_bounds) arrays for each column.</span>
-<span class="sd">                If None, uses data min/max (default: None)</span>
-<span class="sd">        step_spread: Standard deviation of normal distribution for perturbations (default: 1.0)</span>
+<span class="sd">        data (np.ndarray): Input data as numpy array with shape (N, M).</span>
+<span class="sd">        perturb_fraction (float): Fraction of total elements to perturb. Default is 0.1.</span>
+<span class="sd">            Note: HillClimber uses 0.001 as its default.</span>
+<span class="sd">        bounds (tuple, optional): Tuple of (min_bounds, max_bounds) arrays for each column.</span>
+<span class="sd">            If None, uses data min/max. Default is None.</span>
+<span class="sd">        step_spread (float): Standard deviation of normal distribution for perturbations.</span>
+<span class="sd">            Default is 1.0.</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        Perturbed numpy array</span>
+<span class="sd">        np.ndarray: Perturbed numpy array with same shape as input.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Calculate number of elements to perturb</span>
@@ -183,15 +184,16 @@
 <span class="sd">    Works with multi-column data by returning each column separately.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        data: numpy array with shape (N, M) where N = samples, M = features</span>
+<span class="sd">        data (np.ndarray): Numpy array with shape (N, M) where N = samples, M = features.</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple of 1D numpy arrays, one for each column</span>
+<span class="sd">        tuple: Tuple of 1D numpy arrays, one for each column.</span>
 <span class="sd">        </span>
 <span class="sd">    Examples:</span>
-<span class="sd">        For 2-column data (N, 2): returns (x, y)</span>
-<span class="sd">        For 3-column data (N, 3): returns (x, y, z)</span>
-<span class="sd">        For M-column data (N, M): returns (col0, col1, ..., colM-1)</span>
+<span class="sd">        &gt;&gt;&gt; data = np.array([[1, 2], [3, 4], [5, 6]])</span>
+<span class="sd">        &gt;&gt;&gt; x, y = extract_columns(data)</span>
+<span class="sd">        &gt;&gt;&gt; print(x)  # [1, 3, 5]</span>
+<span class="sd">        &gt;&gt;&gt; print(y)  # [2, 4, 6]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div>
@@ -207,17 +209,19 @@
 <span class="sd">    Supports multi-column data.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        data: Input data as numpy array with shape (N, M)</span>
-<span class="sd">        objective_func: Function that takes M column arrays and returns </span>
-<span class="sd">                       (metrics_dict, objective_value)</span>
+<span class="sd">        data (np.ndarray): Input data as numpy array with shape (N, M).</span>
+<span class="sd">        objective_func (Callable): Function that takes M column arrays and returns </span>
+<span class="sd">            (metrics_dict, objective_value).</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple of (metrics_dict, objective_value)</span>
+<span class="sd">        tuple: Tuple of (metrics_dict, objective_value) where metrics_dict is a</span>
+<span class="sd">            dictionary of metric names to values, and objective_value is a float.</span>
 <span class="sd">        </span>
 <span class="sd">    Examples:</span>
-<span class="sd">        For 2-column data: objective_func(x, y) is called</span>
-<span class="sd">        For 3-column data: objective_func(x, y, z) is called</span>
-<span class="sd">        For M-column data: objective_func(col0, col1, ...) is called</span>
+<span class="sd">        &gt;&gt;&gt; def obj_func(x, y):</span>
+<span class="sd">        ...     return {&#39;mean_x&#39;: x.mean()}, x.mean() + y.mean()</span>
+<span class="sd">        &gt;&gt;&gt; data = np.array([[1, 2], [3, 4]])</span>
+<span class="sd">        &gt;&gt;&gt; metrics, objective = calculate_objective(data, obj_func)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">columns</span> <span class="o">=</span> <span class="n">extract_columns</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
@@ -234,11 +238,13 @@
 <span class="sd">    This is a convenience wrapper around calculate_objective.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        data: numpy array (N, M)</span>
-<span class="sd">        objective_func: Function taking M arrays, returns (metrics_dict, objective_value)</span>
+<span class="sd">        data (np.ndarray): Numpy array with shape (N, M).</span>
+<span class="sd">        objective_func (Callable): Function taking M arrays, returns </span>
+<span class="sd">            (metrics_dict, objective_value).</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        Tuple of (metrics_dict, objective_value)</span>
+<span class="sd">        tuple: Tuple of (metrics_dict, objective_value) where metrics_dict is a</span>
+<span class="sd">            dictionary of metric names to values, and objective_value is a float.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">calculate_objective</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">objective_func</span><span class="p">)</span></div>
 

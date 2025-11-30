@@ -135,7 +135,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert ReplicaState to dictionary for backwards compatibility.</span>
 <span class="sd">        </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            Dictionary representation of replica state</span>
+<span class="sd">            Dict: Dictionary representation of replica state with all attributes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s1">&#39;replica_id&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">replica_id</span><span class="p">,</span>
@@ -164,10 +164,11 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create ReplicaState from dictionary for backwards compatibility.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
-<span class="sd">            state_dict: Dictionary containing replica state</span>
+<span class="sd">            state_dict (Dict): Dictionary containing replica state with keys matching</span>
+<span class="sd">                ReplicaState attributes.</span>
 <span class="sd">            </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            ReplicaState instance</span>
+<span class="sd">            ReplicaState: New ReplicaState instance populated from dictionary.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">replica_id</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;replica_id&#39;</span><span class="p">],</span>
@@ -203,22 +204,24 @@
     <span class="n">original_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">hyperparameters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new replica state dictionary (legacy function for backwards compatibility).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new replica state dictionary.</span>
 <span class="sd">    </span>
-<span class="sd">    Note: For new code, prefer using ReplicaState dataclass directly.</span>
+<span class="sd">    Legacy function for backwards compatibility. For new code, prefer using </span>
+<span class="sd">    ReplicaState dataclass directly.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        replica_id: Replica identifier</span>
-<span class="sd">        temperature: Initial temperature</span>
-<span class="sd">        current_data: Current data configuration</span>
-<span class="sd">        current_objective: Current objective value</span>
-<span class="sd">        best_data: Best data found so far</span>
-<span class="sd">        best_objective: Best objective value found</span>
-<span class="sd">        original_data: Original input data</span>
-<span class="sd">        hyperparameters: Optimization hyperparameters</span>
+<span class="sd">        replica_id (int): Replica identifier.</span>
+<span class="sd">        temperature (float): Initial temperature.</span>
+<span class="sd">        current_data (np.ndarray): Current data configuration.</span>
+<span class="sd">        current_objective (float): Current objective value.</span>
+<span class="sd">        best_data (np.ndarray): Best data found so far.</span>
+<span class="sd">        best_objective (float): Best objective value found.</span>
+<span class="sd">        original_data (np.ndarray, optional): Original input data before optimization.</span>
+<span class="sd">            Default is None.</span>
+<span class="sd">        hyperparameters (Dict, optional): Optimization hyperparameters. Default is None.</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        Dictionary containing replica state</span>
+<span class="sd">        Dict: Dictionary containing replica state.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">ReplicaState</span><span class="p">(</span>
         <span class="n">replica_id</span><span class="o">=</span><span class="n">replica_id</span><span class="p">,</span>
@@ -234,26 +237,27 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">record_temperature_change</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">new_temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">record_temperature_change</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">new_temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Record a temperature change from replica exchange.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        state: Replica state dictionary</span>
-<span class="sd">        new_temperature: New temperature after exchange</span>
-<span class="sd">        step: Step number when exchange occurred (uses state[&#39;step&#39;] if not provided)</span>
+<span class="sd">        state (Dict): Replica state dictionary.</span>
+<span class="sd">        new_temperature (float): New temperature after exchange.</span>
+<span class="sd">        step (int, optional): Step number when exchange occurred. Uses state[&#39;step&#39;] </span>
+<span class="sd">            if not provided. Default is None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">exchange_step</span> <span class="o">=</span> <span class="n">step</span> <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">]</span>
     <span class="n">state</span><span class="p">[</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">exchange_step</span><span class="p">,</span> <span class="n">new_temperature</span><span class="p">))</span>
     <span class="n">state</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_temperature</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">record_exchange</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">partner_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">accepted</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">record_exchange</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">partner_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">accepted</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Record an exchange attempt.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        state: Replica state dictionary</span>
-<span class="sd">        partner_id: ID of the partner replica</span>
-<span class="sd">        accepted: Whether the exchange was accepted</span>
+<span class="sd">        state (Dict): Replica state dictionary.</span>
+<span class="sd">        partner_id (int): ID of the partner replica.</span>
+<span class="sd">        accepted (bool): Whether the exchange was accepted.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">state</span><span class="p">[</span><span class="s1">&#39;exchange_attempts&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">accepted</span><span class="p">:</span>
@@ -265,10 +269,11 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert replica history to DataFrame.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        state: Replica state dictionary</span>
+<span class="sd">        state (Dict): Replica state dictionary containing metrics_history.</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        DataFrame with step and metric columns</span>
+<span class="sd">        pd.DataFrame: DataFrame with step and metric columns. Returns empty DataFrame</span>
+<span class="sd">            if no history exists.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">]:</span>
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>

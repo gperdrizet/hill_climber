@@ -79,7 +79,7 @@
 <span></span><span class="sd">&quot;&quot;&quot;Replica exchange coordination and utilities.&quot;&quot;&quot;</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 
 
 <div class="viewcode-block" id="TemperatureLadder">
@@ -96,7 +96,11 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">n_replicas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of replicas in the ladder.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of replicas in the ladder.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            int: Number of replicas.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">temperatures</span><span class="p">)</span>
     
 <div class="viewcode-block" id="TemperatureLadder.geometric">
@@ -106,12 +110,12 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create geometric temperature ladder.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
-<span class="sd">            n_replicas: Number of replicas</span>
-<span class="sd">            T_min: Minimum (coldest) temperature</span>
-<span class="sd">            T_max: Maximum (hottest) temperature</span>
+<span class="sd">            n_replicas (int): Number of replicas.</span>
+<span class="sd">            T_min (float): Minimum (coldest) temperature.</span>
+<span class="sd">            T_max (float): Maximum (hottest) temperature.</span>
 <span class="sd">            </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            TemperatureLadder instance</span>
+<span class="sd">            TemperatureLadder: Instance with geometrically spaced temperatures.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">n_replicas</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">temps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">T_min</span><span class="p">])</span>
@@ -128,12 +132,12 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create linear temperature ladder.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
-<span class="sd">            n_replicas: Number of replicas</span>
-<span class="sd">            T_min: Minimum (coldest) temperature</span>
-<span class="sd">            T_max: Maximum (hottest) temperature</span>
+<span class="sd">            n_replicas (int): Number of replicas.</span>
+<span class="sd">            T_min (float): Minimum (coldest) temperature.</span>
+<span class="sd">            T_max (float): Maximum (hottest) temperature.</span>
 <span class="sd">            </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            TemperatureLadder instance</span>
+<span class="sd">            TemperatureLadder: Instance with linearly spaced temperatures.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">temps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">T_min</span><span class="p">,</span> <span class="n">T_max</span><span class="p">,</span> <span class="n">n_replicas</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">temperatures</span><span class="o">=</span><span class="n">temps</span><span class="p">)</span></div>
@@ -146,10 +150,10 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create custom temperature ladder.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
-<span class="sd">            temperatures: List of temperatures (will be sorted)</span>
+<span class="sd">            temperatures (List[float]): List of temperatures (will be sorted).</span>
 <span class="sd">            </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            TemperatureLadder instance</span>
+<span class="sd">            TemperatureLadder: Instance with custom temperatures.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">temperatures</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">temperatures</span><span class="p">)))</span></div>
 </div>
@@ -167,8 +171,9 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize scheduler.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
-<span class="sd">            n_replicas: Number of replicas</span>
-<span class="sd">            strategy: Exchange strategy (&#39;even_odd&#39;, &#39;random&#39;, &#39;all_neighbors&#39;)</span>
+<span class="sd">            n_replicas (int): Number of replicas.</span>
+<span class="sd">            strategy (str): Exchange strategy - &#39;even_odd&#39;, &#39;random&#39;, or &#39;all_neighbors&#39;.</span>
+<span class="sd">                Default is &#39;even_odd&#39;.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span> <span class="o">=</span> <span class="n">n_replicas</span>
@@ -182,7 +187,10 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get list of replica pairs to attempt exchange.</span>
 <span class="sd">        </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            List of (i, j) tuples where i &lt; j</span>
+<span class="sd">            List[Tuple[int, int]]: List of (i, j) tuples where i &lt; j.</span>
+<span class="sd">        </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If strategy is unknown.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span> <span class="o">==</span> <span class="s1">&#39;even_odd&#39;</span><span class="p">:</span>
@@ -222,22 +230,23 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">compute_exchange_probability</span><span class="p">(</span><span class="n">obj1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">obj2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> 
                                  <span class="n">temp1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">temp2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-                                 <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;maximize&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+                 <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;maximize&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute probability of exchanging configurations.</span>
 <span class="sd">    </span>
 <span class="sd">    Uses Metropolis criterion for replica exchange:</span>
 <span class="sd">    P(exchange) = min(1, exp(ΔE * Δβ))</span>
-<span class="sd">    where ΔE depends on mode and Δβ = 1/T1 - 1/T2</span>
+<span class="sd">    where ΔE depends on mode and Δβ = 1/T1 - 1/T2.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        obj1: Objective value of replica 1</span>
-<span class="sd">        obj2: Objective value of replica 2</span>
-<span class="sd">        temp1: Temperature of replica 1</span>
-<span class="sd">        temp2: Temperature of replica 2</span>
-<span class="sd">        mode: &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;</span>
+<span class="sd">        obj1 (float): Objective value of replica 1.</span>
+<span class="sd">        obj2 (float): Objective value of replica 2.</span>
+<span class="sd">        temp1 (float): Temperature of replica 1.</span>
+<span class="sd">        temp2 (float): Temperature of replica 2.</span>
+<span class="sd">        mode (str): Optimization mode - &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;.</span>
+<span class="sd">            Default is &#39;maximize&#39;.</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        Probability of accepting exchange (0 to 1)</span>
+<span class="sd">        float: Probability of accepting exchange (0 to 1).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Convert to energy (lower is better)</span>
     <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;maximize&#39;</span><span class="p">:</span>
@@ -267,14 +276,15 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Determine if exchange should occur.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
-<span class="sd">        obj1: Objective value of replica 1</span>
-<span class="sd">        obj2: Objective value of replica 2</span>
-<span class="sd">        temp1: Temperature of replica 1  </span>
-<span class="sd">        temp2: Temperature of replica 2</span>
-<span class="sd">        mode: Optimization mode</span>
+<span class="sd">        obj1 (float): Objective value of replica 1.</span>
+<span class="sd">        obj2 (float): Objective value of replica 2.</span>
+<span class="sd">        temp1 (float): Temperature of replica 1.</span>
+<span class="sd">        temp2 (float): Temperature of replica 2.</span>
+<span class="sd">        mode (str): Optimization mode - &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;.</span>
+<span class="sd">            Default is &#39;maximize&#39;.</span>
 <span class="sd">        </span>
 <span class="sd">    Returns:</span>
-<span class="sd">        True if exchange should occur</span>
+<span class="sd">        bool: True if exchange should occur, False otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">prob</span> <span class="o">=</span> <span class="n">compute_exchange_probability</span><span class="p">(</span><span class="n">obj1</span><span class="p">,</span> <span class="n">obj2</span><span class="p">,</span> <span class="n">temp1</span><span class="p">,</span> <span class="n">temp2</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">prob</span>

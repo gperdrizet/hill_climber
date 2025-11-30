@@ -77,7 +77,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#database-file-not-found">Database file not found</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#no-data-appearing">No data appearing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#slow-dashboard-updates">Slow dashboard updates</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#worker-contention-warnings">Worker contention warnings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#slow-optimization-performance">Slow optimization performance</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#database-size-estimation">Database Size Estimation</a></li>
@@ -161,7 +161,6 @@
     <span class="n">db_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Enable database logging</span>
     <span class="n">db_path</span><span class="o">=</span><span class="s1">&#39;my_optimization.db&#39;</span><span class="p">,</span>  <span class="c1"># Optional: custom path</span>
     <span class="n">db_step_interval</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>  <span class="c1"># Optional: collect every 100th step</span>
-    <span class="n">db_buffer_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>  <span class="c1"># Optional: buffer size before write</span>
     <span class="n">checkpoint_interval</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>  <span class="c1"># Optional: checkpoint every 10 batches</span>
     <span class="c1"># ... other parameters</span>
 <span class="p">)</span>
@@ -195,16 +194,20 @@
 </section>
 <section id="database-configuration-parameters">
 <h2>Database Configuration Parameters<a class="headerlink" href="#database-configuration-parameters" title="Link to this heading"></a></h2>
-<p>The database logging system uses a pooled write strategy to minimize I/O overhead:</p>
+<p>The database logging system uses an efficient collection and write strategy:</p>
+<ul class="simple">
+<li><p><strong>Worker processes</strong> collect metrics at regular intervals during optimization</p></li>
+<li><p><strong>Main process</strong> performs all database writes after each batch, avoiding lock contention</p></li>
+<li><p>No buffering needed - workers return collected metrics to main process</p></li>
+</ul>
 <dl class="simple">
 <dt>db_enabled<span class="classifier">bool, default=False</span></dt><dd><p>Enable database logging for dashboard monitoring</p>
 </dd>
 <dt>db_path<span class="classifier">str, optional</span></dt><dd><p>Path to SQLite database file. Defaults to <code class="docutils literal notranslate"><span class="pre">'data/hill_climber_progress.db'</span></code></p>
 </dd>
-<dt>db_step_interval<span class="classifier">int, optional</span></dt><dd><p>Collect metrics every Nth step. Default: <code class="docutils literal notranslate"><span class="pre">max(1,</span> <span class="pre">exchange_interval</span> <span class="pre">//</span> <span class="pre">1000)</span></code> (0.1% sampling)</p>
-</dd>
-<dt>db_buffer_size<span class="classifier">int, default=10</span></dt><dd><p>Number of pooled steps before database write. Workers accumulate this many
-collected steps in memory before flushing to database</p>
+<dt>db_step_interval<span class="classifier">int, optional</span></dt><dd><p>Collect metrics every Nth step. Default: <code class="docutils literal notranslate"><span class="pre">exchange_interval</span> <span class="pre">//</span> <span class="pre">10</span></code> (10% sampling).
+For small exchange intervals (≤10), defaults to 1 (every step). Must be less than
+exchange_interval to ensure at least one collection per batch.</p>
 </dd>
 <dt>checkpoint_interval<span class="classifier">int, default=1</span></dt><dd><p>Number of batches between checkpoint saves. Default is 1 (checkpoint every batch).
 Set to higher values (e.g., 10) to reduce checkpoint I/O while database provides
@@ -221,16 +224,15 @@ real-time monitoring</p>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
     <span class="n">exchange_interval</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
     <span class="n">db_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="c1"># db_step_interval defaults to 10000 // 1000 = 10 (0.1% sampling)</span>
-    <span class="c1"># db_buffer_size defaults to 10</span>
+    <span class="c1"># db_step_interval defaults to 10000 // 10 = 1000 (10% sampling)</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <p>This provides good balance between resolution and performance:</p>
 <ul class="simple">
-<li><p>Collects ~1000 steps per batch (10,000 / 10)</p></li>
-<li><p>Writes to database every 10 collected steps</p></li>
-<li><p>~100 database writes per replica per batch</p></li>
+<li><p>Collects 1000 steps per replica per batch (10,000 / 10)</p></li>
+<li><p>Main process writes all collected metrics once per batch</p></li>
+<li><p>No worker I/O contention</p></li>
 </ul>
 </section>
 <section id="higher-resolution-more-database-load">
@@ -240,12 +242,11 @@ real-time monitoring</p>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
     <span class="n">exchange_interval</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
     <span class="n">db_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">db_step_interval</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>  <span class="c1"># Collect every 5th step (0.05% sampling)</span>
-    <span class="n">db_buffer_size</span><span class="o">=</span><span class="mi">20</span>    <span class="c1"># Buffer more before writing</span>
+    <span class="n">db_step_interval</span><span class="o">=</span><span class="mi">500</span>  <span class="c1"># Collect every 500th step (5% sampling)</span>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>Doubles data collection frequency but maintains similar write frequency.</p>
+<p>Collects 2000 steps per replica per batch (twice the default resolution).</p>
 </section>
 <section id="lower-resolution-faster-smaller-database">
 <h3>Lower Resolution (Faster, Smaller Database)<a class="headerlink" href="#lower-resolution-faster-smaller-database" title="Link to this heading"></a></h3>
@@ -254,12 +255,11 @@ real-time monitoring</p>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
     <span class="n">exchange_interval</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
     <span class="n">db_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">db_step_interval</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>  <span class="c1"># Collect every 20th step (0.2% sampling)</span>
-    <span class="n">db_buffer_size</span><span class="o">=</span><span class="mi">5</span>      <span class="c1"># Write more frequently</span>
+    <span class="n">db_step_interval</span><span class="o">=</span><span class="mi">2000</span>  <span class="c1"># Collect every 2000th step (20% sampling)</span>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>Halves data collection and database size while still providing smooth progress curves.</p>
+<p>Collects 500 steps per replica per batch (half the default, smaller database).</p>
 </section>
 </section>
 <section id="database-schema">
@@ -274,7 +274,6 @@ real-time monitoring</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">n_replicas</span></code>: Number of replicas</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code>: Steps between exchange attempts</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">db_step_interval</span></code>: Step collection frequency</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">db_buffer_size</span></code>: Buffer size configuration</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">hyperparameters</span></code>: JSON-encoded hyperparameters</p></li>
 </ul>
 </section>
@@ -404,12 +403,12 @@ real-time monitoring</p>
 <li><p>Increase <code class="docutils literal notranslate"><span class="pre">db_step_interval</span></code> to reduce database size</p></li>
 </ul>
 </section>
-<section id="worker-contention-warnings">
-<h3>Worker contention warnings<a class="headerlink" href="#worker-contention-warnings" title="Link to this heading"></a></h3>
+<section id="slow-optimization-performance">
+<h3>Slow optimization performance<a class="headerlink" href="#slow-optimization-performance" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>Increase <code class="docutils literal notranslate"><span class="pre">db_buffer_size</span></code> to reduce write frequency</p></li>
-<li><p>Reduce <code class="docutils literal notranslate"><span class="pre">db_connection_pool_size</span></code> if you have many replicas</p></li>
-<li><p>Consider increasing <code class="docutils literal notranslate"><span class="pre">db_step_interval</span></code></p></li>
+<li><p>Increase <code class="docutils literal notranslate"><span class="pre">db_step_interval</span></code> to reduce collection overhead</p></li>
+<li><p>Consider disabling database logging (<code class="docutils literal notranslate"><span class="pre">db_enabled=False</span></code>) for production runs</p></li>
+<li><p>Use checkpoints for state recovery instead of database monitoring</p></li>
 </ul>
 </section>
 </section>
@@ -420,18 +419,17 @@ real-time monitoring</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">exchange_interval=10000</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">n_replicas=8</span></code></p></li>
 <li><p>20 metrics</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">db_step_interval=10</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">db_buffer_size=10</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">db_step_interval=1000</span></code> (default: exchange_interval // 10)</p></li>
 </ul>
 <p>Results in:</p>
 <ul class="simple">
-<li><p>~1000 steps collected per replica per batch</p></li>
+<li><p>1000 steps collected per replica per batch</p></li>
 <li><p>160,000 metric rows per batch</p></li>
 <li><p>For 30-minute run (~100 batches): ~16M rows → 1-2GB database</p></li>
 </ul>
 <p>To reduce size, increase <code class="docutils literal notranslate"><span class="pre">db_step_interval</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Half the database size</span>
-<span class="n">db_step_interval</span> <span class="o">=</span> <span class="n">exchange_interval</span> <span class="o">//</span> <span class="mi">500</span>  <span class="c1"># 0.2% sampling</span>
+<span class="n">db_step_interval</span> <span class="o">=</span> <span class="mi">2000</span>  <span class="c1"># 20% sampling instead of 10%</span>
 </pre></div>
 </div>
 </section>

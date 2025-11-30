@@ -236,9 +236,9 @@ with dashboard extras.</p>
 </dd>
 <dt><strong>db_path</strong> (default: ‘data/hill_climber_progress.db’)</dt><dd><p>Path to SQLite database file for dashboard data.</p>
 </dd>
-<dt><strong>db_step_interval</strong> (default: exchange_interval // 1000)</dt><dd><p>Collect metrics every Nth step for database logging. Defaults to 0.1% sampling.</p>
-</dd>
-<dt><strong>db_buffer_size</strong> (default: 10)</dt><dd><p>Number of pooled steps before writing to database.</p>
+<dt><strong>db_step_interval</strong> (default: exchange_interval // 10)</dt><dd><p>Collect metrics every Nth step for database logging. Defaults to 10% sampling
+(every 10th step). For small exchange intervals (≤10), defaults to 1 (every step).
+Must be less than exchange_interval.</p>
 </dd>
 <dt><strong>verbose</strong> (default: False)</dt><dd><p>Print progress messages during optimization.</p>
 </dd>

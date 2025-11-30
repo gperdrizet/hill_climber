@@ -79,11 +79,63 @@
 <span></span><span class="sd">&quot;&quot;&quot;Configuration dataclass for HillClimber optimizer.</span>
 
 <span class="sd">This module provides a type-safe configuration object that encapsulates</span>
-<span class="sd">all optimizer parameters with validation.</span>
+<span class="sd">all optimizer parameters with validation, along with default values and</span>
+<span class="sd">constants used throughout the package.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Default Optimizer Parameters</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># Temperature parameters</span>
+<span class="n">DEFAULT_T_MIN</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># Default minimum temperature for coldest replica</span>
+<span class="n">DEFAULT_T_MAX_MULTIPLIER</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># T_max = T_min * this multiplier when not specified</span>
+<span class="n">DEFAULT_COOLING_RATE</span> <span class="o">=</span> <span class="mf">1e-8</span>  <span class="c1"># Default temperature decay rate per step</span>
+
+<span class="c1"># Perturbation parameters</span>
+<span class="n">DEFAULT_STEP_SPREAD</span> <span class="o">=</span> <span class="mf">0.01</span>  <span class="c1"># Default perturbation spread (1% of data range)</span>
+<span class="n">DEFAULT_PERTURB_FRACTION</span> <span class="o">=</span> <span class="mf">0.001</span>  <span class="c1"># Default fraction of points to perturb (0.1%)</span>
+
+<span class="c1"># Replica exchange parameters</span>
+<span class="n">DEFAULT_N_REPLICAS</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># Default number of replicas for parallel tempering</span>
+<span class="n">DEFAULT_EXCHANGE_INTERVAL</span> <span class="o">=</span> <span class="mi">10000</span>  <span class="c1"># Default steps between exchange attempts</span>
+<span class="n">DEFAULT_TEMPERATURE_SCHEME</span> <span class="o">=</span> <span class="s1">&#39;geometric&#39;</span>  <span class="c1"># Default temperature ladder spacing</span>
+<span class="n">DEFAULT_EXCHANGE_STRATEGY</span> <span class="o">=</span> <span class="s1">&#39;even_odd&#39;</span>  <span class="c1"># Default replica pairing strategy</span>
+
+<span class="c1"># Runtime parameters</span>
+<span class="n">DEFAULT_MAX_TIME</span> <span class="o">=</span> <span class="mf">30.0</span>  <span class="c1"># Default maximum runtime in minutes</span>
+<span class="n">DEFAULT_MODE</span> <span class="o">=</span> <span class="s1">&#39;maximize&#39;</span>  <span class="c1"># Default optimization mode</span>
+
+<span class="c1"># Checkpointing parameters</span>
+<span class="n">DEFAULT_CHECKPOINT_INTERVAL</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># Default batches between checkpoint saves</span>
+
+<span class="c1"># Database parameters</span>
+<span class="n">DEFAULT_DB_PATH</span> <span class="o">=</span> <span class="s1">&#39;data/hill_climber_progress.db&#39;</span>  <span class="c1"># Default database file path</span>
+<span class="n">DB_STEP_INTERVAL_DIVISOR</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># Divisor for calculating default db_step_interval (every 10th step)</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Validation Constants</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># Valid optimization modes</span>
+<span class="n">VALID_MODES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span> <span class="s1">&#39;minimize&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">]</span>
+
+<span class="c1"># Valid temperature schemes</span>
+<span class="n">VALID_TEMPERATURE_SCHEMES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;geometric&#39;</span><span class="p">,</span> <span class="s1">&#39;linear&#39;</span><span class="p">]</span>
+
+<span class="c1"># Valid exchange strategies</span>
+<span class="n">VALID_EXCHANGE_STRATEGIES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;even_odd&#39;</span><span class="p">,</span> <span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="s1">&#39;all_neighbors&#39;</span><span class="p">]</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Column Name Patterns</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># Default column name prefix when data has no column names</span>
+<span class="n">DEFAULT_COLUMN_PREFIX</span> <span class="o">=</span> <span class="s1">&#39;col_&#39;</span>
 
 
 <div class="viewcode-block" id="OptimizerConfig">
@@ -110,31 +162,29 @@
 <span class="sd">        checkpoint_interval: Batches between checkpoint saves (default: 1)</span>
 <span class="sd">        db_enabled: Enable database logging for dashboard (default: False)</span>
 <span class="sd">        db_path: Path to SQLite database file (default: &#39;data/hill_climber_progress.db&#39;)</span>
-<span class="sd">        db_step_interval: Collect metrics every Nth step (default: exchange_interval // 1000)</span>
-<span class="sd">        db_buffer_size: Number of pooled steps before database write (default: 10)</span>
+<span class="sd">        db_step_interval: Collect metrics every Nth step (default: exchange_interval // 10, or 1 if exchange_interval &lt;= 10)</span>
 <span class="sd">        verbose: Print progress messages (default: False)</span>
 <span class="sd">        n_workers: Number of worker processes (default: n_replicas)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
     <span class="n">objective_func</span><span class="p">:</span> <span class="n">Callable</span>
-    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;maximize&#39;</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_MODE</span>
     <span class="n">target_value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">max_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span>
-    <span class="n">step_spread</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span>
-    <span class="n">perturb_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span>
-    <span class="n">n_replicas</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
-    <span class="n">T_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="n">max_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_MAX_TIME</span>
+    <span class="n">step_spread</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_STEP_SPREAD</span>
+    <span class="n">perturb_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_PERTURB_FRACTION</span>
+    <span class="n">n_replicas</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_N_REPLICAS</span>
+    <span class="n">T_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_T_MIN</span>
     <span class="n">T_max</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">cooling_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span>
-    <span class="n">temperature_scheme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;geometric&#39;</span>
-    <span class="n">exchange_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10000</span>
-    <span class="n">exchange_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;even_odd&#39;</span>
+    <span class="n">cooling_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_COOLING_RATE</span>
+    <span class="n">temperature_scheme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_TEMPERATURE_SCHEME</span>
+    <span class="n">exchange_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_EXCHANGE_INTERVAL</span>
+    <span class="n">exchange_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_EXCHANGE_STRATEGY</span>
     <span class="n">checkpoint_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">checkpoint_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">checkpoint_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_CHECKPOINT_INTERVAL</span>
     <span class="n">db_enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">db_step_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">db_buffer_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">n_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     
@@ -143,9 +193,9 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate configuration after initialization.&quot;&quot;&quot;</span>
         <span class="c1"># Validate mode</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span> <span class="s1">&#39;minimize&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_MODES</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;mode must be &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;, got &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;mode must be one of </span><span class="si">{</span><span class="n">VALID_MODES</span><span class="si">}</span><span class="s2">, got &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
             <span class="p">)</span>
         
         <span class="c1"># Validate target_value when mode is &#39;target&#39;</span>
@@ -155,15 +205,15 @@
             <span class="p">)</span>
         
         <span class="c1"># Validate temperature scheme</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_scheme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;geometric&#39;</span><span class="p">,</span> <span class="s1">&#39;linear&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_scheme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_TEMPERATURE_SCHEMES</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;temperature_scheme must be &#39;geometric&#39; or &#39;linear&#39;, got &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature_scheme</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;temperature_scheme must be one of </span><span class="si">{</span><span class="n">VALID_TEMPERATURE_SCHEMES</span><span class="si">}</span><span class="s2">, got &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature_scheme</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
             <span class="p">)</span>
         
         <span class="c1"># Validate exchange strategy</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_strategy</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;even_odd&#39;</span><span class="p">,</span> <span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="s1">&#39;all_neighbors&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_strategy</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_EXCHANGE_STRATEGIES</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;exchange_strategy must be &#39;even_odd&#39;, &#39;random&#39;, or &#39;all_neighbors&#39;, got &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_strategy</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;exchange_strategy must be one of </span><span class="si">{</span><span class="n">VALID_EXCHANGE_STRATEGIES</span><span class="si">}</span><span class="s2">, got &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_strategy</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
             <span class="p">)</span>
         
         <span class="c1"># Validate numeric ranges</span>
@@ -200,15 +250,30 @@
         
         <span class="c1"># Set default T_max if not provided</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_max</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">T_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_min</span> <span class="o">*</span> <span class="mi">100</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">T_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_min</span> <span class="o">*</span> <span class="n">DEFAULT_T_MAX_MULTIPLIER</span>
         
         <span class="c1"># Set default db_path if db enabled but path not provided</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_enabled</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">db_path</span> <span class="o">=</span> <span class="s1">&#39;data/hill_climber_progress.db&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_path</span> <span class="o">=</span> <span class="n">DEFAULT_DB_PATH</span>
         
         <span class="c1"># Set default db_step_interval if db enabled but interval not provided</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_enabled</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_step_interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">db_step_interval</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span> <span class="o">//</span> <span class="mi">1000</span><span class="p">)</span>
+            <span class="c1"># Collect every 10 steps, but if exchange_interval &lt;= 10, collect every step</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">db_step_interval</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">db_step_interval</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span> <span class="o">//</span> <span class="n">DB_STEP_INTERVAL_DIVISOR</span><span class="p">)</span>
+        
+        <span class="c1"># Validate db_step_interval against exchange_interval</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_enabled</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_step_interval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_step_interval</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;db_step_interval (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">db_step_interval</span><span class="si">}</span><span class="s2">) must be less than exchange_interval &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span><span class="si">}</span><span class="s2">). When db_step_interval &gt;= exchange_interval, no metrics &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;will be collected for the database. Recommended: set db_step_interval to &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="n">DB_STEP_INTERVAL_DIVISOR</span><span class="p">)</span><span class="si">}</span><span class="s2"> or lower to collect &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;metrics during optimization.&quot;</span>
+                <span class="p">)</span>
         
         <span class="c1"># Set default n_workers if not provided</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

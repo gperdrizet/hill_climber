@@ -166,8 +166,7 @@ simulated annealing without replica exchange</p></li>
 <li><p><strong>checkpoint_interval</strong> – Batches between checkpoint saves (default: 1, i.e., every batch)</p></li>
 <li><p><strong>db_enabled</strong> – Enable database logging for dashboard (default: False)</p></li>
 <li><p><strong>db_path</strong> – Path to SQLite database file (default: ‘data/hill_climber_progress.db’)</p></li>
-<li><p><strong>db_step_interval</strong> – Collect metrics every Nth step (default: exchange_interval // 1000)</p></li>
-<li><p><strong>db_buffer_size</strong> – Number of pooled steps before database write (default: 10)</p></li>
+<li><p><strong>db_step_interval</strong> – Collect metrics every Nth step (default: exchange_interval // 10, or 1 if exchange_interval &lt;= 10)</p></li>
 <li><p><strong>verbose</strong> – Print progress messages (default: False)</p></li>
 <li><p><strong>n_workers</strong> – Number of worker processes (default: n_replicas)</p></li>
 </ul>
@@ -175,7 +174,7 @@ simulated annealing without replica exchange</p></li>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="hill_climber.HillClimber.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_spread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_replicas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'geometric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'even_odd'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_step_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_buffer_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/optimizer.html#HillClimber.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.HillClimber.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_spread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_replicas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'geometric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'even_odd'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_step_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/optimizer.html#HillClimber.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.HillClimber.__init__" title="Link to this definition"></a></dt>
 <dd><p>Initialize HillClimber optimizer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -198,7 +197,6 @@ simulated annealing without replica exchange</p></li>
 <li><p><strong>db_enabled</strong> (<em>bool</em>)</p></li>
 <li><p><strong>db_path</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>db_step_interval</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>db_buffer_size</strong> (<em>int</em>)</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em>)</p></li>
 <li><p><strong>n_workers</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
 </ul>
@@ -212,11 +210,17 @@ simulated annealing without replica exchange</p></li>
 <dd><p>Run replica exchange optimization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>best_data: Best configuration found across all replicas
-steps_df: DataFrame with optimization history from best replica</p>
+<dd class="field-odd"><p><dl class="simple">
+<dt>Tuple of (best_data, steps_df) where:</dt><dd><ul class="simple">
+<li><p>best_data: Best configuration found across all replicas</p></li>
+<li><p>steps_df: DataFrame with optimization history from best replica</p></li>
+</ul>
+</dd>
+</dl>
+</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple of (best_data, steps_df) where</p>
+<dd class="field-even"><p>Tuple[np.ndarray, pd.DataFrame]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -453,21 +457,10 @@ If False (default), continue from saved temperatures</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="hill_climber.OptimizerConfig.db_step_interval">
 <span class="sig-name descname"><span class="pre">db_step_interval</span></span><a class="headerlink" href="#hill_climber.OptimizerConfig.db_step_interval" title="Link to this definition"></a></dt>
-<dd><p>Collect metrics every Nth step (default: exchange_interval // 1000)</p>
+<dd><p>Collect metrics every Nth step (default: exchange_interval // 10, or 1 if exchange_interval &lt;= 10)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>int | None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="hill_climber.OptimizerConfig.db_buffer_size">
-<span class="sig-name descname"><span class="pre">db_buffer_size</span></span><a class="headerlink" href="#hill_climber.OptimizerConfig.db_buffer_size" title="Link to this definition"></a></dt>
-<dd><p>Number of pooled steps before database write (default: 10)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int</p>
 </dd>
 </dl>
 </dd></dl>
@@ -586,17 +579,12 @@ If False (default), continue from saved temperatures</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id18">
-<span class="sig-name descname"><span class="pre">db_buffer_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10</span></em><a class="headerlink" href="#id18" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">verbose</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#id18" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id19">
-<span class="sig-name descname"><span class="pre">verbose</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#id19" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id20">
-<span class="sig-name descname"><span class="pre">n_workers</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id20" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">n_workers</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id19" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -607,7 +595,7 @@ If False (default), continue from saved temperatures</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hill_climber.OptimizerConfig.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_spread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_replicas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'geometric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'even_odd'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_step_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_buffer_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hill_climber.OptimizerConfig.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">objective_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'maximize'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_spread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perturb_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_replicas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'geometric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'even_odd'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_step_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#hill_climber.OptimizerConfig.__init__" title="Link to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -629,7 +617,6 @@ If False (default), continue from saved temperatures</p></li>
 <li><p><strong>db_enabled</strong> (<em>bool</em>)</p></li>
 <li><p><strong>db_path</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>db_step_interval</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>db_buffer_size</strong> (<em>int</em>)</p></li>
 <li><p><strong>verbose</strong> (<em>bool</em>)</p></li>
 <li><p><strong>n_workers</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
 </ul>
@@ -832,83 +819,83 @@ replacing the previous dictionary-based approach.</p>
 </dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="id20">
+<span class="sig-name descname"><span class="pre">replica_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#id20" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="id21">
-<span class="sig-name descname"><span class="pre">replica_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#id21" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">temperature</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#id21" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id22">
-<span class="sig-name descname"><span class="pre">temperature</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#id22" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">current_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#id22" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id23">
-<span class="sig-name descname"><span class="pre">current_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#id23" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">current_objective</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#id23" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id24">
-<span class="sig-name descname"><span class="pre">current_objective</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#id24" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">best_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#id24" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id25">
-<span class="sig-name descname"><span class="pre">best_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></em><a class="headerlink" href="#id25" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">best_objective</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#id25" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id26">
-<span class="sig-name descname"><span class="pre">best_objective</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#id26" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">step</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#id26" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id27">
-<span class="sig-name descname"><span class="pre">step</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#id27" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">total_iterations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#id27" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id28">
-<span class="sig-name descname"><span class="pre">total_iterations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#id28" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">metrics_history</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id28" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id29">
-<span class="sig-name descname"><span class="pre">metrics_history</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id29" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">temperature_history</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id29" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id30">
-<span class="sig-name descname"><span class="pre">temperature_history</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id30" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">exchange_attempts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#id30" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id31">
-<span class="sig-name descname"><span class="pre">exchange_attempts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#id31" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">exchange_acceptances</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#id31" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id32">
-<span class="sig-name descname"><span class="pre">exchange_acceptances</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#id32" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">partner_history</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id32" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id33">
-<span class="sig-name descname"><span class="pre">partner_history</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id33" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">original_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id33" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id34">
-<span class="sig-name descname"><span class="pre">original_data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id34" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">hyperparameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id34" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="id35">
-<span class="sig-name descname"><span class="pre">hyperparameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id35" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id36">
-<span class="sig-name descname"><span class="pre">start_time</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#id36" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">start_time</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#id35" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -917,10 +904,10 @@ replacing the previous dictionary-based approach.</p>
 <dd><p>Convert ReplicaState to dictionary for backwards compatibility.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Dictionary representation of replica state</p>
+<dd class="field-odd"><p>Dictionary representation of replica state with all attributes.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><em>Dict</em></p>
+<dd class="field-even"><p>Dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -931,13 +918,14 @@ replacing the previous dictionary-based approach.</p>
 <dd><p>Create ReplicaState from dictionary for backwards compatibility.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>state_dict</strong> (<em>Dict</em>) – Dictionary containing replica state</p>
+<dd class="field-odd"><p><strong>state_dict</strong> (<em>Dict</em>) – Dictionary containing replica state with keys matching
+ReplicaState attributes.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>ReplicaState instance</p>
+<dd class="field-even"><p>New ReplicaState instance populated from dictionary.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#hill_climber.ReplicaState" title="hill_climber.optimizer_state.ReplicaState"><em>ReplicaState</em></a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#hill_climber.ReplicaState" title="hill_climber.ReplicaState">ReplicaState</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -977,26 +965,28 @@ replacing the previous dictionary-based approach.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="hill_climber.create_replica_state">
 <span class="sig-prename descclassname"><span class="pre">hill_climber.</span></span><span class="sig-name descname"><span class="pre">create_replica_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">replica_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperparameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/optimizer_state.html#create_replica_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.create_replica_state" title="Link to this definition"></a></dt>
-<dd><p>Create a new replica state dictionary (legacy function for backwards compatibility).</p>
-<p>Note: For new code, prefer using ReplicaState dataclass directly.</p>
+<dd><p>Create a new replica state dictionary.</p>
+<p>Legacy function for backwards compatibility. For new code, prefer using
+ReplicaState dataclass directly.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>replica_id</strong> (<em>int</em>) – Replica identifier</p></li>
-<li><p><strong>temperature</strong> (<em>float</em>) – Initial temperature</p></li>
-<li><p><strong>current_data</strong> (<em>ndarray</em>) – Current data configuration</p></li>
-<li><p><strong>current_objective</strong> (<em>float</em>) – Current objective value</p></li>
-<li><p><strong>best_data</strong> (<em>ndarray</em>) – Best data found so far</p></li>
-<li><p><strong>best_objective</strong> (<em>float</em>) – Best objective value found</p></li>
-<li><p><strong>original_data</strong> (<em>ndarray</em><em> | </em><em>None</em>) – Original input data</p></li>
-<li><p><strong>hyperparameters</strong> (<em>Dict</em><em> | </em><em>None</em>) – Optimization hyperparameters</p></li>
+<li><p><strong>replica_id</strong> (<em>int</em>) – Replica identifier.</p></li>
+<li><p><strong>temperature</strong> (<em>float</em>) – Initial temperature.</p></li>
+<li><p><strong>current_data</strong> (<em>np.ndarray</em>) – Current data configuration.</p></li>
+<li><p><strong>current_objective</strong> (<em>float</em>) – Current objective value.</p></li>
+<li><p><strong>best_data</strong> (<em>np.ndarray</em>) – Best data found so far.</p></li>
+<li><p><strong>best_objective</strong> (<em>float</em>) – Best objective value found.</p></li>
+<li><p><strong>original_data</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Original input data before optimization.
+Default is None.</p></li>
+<li><p><strong>hyperparameters</strong> (<em>Dict</em><em>, </em><em>optional</em>) – Optimization hyperparameters. Default is None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dictionary containing replica state</p>
+<dd class="field-even"><p>Dictionary containing replica state.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><em>Dict</em></p>
+<dd class="field-odd"><p>Dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1023,6 +1013,14 @@ schedules for parallel tempering optimization.</p>
 <dt class="sig sig-object py" id="hill_climber.TemperatureLadder.n_replicas">
 <em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_replicas</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#hill_climber.TemperatureLadder.n_replicas" title="Link to this definition"></a></dt>
 <dd><p>Number of replicas in the ladder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Number of replicas.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -1032,13 +1030,16 @@ schedules for parallel tempering optimization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>n_replicas</strong> (<em>int</em>) – Number of replicas</p></li>
-<li><p><strong>T_min</strong> (<em>float</em>) – Minimum (coldest) temperature</p></li>
-<li><p><strong>T_max</strong> (<em>float</em>) – Maximum (hottest) temperature</p></li>
+<li><p><strong>n_replicas</strong> (<em>int</em>) – Number of replicas.</p></li>
+<li><p><strong>T_min</strong> (<em>float</em>) – Minimum (coldest) temperature.</p></li>
+<li><p><strong>T_max</strong> (<em>float</em>) – Maximum (hottest) temperature.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>TemperatureLadder instance</p>
+<dd class="field-even"><p>Instance with geometrically spaced temperatures.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#hill_climber.TemperatureLadder" title="hill_climber.TemperatureLadder">TemperatureLadder</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1050,13 +1051,16 @@ schedules for parallel tempering optimization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>n_replicas</strong> (<em>int</em>) – Number of replicas</p></li>
-<li><p><strong>T_min</strong> (<em>float</em>) – Minimum (coldest) temperature</p></li>
-<li><p><strong>T_max</strong> (<em>float</em>) – Maximum (hottest) temperature</p></li>
+<li><p><strong>n_replicas</strong> (<em>int</em>) – Number of replicas.</p></li>
+<li><p><strong>T_min</strong> (<em>float</em>) – Minimum (coldest) temperature.</p></li>
+<li><p><strong>T_max</strong> (<em>float</em>) – Maximum (hottest) temperature.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>TemperatureLadder instance</p>
+<dd class="field-even"><p>Instance with linearly spaced temperatures.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#hill_climber.TemperatureLadder" title="hill_climber.TemperatureLadder">TemperatureLadder</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1067,10 +1071,13 @@ schedules for parallel tempering optimization.</p>
 <dd><p>Create custom temperature ladder.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>temperatures</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – List of temperatures (will be sorted)</p>
+<dd class="field-odd"><p><strong>temperatures</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – List of temperatures (will be sorted).</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>TemperatureLadder instance</p>
+<dd class="field-even"><p>Instance with custom temperatures.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#hill_climber.TemperatureLadder" title="hill_climber.TemperatureLadder">TemperatureLadder</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1105,8 +1112,9 @@ schedules for parallel tempering optimization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>n_replicas</strong> (<em>int</em>) – Number of replicas</p></li>
-<li><p><strong>strategy</strong> (<em>str</em>) – Exchange strategy (‘even_odd’, ‘random’, ‘all_neighbors’)</p></li>
+<li><p><strong>n_replicas</strong> (<em>int</em>) – Number of replicas.</p></li>
+<li><p><strong>strategy</strong> (<em>str</em>) – Exchange strategy - ‘even_odd’, ‘random’, or ‘all_neighbors’.
+Default is ‘even_odd’.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1118,10 +1126,13 @@ schedules for parallel tempering optimization.</p>
 <dd><p>Get list of replica pairs to attempt exchange.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List of (i, j) tuples where i &lt; j</p>
+<dd class="field-odd"><p>List of (i, j) tuples where i &lt; j.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><em>List</em>[<em>Tuple</em>[int, int]]</p>
+<dd class="field-even"><p>List[Tuple[int, int]]</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If strategy is unknown.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1143,16 +1154,20 @@ Perturbations are sampled from a normal distribution with mean 0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – Input data as numpy array</p></li>
-<li><p><strong>perturb_fraction</strong> – Fraction of total elements to perturb (default: 0.1).
-Note: HillClimber uses 0.05 as its default.</p></li>
-<li><p><strong>bounds</strong> – Tuple of (min_bounds, max_bounds) arrays for each column.
-If None, uses data min/max (default: None)</p></li>
-<li><p><strong>step_spread</strong> – Standard deviation of normal distribution for perturbations (default: 1.0)</p></li>
+<li><p><strong>data</strong> (<em>np.ndarray</em>) – Input data as numpy array with shape (N, M).</p></li>
+<li><p><strong>perturb_fraction</strong> (<em>float</em>) – Fraction of total elements to perturb. Default is 0.1.
+Note: HillClimber uses 0.001 as its default.</p></li>
+<li><p><strong>bounds</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Tuple of (min_bounds, max_bounds) arrays for each column.
+If None, uses data min/max. Default is None.</p></li>
+<li><p><strong>step_spread</strong> (<em>float</em>) – Standard deviation of normal distribution for perturbations.
+Default is 1.0.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Perturbed numpy array</p>
+<dd class="field-even"><p>Perturbed numpy array with same shape as input.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1164,16 +1179,22 @@ If None, uses data min/max (default: None)</p></li>
 <p>Works with multi-column data by returning each column separately.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>data</strong> – numpy array with shape (N, M) where N = samples, M = features</p>
+<dd class="field-odd"><p><strong>data</strong> (<em>np.ndarray</em>) – Numpy array with shape (N, M) where N = samples, M = features.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple of 1D numpy arrays, one for each column</p>
+<dd class="field-even"><p>Tuple of 1D numpy arrays, one for each column.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<p>For 2-column data (N, 2): returns (x, y)
-For 3-column data (N, 3): returns (x, y, z)
-For M-column data (N, M): returns (col0, col1, …, colM-1)</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">extract_columns</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># [1, 3, 5]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>  <span class="c1"># [2, 4, 6]</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -1185,19 +1206,29 @@ Supports multi-column data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – Input data as numpy array with shape (N, M)</p></li>
-<li><p><strong>objective_func</strong> – Function that takes M column arrays and returns
-(metrics_dict, objective_value)</p></li>
+<li><p><strong>data</strong> (<em>np.ndarray</em>) – Input data as numpy array with shape (N, M).</p></li>
+<li><p><strong>objective_func</strong> (<em>Callable</em>) – Function that takes M column arrays and returns
+(metrics_dict, objective_value).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple of (metrics_dict, objective_value)</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of (metrics_dict, objective_value) where metrics_dict is a</dt><dd><p>dictionary of metric names to values, and objective_value is a float.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<p>For 2-column data: objective_func(x, y) is called
-For 3-column data: objective_func(x, y, z) is called
-For M-column data: objective_func(col0, col1, …) is called</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">obj_func</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;mean_x&#39;</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">()},</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span> <span class="o">=</span> <span class="n">calculate_objective</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">obj_func</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -1208,12 +1239,20 @@ For M-column data: objective_func(col0, col1, …) is called</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – numpy array (N, M)</p></li>
-<li><p><strong>objective_func</strong> – Function taking M arrays, returns (metrics_dict, objective_value)</p></li>
+<li><p><strong>data</strong> (<em>np.ndarray</em>) – Numpy array with shape (N, M).</p></li>
+<li><p><strong>objective_func</strong> (<em>Callable</em>) – Function taking M arrays, returns
+(metrics_dict, objective_value).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple of (metrics_dict, objective_value)</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of (metrics_dict, objective_value) where metrics_dict is a</dt><dd><p>dictionary of metric names to values, and objective_value is a float.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1229,15 +1268,26 @@ For M-column data: objective_func(col0, col1, …) is called</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – numpy array (Nx2) or pandas DataFrame with 2 columns</p></li>
-<li><p><strong>plot_type</strong> – Type of plot, either <code class="docutils literal notranslate"><span class="pre">'scatter'</span></code> or <code class="docutils literal notranslate"><span class="pre">'kde'</span></code>
-(default is <code class="docutils literal notranslate"><span class="pre">'scatter'</span></code>)</p></li>
+<li><p><strong>data</strong> (<em>Union</em><em>[</em><em>np.ndarray</em><em>, </em><em>pd.DataFrame</em><em>]</em>) – Numpy array (Nx2) or pandas DataFrame
+with 2 columns.</p></li>
+<li><p><strong>plot_type</strong> (<em>str</em>) – Type of plot - ‘scatter’ or ‘kde’. Default is ‘scatter’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If plot_type is not <code class="docutils literal notranslate"><span class="pre">'scatter'</span></code> or <code class="docutils literal notranslate"><span class="pre">'kde'</span></code></p>
+<dd class="field-even"><p><strong>ValueError</strong> – If plot_type is not ‘scatter’ or ‘kde’.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_input_data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_input_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;scatter&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_input_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;kde&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -1250,27 +1300,39 @@ For M-column data: objective_func(col0, col1, …) is called</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>results</strong> – Results from climb(). Can be:
+<li><p><strong>results</strong> (<em>Union</em><em>[</em><em>Tuple</em><em>, </em><em>List</em><em>[</em><em>Tuple</em><em>]</em><em>]</em>) – Results from climb(). Can be:
 - Tuple (best_data, steps_df) from single climb() call
+- Tuple (temp_history, best_data, steps_df) with replica exchange
 - List of result tuples for multi-replica visualization</p></li>
-<li><p><strong>plot_type</strong> – Type of snapshot plots, either <code class="docutils literal notranslate"><span class="pre">'scatter'</span></code> or <code class="docutils literal notranslate"><span class="pre">'histogram'</span></code>
-(default is <code class="docutils literal notranslate"><span class="pre">'scatter'</span></code>).
-Note: <code class="docutils literal notranslate"><span class="pre">'histogram'</span></code> uses KDE (Kernel Density Estimation) plots</p></li>
-<li><p><strong>metrics</strong> – List of metric names to display in progress plots and snapshots.
-If None (default), all available metrics are shown.
-Example: <code class="docutils literal notranslate"><span class="pre">['Pearson',</span> <span class="pre">'Spearman']</span></code> or <code class="docutils literal notranslate"><span class="pre">['Mean</span> <span class="pre">X',</span> <span class="pre">'Std</span> <span class="pre">X']</span></code></p></li>
-<li><p><strong>exchange_interval</strong> – Number of steps per batch (if provided, x-axis shows batches instead of steps)</p></li>
-<li><p><strong>show_current</strong> – If True, plot ‘Current Objective’ instead of ‘Objective value’.
-Current shows SA exploration, Objective shows only improvements. (default: False)</p></li>
+<li><p><strong>plot_type</strong> (<em>str</em>) – Type of snapshot plots - ‘scatter’ or ‘histogram’.
+Default is ‘scatter’. Note: ‘histogram’ uses KDE plots.</p></li>
+<li><p><strong>metrics</strong> (<em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of metric names to display. If None, all
+available metrics are shown. Default is None.</p></li>
+<li><p><strong>exchange_interval</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of steps per batch. If provided,
+x-axis shows batches instead of steps. Default is None.</p></li>
+<li><p><strong>show_current</strong> (<em>bool</em>) – If True, plot ‘Current Objective’ (shows SA exploration).
+If False, plot ‘Objective value’ (only improvements). Default is False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
-<li><p><strong>ValueError</strong> – If plot_type is not <code class="docutils literal notranslate"><span class="pre">'scatter'</span></code> or <code class="docutils literal notranslate"><span class="pre">'histogram'</span></code></p></li>
-<li><p><strong>ValueError</strong> – If any specified metric is not found in the results</p></li>
+<li><p><strong>ValueError</strong> – If plot_type is not ‘scatter’ or ‘histogram’.</p></li>
+<li><p><strong>ValueError</strong> – If any specified metric is not found in the results.</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
 </dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">HillClimber</span><span class="p">,</span> <span class="n">plot_results</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">objective_func</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;scatter&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Pearson&#39;</span><span class="p">,</span> <span class="s1">&#39;Spearman&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">show_current</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># Show SA exploration</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -1283,23 +1345,26 @@ using the plot_results function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>source</strong> – Either a HillClimber instance (after climb() has been called) or
-a string path to a checkpoint file</p></li>
-<li><p><strong>plot_type</strong> (<em>str</em>) – Type of plot - ‘scatter’ or ‘histogram’ (default: ‘scatter’)</p></li>
-<li><p><strong>metrics</strong> (<em>List</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>) – List of metric names to plot. If None, all metrics are plotted.
-Example: [‘Pearson’, ‘Spearman’] or [‘Mean X’, ‘Std X’]</p></li>
-<li><p><strong>all_replicas</strong> (<em>bool</em>) – If True, plot all replicas. If False, plot only the best replica
-(default: False)</p></li>
-<li><p><strong>show_current</strong> (<em>bool</em>) – If True, plot ‘Current Objective’ (shows SA exploration with fluctuations).
-If False, plot ‘Objective value’ (only accepted steps, always improving).
-(default: False)</p></li>
+<li><p><strong>source</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Either a HillClimber instance (after climb() has been
+called) or a string path to a checkpoint file.</p></li>
+<li><p><strong>plot_type</strong> (<em>str</em>) – Type of plot - ‘scatter’ or ‘histogram’. Default is ‘scatter’.</p></li>
+<li><p><strong>metrics</strong> (<em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of metric names to plot. If None, all metrics
+are plotted. Default is None.</p></li>
+<li><p><strong>all_replicas</strong> (<em>bool</em>) – If True, plot all replicas. If False, plot only the best
+replica. Default is False.</p></li>
+<li><p><strong>show_current</strong> (<em>bool</em>) – If True, plot ‘Current Objective’ (shows SA exploration with
+fluctuations). If False, plot ‘Objective value’ (only accepted steps, always
+improving). Default is False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
-<li><p><strong>ValueError</strong> – If source is neither a HillClimber instance nor a valid checkpoint path</p></li>
-<li><p><strong>ValueError</strong> – If plot_type is not ‘scatter’ or ‘histogram’</p></li>
+<li><p><strong>ValueError</strong> – If source is neither a HillClimber instance nor a valid checkpoint path.</p></li>
+<li><p><strong>ValueError</strong> – If plot_type is not ‘scatter’ or ‘histogram’.</p></li>
 </ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>

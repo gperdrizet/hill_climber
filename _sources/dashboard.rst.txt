@@ -55,7 +55,6 @@ To use the dashboard, enable database logging in your HillClimber instance:
        db_enabled=True,  # Enable database logging
        db_path='my_optimization.db',  # Optional: custom path
        db_step_interval=100,  # Optional: collect every 100th step
-       db_buffer_size=10,  # Optional: buffer size before write
        checkpoint_interval=10,  # Optional: checkpoint every 10 batches
        # ... other parameters
    )
@@ -90,7 +89,11 @@ Configure the dashboard using the sidebar:
 Database Configuration Parameters
 ----------------------------------
 
-The database logging system uses a pooled write strategy to minimize I/O overhead:
+The database logging system uses an efficient collection and write strategy:
+
+- **Worker processes** collect metrics at regular intervals during optimization
+- **Main process** performs all database writes after each batch, avoiding lock contention
+- No buffering needed - workers return collected metrics to main process
 
 db_enabled : bool, default=False
     Enable database logging for dashboard monitoring
@@ -99,11 +102,9 @@ db_path : str, optional
     Path to SQLite database file. Defaults to ``'data/hill_climber_progress.db'``
 
 db_step_interval : int, optional
-    Collect metrics every Nth step. Default: ``max(1, exchange_interval // 1000)`` (0.1% sampling)
-
-db_buffer_size : int, default=10
-    Number of pooled steps before database write. Workers accumulate this many
-    collected steps in memory before flushing to database
+    Collect metrics every Nth step. Default: ``exchange_interval // 10`` (10% sampling).
+    For small exchange intervals (≤10), defaults to 1 (every step). Must be less than
+    exchange_interval to ensure at least one collection per batch.
 
 checkpoint_interval : int, default=1
     Number of batches between checkpoint saves. Default is 1 (checkpoint every batch).
@@ -123,15 +124,14 @@ Default Settings (Recommended)
        objective_func=objective,
        exchange_interval=10000,
        db_enabled=True,
-       # db_step_interval defaults to 10000 // 1000 = 10 (0.1% sampling)
-       # db_buffer_size defaults to 10
+       # db_step_interval defaults to 10000 // 10 = 1000 (10% sampling)
    )
 
 This provides good balance between resolution and performance:
 
-- Collects ~1000 steps per batch (10,000 / 10)
-- Writes to database every 10 collected steps
-- ~100 database writes per replica per batch
+- Collects 1000 steps per replica per batch (10,000 / 10)
+- Main process writes all collected metrics once per batch
+- No worker I/O contention
 
 Higher Resolution (More Database Load)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -143,11 +143,10 @@ Higher Resolution (More Database Load)
        objective_func=objective,
        exchange_interval=10000,
        db_enabled=True,
-       db_step_interval=5,  # Collect every 5th step (0.05% sampling)
-       db_buffer_size=20    # Buffer more before writing
+       db_step_interval=500  # Collect every 500th step (5% sampling)
    )
 
-Doubles data collection frequency but maintains similar write frequency.
+Collects 2000 steps per replica per batch (twice the default resolution).
 
 Lower Resolution (Faster, Smaller Database)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -159,11 +158,10 @@ Lower Resolution (Faster, Smaller Database)
        objective_func=objective,
        exchange_interval=10000,
        db_enabled=True,
-       db_step_interval=20,  # Collect every 20th step (0.2% sampling)
-       db_buffer_size=5      # Write more frequently
+       db_step_interval=2000  # Collect every 2000th step (20% sampling)
    )
 
-Halves data collection and database size while still providing smooth progress curves.
+Collects 500 steps per replica per batch (half the default, smaller database).
 
 Database Schema
 ---------------
@@ -180,7 +178,6 @@ Stores run configuration and hyperparameters:
 - ``n_replicas``: Number of replicas
 - ``exchange_interval``: Steps between exchange attempts
 - ``db_step_interval``: Step collection frequency
-- ``db_buffer_size``: Buffer size configuration
 - ``hyperparameters``: JSON-encoded hyperparameters
 
 replica_status
@@ -313,12 +310,12 @@ Slow dashboard updates
 - Increase the refresh interval
 - Increase ``db_step_interval`` to reduce database size
 
-Worker contention warnings
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Slow optimization performance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Increase ``db_buffer_size`` to reduce write frequency
-- Reduce ``db_connection_pool_size`` if you have many replicas
-- Consider increasing ``db_step_interval``
+- Increase ``db_step_interval`` to reduce collection overhead
+- Consider disabling database logging (``db_enabled=False``) for production runs
+- Use checkpoints for state recovery instead of database monitoring
 
 Database Size Estimation
 ------------------------
@@ -328,12 +325,11 @@ With default settings:
 - ``exchange_interval=10000``
 - ``n_replicas=8``
 - 20 metrics
-- ``db_step_interval=10``
-- ``db_buffer_size=10``
+- ``db_step_interval=1000`` (default: exchange_interval // 10)
 
 Results in:
 
-- ~1000 steps collected per replica per batch
+- 1000 steps collected per replica per batch
 - 160,000 metric rows per batch
 - For 30-minute run (~100 batches): ~16M rows → 1-2GB database
 
@@ -342,7 +338,7 @@ To reduce size, increase ``db_step_interval``:
 .. code-block:: python
 
    # Half the database size
-   db_step_interval = exchange_interval // 500  # 0.2% sampling
+   db_step_interval = 2000  # 20% sampling instead of 10%
 
 See Also
 --------
