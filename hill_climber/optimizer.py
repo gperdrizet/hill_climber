@@ -32,7 +32,6 @@ from .config import (
     DEFAULT_MODE,
     DEFAULT_CHECKPOINT_INTERVAL,
     DEFAULT_DB_PATH,
-    DEFAULT_DB_BUFFER_SIZE,
     DB_STEP_INTERVAL_DIVISOR,
     DEFAULT_COLUMN_PREFIX,
 )
@@ -68,8 +67,7 @@ class HillClimber:
         checkpoint_interval: Batches between checkpoint saves (default: 1, i.e., every batch)
         db_enabled: Enable database logging for dashboard (default: False)
         db_path: Path to SQLite database file (default: 'data/hill_climber_progress.db')
-        db_step_interval: Collect metrics every Nth step (default: exchange_interval // 1000)
-        db_buffer_size: Number of pooled steps before database write (default: 10)
+        db_step_interval: Collect metrics every Nth step (default: exchange_interval // 10, or 1 if exchange_interval <= 10)
         verbose: Print progress messages (default: False)
         n_workers: Number of worker processes (default: n_replicas)
     """
@@ -95,7 +93,6 @@ class HillClimber:
         db_enabled: bool = False,
         db_path: Optional[str] = None,
         db_step_interval: Optional[int] = None,
-        db_buffer_size: int = DEFAULT_DB_BUFFER_SIZE,
         verbose: bool = False,
         n_workers: Optional[int] = None,
     ):
@@ -122,7 +119,6 @@ class HillClimber:
             db_enabled=db_enabled,
             db_path=db_path,
             db_step_interval=db_step_interval,
-            db_buffer_size=db_buffer_size,
             verbose=verbose,
             n_workers=n_workers,
         )
@@ -163,7 +159,6 @@ class HillClimber:
         # Database parameters
         self.db_enabled = config.db_enabled
         self.checkpoint_interval = config.checkpoint_interval
-        self.db_buffer_size = config.db_buffer_size
 
         # Placeholders - will be initialized in climb()
         self.replicas: List[Dict] = []
@@ -198,7 +193,6 @@ class HillClimber:
         else:
             self.db_path = None
             self.db_step_interval = None
-            self.db_buffer_size = None
             self.db_writer = None
         
         # Parallel processing parameters (already validated in config)
@@ -324,8 +318,7 @@ class HillClimber:
             db_config = {
                 'enabled': True,
                 'path': self.db_path,
-                'step_interval': self.db_step_interval,
-                'buffer_size': self.db_buffer_size
+                'step_interval': self.db_step_interval
             }
         
         # Create partial function with fixed parameters
@@ -441,7 +434,6 @@ class HillClimber:
             n_replicas=self.n_replicas,
             exchange_interval=self.exchange_interval,
             db_step_interval=self.db_step_interval,
-            db_buffer_size=self.db_buffer_size,
             hyperparameters=hyperparameters,
             checkpoint_file=self.checkpoint_file,
             objective_function_name=self.objective_func.__name__ if hasattr(self.objective_func, '__name__') else None,
@@ -451,7 +443,6 @@ class HillClimber:
         if self.verbose:
             print(f"Database initialized: {self.db_path}")
             print(f"  Step interval: {self.db_step_interval} (collecting every {self.db_step_interval}th step)")
-            print(f"  Buffer size: {self.db_buffer_size} (writing every {self.db_buffer_size} collected steps)")
     
 
     def _initialize_replicas(self):

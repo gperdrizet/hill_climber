@@ -161,11 +161,10 @@ Hyperparameters
 **db_path** (default: 'data/hill_climber_progress.db')
    Path to SQLite database file for dashboard data.
 
-**db_step_interval** (default: exchange_interval // 1000)
-   Collect metrics every Nth step for database logging. Defaults to 0.1% sampling.
-
-**db_buffer_size** (default: 10)
-   Number of pooled steps before writing to database.
+**db_step_interval** (default: exchange_interval // 10)
+   Collect metrics every Nth step for database logging. Defaults to 10% sampling
+   (every 10th step). For small exchange intervals (≤10), defaults to 1 (every step).
+   Must be less than exchange_interval.
 
 **verbose** (default: False)
    Print progress messages during optimization.

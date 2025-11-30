@@ -37,8 +37,7 @@ DEFAULT_CHECKPOINT_INTERVAL = 1  # Default batches between checkpoint saves
 
 # Database parameters
 DEFAULT_DB_PATH = 'data/hill_climber_progress.db'  # Default database file path
-DEFAULT_DB_BUFFER_SIZE = 10  # Default number of steps to buffer before write
-DB_STEP_INTERVAL_DIVISOR = 1000  # Divisor for calculating default db_step_interval (0.1% sampling)
+DB_STEP_INTERVAL_DIVISOR = 10  # Divisor for calculating default db_step_interval (every 10th step)
 
 # =============================================================================
 # Validation Constants
@@ -83,8 +82,7 @@ class OptimizerConfig:
         checkpoint_interval: Batches between checkpoint saves (default: 1)
         db_enabled: Enable database logging for dashboard (default: False)
         db_path: Path to SQLite database file (default: 'data/hill_climber_progress.db')
-        db_step_interval: Collect metrics every Nth step (default: exchange_interval // 1000)
-        db_buffer_size: Number of pooled steps before database write (default: 10)
+        db_step_interval: Collect metrics every Nth step (default: exchange_interval // 10, or 1 if exchange_interval <= 10)
         verbose: Print progress messages (default: False)
         n_workers: Number of worker processes (default: n_replicas)
     """
@@ -107,7 +105,6 @@ class OptimizerConfig:
     db_enabled: bool = False
     db_path: Optional[str] = None
     db_step_interval: Optional[int] = None
-    db_buffer_size: int = DEFAULT_DB_BUFFER_SIZE
     verbose: bool = False
     n_workers: Optional[int] = None
     
@@ -179,7 +176,22 @@ class OptimizerConfig:
         
         # Set default db_step_interval if db enabled but interval not provided
         if self.db_enabled and self.db_step_interval is None:
-            self.db_step_interval = max(1, self.exchange_interval // DB_STEP_INTERVAL_DIVISOR)
+            # Collect every 10 steps, but if exchange_interval <= 10, collect every step
+            if self.exchange_interval <= 10:
+                self.db_step_interval = 1
+            else:
+                self.db_step_interval = max(1, self.exchange_interval // DB_STEP_INTERVAL_DIVISOR)
+        
+        # Validate db_step_interval against exchange_interval
+        if self.db_enabled and self.db_step_interval is not None:
+            if self.db_step_interval >= self.exchange_interval:
+                raise ValueError(
+                    f"db_step_interval ({self.db_step_interval}) must be less than exchange_interval "
+                    f"({self.exchange_interval}). When db_step_interval >= exchange_interval, no metrics "
+                    f"will be collected for the database. Recommended: set db_step_interval to "
+                    f"{max(1, self.exchange_interval // DB_STEP_INTERVAL_DIVISOR)} or lower to collect "
+                    f"metrics during optimization."
+                )
         
         # Set default n_workers if not provided
         if self.n_workers is None:

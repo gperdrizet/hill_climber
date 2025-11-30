@@ -79,7 +79,6 @@ class DatabaseWriter:
                     n_replicas INTEGER NOT NULL,
                     exchange_interval INTEGER NOT NULL,
                     db_step_interval INTEGER NOT NULL,
-                    db_buffer_size INTEGER NOT NULL,
                     hyperparameters TEXT NOT NULL,
                     checkpoint_file TEXT,
                     objective_function_name TEXT,
@@ -153,7 +152,7 @@ class DatabaseWriter:
 
 
     def insert_run_metadata(self, n_replicas: int, exchange_interval: int,
-                           db_step_interval: int, db_buffer_size: int,
+                           db_step_interval: int,
                            hyperparameters: Dict[str, Any], checkpoint_file: str = None,
                            objective_function_name: str = None, dataset_size: int = None):
         """Insert run metadata.
@@ -162,7 +161,6 @@ class DatabaseWriter:
             n_replicas (int): Number of replicas.
             exchange_interval (int): Steps between exchange attempts.
             db_step_interval (int): Steps between metric collection.
-            db_buffer_size (int): Buffer size before database write.
             hyperparameters (Dict[str, Any]): Dictionary of hyperparameters.
             checkpoint_file (str, optional): Path to checkpoint file. Default is None.
             objective_function_name (str, optional): Name of objective function. 
@@ -177,14 +175,13 @@ class DatabaseWriter:
             cursor.execute("""
                 INSERT INTO run_metadata 
                 (run_id, start_time, n_replicas, exchange_interval, 
-                 db_step_interval, db_buffer_size, hyperparameters, checkpoint_file, objective_function_name, dataset_size)
-                VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 db_step_interval, hyperparameters, checkpoint_file, objective_function_name, dataset_size)
+                VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 time.time(),
                 n_replicas,
                 exchange_interval,
                 db_step_interval,
-                db_buffer_size,
                 json.dumps(hyperparameters),
                 checkpoint_file,
                 objective_function_name,
