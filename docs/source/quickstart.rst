@@ -46,35 +46,35 @@ Here's a simple example that optimizes a 2-column dataset for high Pearson corre
    # View results
    print(f"Final correlation: {steps_df['Pearson correlation'].iloc[-1]:.3f}")
 
-Monitoring Progress
--------------------
+Visualization
+-------------
 
-For longer runs, progress plots are automatically shown after each batch:
+Visualize the optimization results using the plotting functions:
 
 .. code-block:: python
 
-   climber = HillClimber(
-       data=data,
-       objective_func=objective_high_correlation,
-       max_time=30,
-       mode='maximize'
+   from hill_climber import plot_optimization_results
+   
+   # Plot results from the climber object
+   plot_optimization_results(
+       climber,
+       metrics=['Pearson correlation'],
+       plot_type='scatter'  # or 'histogram'
+   )
+   
+   # Or plot from a checkpoint file
+   plot_optimization_results(
+       'checkpoint.pkl',
+       metrics=['Pearson correlation'],
+       all_replicas=True  # Show all replicas, not just best
    )
 
-   best_data, steps_df = climber.climb()
-
-Understanding the Results
---------------------------
-
-The ``climb()`` method returns a tuple of ``(best_data, steps_df)``:
-
-- ``best_data``: The optimized data (same format as input - DataFrame or numpy array)
-- ``steps_df``: A DataFrame tracking the optimization history at each accepted step,
-  including the objective value and all metrics you defined
-
+Next Steps
+----------
 Replica Exchange (Parallel Tempering)
 --------------------------------------
 
-Hill Climber 2.0 uses replica exchange (parallel tempering) by default. Multiple
+Hill Climber uses replica exchange (parallel tempering) by default. Multiple
 replicas run at different temperatures and exchange configurations to improve
 global optimization:
 
@@ -86,33 +86,12 @@ global optimization:
        max_time=10,
        mode='maximize',
        n_replicas=8,  # Number of replicas (default: 4)
-       temperature=1000,  # Minimum temperature (T_min)
-       T_max=10000,  # Maximum temperature
-       exchange_interval=100,  # Steps between exchange attempts
+       T_min=0.1,  # Minimum temperature (default: 0.1)
+       T_max=10.0,  # Maximum temperature (default: 100 * T_min)
+       exchange_interval=10000,  # Steps between exchange attempts (default: 10000)
        temperature_scheme='geometric'  # or 'linear'
    )
 
    best_data, steps_df = climber.climb()
 
 The ``climb()`` method automatically runs all replicas and returns the best result.
-
-Visualization
--------------
-
-Visualize the optimization progress:
-
-.. code-block:: python
-
-   # Visualize single result
-   climber.plot_results(
-       (best_data, steps_df),
-       metrics=['Pearson correlation'],
-       plot_type='histogram'
-   )
-
-Next Steps
-----------
-
-- See :doc:`user_guide` for detailed explanations of hyperparameters
-- Check :doc:`notebooks` for complete examples
-- Explore :doc:`api` for full API reference

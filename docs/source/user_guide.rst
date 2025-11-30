@@ -33,7 +33,7 @@ Hill Climber works with tabular data:
 Optimization Modes
 ------------------
 
-Hill Climber supports two modes:
+Hill Climber supports three modes:
 
 **Maximize Mode** (``mode='maximize'``)
    Searches for solutions that maximize the objective function value.
@@ -42,6 +42,11 @@ Hill Climber supports two modes:
 **Minimize Mode** (``mode='minimize'``)
    Searches for solutions that minimize the objective function value.
    Use this when lower objective values are better.
+
+**Target Mode** (``mode='target'``)
+   Searches for solutions that approach a specific target value.
+   Requires setting ``target_value`` parameter. The objective function
+   should return the distance from the target (minimized internally).
 
 Objective Functions
 -------------------
@@ -94,24 +99,26 @@ Hyperparameters
 **n_replicas** (default: 4)
    Number of replicas for parallel tempering (replica exchange). More replicas
    provide better exploration but use more memory. Each replica runs at a different
-   temperature from the temperature ladder.
+   temperature from the temperature ladder. Set to 1 for simulated annealing without
+   replica exchange.
 
-**temperature** (default: 1000)
-   Minimum temperature (T_min) for the coldest replica in the temperature ladder.
+**T_min** (default: 0.1)
+   Minimum temperature for the coldest replica in the temperature ladder.
    Also used as the base temperature for simulated annealing. Higher temperatures
    allow more exploration of suboptimal solutions.
 
-**T_max** (default: 10000)
+**T_max** (default: 100 * T_min)
    Maximum temperature for the hottest replica in the temperature ladder. Should
-   be significantly higher than T_min for effective replica exchange.
+   be significantly higher than T_min for effective replica exchange. Defaults to
+   100 times T_min if not specified.
 
 **temperature_scheme** (default: 'geometric')
    How to space temperatures in the ladder: 'geometric' or 'linear'. Geometric
    spacing typically provides better exchange acceptance rates.
 
-**exchange_interval** (default: 100)
+**exchange_interval** (default: 10000)
    Number of optimization steps between replica exchange attempts. Smaller values
-   attempt exchanges more frequently.
+   attempt exchanges more frequently but increase overhead.
 
 **exchange_strategy** (default: 'even_odd')
    Strategy for selecting replica pairs for exchange:
@@ -127,38 +134,68 @@ Hyperparameters
    automatically scale-appropriate for your data. Larger values create more dramatic
    perturbations, smaller values make more subtle adjustments.
 
-**perturb_fraction** (default: 0.1)
+**perturb_fraction** (default: 0.001)
    Fraction of data points to modify in each iteration (0.0 to 1.0). 
    Higher values create more dramatic changes per step.
 
-**cooling_rate** (default: 0.000001)
+**cooling_rate** (default: 1e-8)
    Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
    is multiplied by ``(1 - cooling_rate)`` each iteration. Smaller values result in slower
-   cooling and longer exploration. For example, ``0.000001`` means ``temp *= 0.999999`` each step.
+   cooling and longer exploration. For example, ``1e-8`` means ``temp *= 0.99999999`` each step.
 
 **max_time** (default: 30)
    Maximum optimization time in minutes.
 
-**show_progress** (default: True)
-   Whether to display progress plots during optimization. Set to False to disable
-   plots (useful for automated scripts or testing).
+**checkpoint_file** (default: None)
+   Path to save checkpoints. If specified, the optimizer saves its state after each
+   batch, allowing resumption if interrupted.
 
-Checkpoints and Progress Plotting
-----------------------------------
+**checkpoint_interval** (default: 1)
+   Number of batches between checkpoint saves. Default is 1 (save every batch).
+   Set higher to reduce I/O overhead.
 
-Hill Climber automatically saves checkpoints and updates progress plots after each
-batch of optimization steps (controlled by ``exchange_interval``). If you specify a
-``checkpoint_file`` path, the optimizer saves its state after every batch, allowing
-you to resume from the most recent state if interrupted. Progress plots are shown
-after each batch when ``show_progress=True`` (default).
+**db_enabled** (default: False)
+   Enable database logging for real-time dashboard monitoring. Requires installing
+   with dashboard extras.
+
+**db_path** (default: 'data/hill_climber_progress.db')
+   Path to SQLite database file for dashboard data.
+
+**db_step_interval** (default: exchange_interval // 1000)
+   Collect metrics every Nth step for database logging. Defaults to 0.1% sampling.
+
+**db_buffer_size** (default: 10)
+   Number of pooled steps before writing to database.
+
+**verbose** (default: False)
+   Print progress messages during optimization.
+
+**n_workers** (default: n_replicas)
+   Number of worker processes for parallel execution. Defaults to number of replicas.
+
+Checkpoints
+-----------
+
+If you specify a ``checkpoint_file`` path, the optimizer saves its state periodically,
+allowing you to resume from the most recent state if interrupted or continue optimization
+after the run ends.
+
+.. note::
+   Checkpoints store the entire optimizer state, including current solutions,
+   best solutions, temperatures, and history. This allows seamless resumption.
 
 **Batch Size**
-   The batch size is determined by ``exchange_interval`` (default: 100 steps).
+   The batch size is determined by ``exchange_interval`` (default: 10000 steps).
    After each batch, the optimizer:
    
    - Attempts replica exchanges
-   - Saves a checkpoint (if ``checkpoint_file`` is specified)
-   - Updates progress plots (if ``show_progress=True``)
+   - Saves a checkpoint (if ``checkpoint_file`` is specified and checkpoint_interval condition is met)
+   - Updates the progress dashboard database (if ``db_enabled`` is True)
+
+**Checkpoint Frequency**
+   The actual frequency of checkpoints is controlled by ``checkpoint_interval``. By default,
+   a checkpoint is saved after every batch (i.e., every ``exchange_interval`` steps). You can
+   save checkpoints less frequently by setting ``checkpoint_interval`` to a higher value to reduce I/O.
 
 Boundary Handling
 -----------------
@@ -174,7 +211,7 @@ data bounds:
 Example: If minimum is 5 and a perturbation creates 4.5, it reflects to 5.5.
 
 Replica Exchange (Parallel Tempering)
---------------------------------------
+-------------------------------------
 
 Hill Climber 2.0 uses replica exchange to improve global optimization. Multiple
 replicas run simultaneously at different temperatures:
@@ -201,20 +238,6 @@ replicas run simultaneously at different temperatures:
    ladder = TemperatureLadder.linear(n_replicas=4, T_min=1000, T_max=10000)
    print(ladder.temperatures)  # [1000, 4000, 7000, 10000]
 
-**Exchange Statistics:**
-
-After optimization, check exchange acceptance rates:
-
-.. code-block:: python
-
-   best_data, history_df = climber.climb()
-   
-   # Exchange statistics are printed during optimization
-   # Exchange acceptance rate: 15.4%
-   
-   # For detailed analysis, access the climber's exchange statistics:
-   # climber.exchange_stats.get_acceptance_matrix()
-
 **Benefits:**
 
 - Better global optimization compared to single-temperature annealing
@@ -234,7 +257,6 @@ For long optimizations, save intermediate progress:
        objective_func=my_objective,
        max_time=60,
        checkpoint_file='optimization.pkl',
-       save_interval=300  # Save every 5 minutes
    )
    
    result = climber.climb()
@@ -258,6 +280,10 @@ Resume from a checkpoint:
    
    # Continue optimizing
    best_data, history_df = resumed.climb()
+
+.. note::
+   It is also possible to resume a run while it is still in memory by simply calling
+   ``climb()`` again on the existing ``HillClimber`` instance.
 
 Results Structure
 -----------------
@@ -283,14 +309,13 @@ The best result is automatically selected from the replica with the best objecti
 Internal Architecture
 ---------------------
 
-Hill Climber uses a unified ``OptimizerState`` dataclass to manage all optimization
-progress internally. This provides:
+Hill Climber uses a ``ReplicaState`` dataclass to manage the state of each replica
+during optimization. This provides:
 
-- **Clean separation**: Hyperparameters stay in ``HillClimber``, runtime state in ``OptimizerState``
+- **Clean separation**: Hyperparameters stay in ``HillClimber``, runtime state in ``ReplicaState``
 - **Easy checkpointing**: State can be serialized/deserialized as a unit
 - **Better organization**: All tracking data (current/best solutions, metrics, history, timing) in one place
 - **Type safety**: Dataclass provides clear typing for all state attributes
 
-You don't need to interact with ``OptimizerState`` directly - it's used internally
-by the ``HillClimber`` class. However, if you're extending or debugging the code,
-you can access it via ``climber.state``.
+You don't need to interact with ``ReplicaState`` directly - it's used internally
+by the ``HillClimber`` class to manage each replica's optimization state.

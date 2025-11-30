@@ -6,7 +6,9 @@ This package provides hill climbing optimization using replica exchange
 Main Components:
     HillClimber: Main optimization class with replica exchange
     TemperatureLadder: Temperature ladder for replica exchange
-    ExchangeStatistics: Track exchange acceptance rates
+    ExchangeScheduler: Scheduler for replica exchange attempts
+    ReplicaState: State container for individual replicas
+    OptimizerConfig: Type-safe configuration dataclass
     Helper functions: Data manipulation and objective calculation utilities
     Plotting functions: Visualization tools for input data and results
 
@@ -42,7 +44,7 @@ Example:
     >>> plot_optimization_results('checkpoint.pkl', all_replicas=True)
 """
 
-__version__ = '2.1.1'
+__version__ = '2.1.2'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber
