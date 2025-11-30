@@ -146,8 +146,8 @@ def create_replica_plot(
     fig.update_layout(
         title_text=title,
         title_font_size=20,
-        legend=dict(orientation='h', yanchor='bottom', y=-0.3),
-        margin=dict(l=40, r=20, t=40, b=70),
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+        margin=dict(l=40, r=20, t=120, b=40),
         height=400
     )
     

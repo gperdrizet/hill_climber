@@ -76,26 +76,27 @@ def load_metrics_history(
         return pd.DataFrame()
 
     try:
-        # Check total steps to determine if downsampling is needed
-        count_query = "SELECT MAX(step) as max_step FROM metrics_history"
-        result = pd.read_sql_query(count_query, conn)
-        if result.empty or result['max_step'].iloc[0] is None:
-            return pd.DataFrame()
-
-        total_steps = int(result['max_step'].iloc[0])
-        
-        # Build query with optional downsampling
-        if total_steps > max_points_per_replica:
-            step_interval = max(1, total_steps // max_points_per_replica)
-            query = f"SELECT replica_id, step, metric_name, value FROM metrics_history WHERE step % {step_interval} = 0"
-        else:
-            query = "SELECT replica_id, step, metric_name, value FROM metrics_history"
-
-        # Filter by requested metrics
+        # Load all metrics for the requested metric names
         placeholders = ','.join(['?' for _ in metric_names])
-        query += f" AND metric_name IN ({placeholders}) ORDER BY replica_id, step, metric_name"
+        query = f"SELECT replica_id, step, metric_name, value FROM metrics_history WHERE metric_name IN ({placeholders}) ORDER BY replica_id, step, metric_name"
+        df = pd.read_sql_query(query, conn, params=metric_names)
         
-        return pd.read_sql_query(query, conn, params=metric_names)
+        if df.empty:
+            return pd.DataFrame()
+        
+        # Downsample per replica to ensure all replicas are represented
+        # Group by replica_id and metric_name, then sample rows
+        downsampled_dfs = []
+        for (replica_id, metric_name), group in df.groupby(['replica_id', 'metric_name']):
+            if len(group) > max_points_per_replica:
+                # Sample evenly: keep every Nth row
+                step_size = len(group) / max_points_per_replica
+                indices = [int(i * step_size) for i in range(max_points_per_replica)]
+                downsampled_dfs.append(group.iloc[indices])
+            else:
+                downsampled_dfs.append(group)
+        
+        return pd.concat(downsampled_dfs, ignore_index=True) if downsampled_dfs else pd.DataFrame()
     except Exception:
         return pd.DataFrame()
 
