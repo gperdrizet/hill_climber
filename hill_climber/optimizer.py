@@ -18,6 +18,27 @@ from .replica_exchange import (
     TemperatureLadder, ExchangeScheduler, should_exchange
 )
 from .replica_worker import run_replica_steps
+from .config import (
+    DEFAULT_T_MIN,
+    DEFAULT_T_MAX_MULTIPLIER,
+    DEFAULT_COOLING_RATE,
+    DEFAULT_STEP_SPREAD,
+    DEFAULT_PERTURB_FRACTION,
+    DEFAULT_N_REPLICAS,
+    DEFAULT_EXCHANGE_INTERVAL,
+    DEFAULT_TEMPERATURE_SCHEME,
+    DEFAULT_EXCHANGE_STRATEGY,
+    DEFAULT_MAX_TIME,
+    DEFAULT_MODE,
+    DEFAULT_CHECKPOINT_INTERVAL,
+    DEFAULT_DB_PATH,
+    DEFAULT_DB_BUFFER_SIZE,
+    DB_STEP_INTERVAL_DIVISOR,
+    DEFAULT_COLUMN_PREFIX,
+    VALID_MODES,
+    VALID_TEMPERATURE_SCHEMES,
+    VALID_EXCHANGE_STRATEGIES,
+)
 
 
 class HillClimber:
@@ -60,24 +81,24 @@ class HillClimber:
         self,
         data,
         objective_func: Callable,
-        mode: str = 'maximize',
+        mode: str = DEFAULT_MODE,
         target_value: Optional[float] = None,
-        max_time: float = 30,
-        step_spread: float = 0.01,
-        perturb_fraction: float = 0.001,
-        n_replicas: int = 4,
-        T_min: float = 0.1,
+        max_time: float = DEFAULT_MAX_TIME,
+        step_spread: float = DEFAULT_STEP_SPREAD,
+        perturb_fraction: float = DEFAULT_PERTURB_FRACTION,
+        n_replicas: int = DEFAULT_N_REPLICAS,
+        T_min: float = DEFAULT_T_MIN,
         T_max: Optional[float] = None,
-        cooling_rate: float = 1e-8,
-        temperature_scheme: str = 'geometric',
-        exchange_interval: int = 10000,
-        exchange_strategy: str = 'even_odd',
+        cooling_rate: float = DEFAULT_COOLING_RATE,
+        temperature_scheme: str = DEFAULT_TEMPERATURE_SCHEME,
+        exchange_interval: int = DEFAULT_EXCHANGE_INTERVAL,
+        exchange_strategy: str = DEFAULT_EXCHANGE_STRATEGY,
         checkpoint_file: Optional[str] = None,
-        checkpoint_interval: int = 1,
+        checkpoint_interval: int = DEFAULT_CHECKPOINT_INTERVAL,
         db_enabled: bool = False,
         db_path: Optional[str] = None,
         db_step_interval: Optional[int] = None,
-        db_buffer_size: int = 10,
+        db_buffer_size: int = DEFAULT_DB_BUFFER_SIZE,
         verbose: bool = False,
         n_workers: Optional[int] = None,
     ):
@@ -86,9 +107,9 @@ class HillClimber:
         #### Input validation ########################################################
 
         # Validate mode
-        if mode not in ['maximize', 'minimize', 'target']:
+        if mode not in VALID_MODES:
             raise ValueError(
-                f"mode must be 'maximize', 'minimize', or 'target', got '{mode}'"
+                f"mode must be one of {VALID_MODES}, got '{mode}'"
             )
         
         # Validate target_value when mode is 'target'
@@ -98,15 +119,15 @@ class HillClimber:
             )
 
         # Validate temperature scheme
-        if temperature_scheme not in ['geometric', 'linear']:
+        if temperature_scheme not in VALID_TEMPERATURE_SCHEMES:
             raise ValueError(
-                f"temperature_scheme must be 'geometric' or 'linear', got '{temperature_scheme}'"
+                f"temperature_scheme must be one of {VALID_TEMPERATURE_SCHEMES}, got '{temperature_scheme}'"
             )
 
         # Validate exchange strategy
-        if exchange_strategy not in ['even_odd', 'random', 'all_neighbors']:
+        if exchange_strategy not in VALID_EXCHANGE_STRATEGIES:
             raise ValueError(
-                f"exchange_strategy must be 'even_odd', 'random', or 'all_neighbors', got '{exchange_strategy}'"
+                f"exchange_strategy must be one of {VALID_EXCHANGE_STRATEGIES}, got '{exchange_strategy}'"
             )
         
         # Convert data to numpy if needed
@@ -117,7 +138,7 @@ class HillClimber:
 
         else:
             self.data = np.array(data)
-            self.column_names = [f'col_{i}' for i in range(self.data.shape[1])]
+            self.column_names = [f'{DEFAULT_COLUMN_PREFIX}{i}' for i in range(self.data.shape[1])]
             self.is_dataframe = False
 
 
@@ -158,7 +179,7 @@ class HillClimber:
         #### Derived attributes ######################################################
 
         # Highest temperature for replica ladder
-        self.T_max = T_max or (T_min * 100)
+        self.T_max = T_max or (T_min * DEFAULT_T_MAX_MULTIPLIER)
 
         # Bounds for boundary reflection
         self.bounds = (np.min(self.data, axis=0), np.max(self.data, axis=0))
@@ -172,14 +193,14 @@ class HillClimber:
 
             # Set database path (default to data/ directory)
             if db_path is None:
-                self.db_path = 'data/hill_climber_progress.db'
+                self.db_path = DEFAULT_DB_PATH
 
             else:
                 self.db_path = db_path
             
             # Set step interval (default: 0.1% of exchange interval)
             if db_step_interval is None:
-                self.db_step_interval = max(1, exchange_interval // 1000)
+                self.db_step_interval = max(1, exchange_interval // DB_STEP_INTERVAL_DIVISOR)
 
             else:
                 self.db_step_interval = db_step_interval
