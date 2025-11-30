@@ -116,6 +116,9 @@ def run_replica_steps(
             if is_better:
                 state['best_data'] = perturbed.copy()
                 state['best_objective'] = objective
+                # Store best metrics (excluding 'Objective' entries that will be handled separately)
+                state['best_metrics'] = {k: v for k, v in metrics.items() 
+                                        if 'Objective' not in k}
             
             state['step'] += 1
             
@@ -135,16 +138,23 @@ def run_replica_steps(
             # Create a combined metrics dictionary with proper prefixes
             all_metrics = {}
             
-            # Add BEST metrics with "Best " prefix (from state)
+            # Add BEST metrics with "Best " prefix (from state's best_metrics)
             all_metrics['Best Objective'] = state['best_objective']
-            # For best metrics, use last_metrics if this was accepted, otherwise they haven't changed
-            for metric_name, metric_value in last_metrics.items():
-                all_metrics[f'Best {metric_name}'] = metric_value
+            # Use stored best_metrics for other metrics
+            if 'best_metrics' in state:
+                for metric_name, metric_value in state['best_metrics'].items():
+                    # Skip metrics that already have Best/Current prefix to avoid double-prefixing
+                    if not (metric_name.startswith('Best ') or metric_name.startswith('Current ') or 
+                            'Objective' in metric_name):
+                        all_metrics[f'Best {metric_name}'] = metric_value
             
             # Add CURRENT metrics with "Current " prefix (from most recent evaluation)
             all_metrics['Current Objective'] = state['current_objective']
             for metric_name, metric_value in last_metrics.items():
-                all_metrics[f'Current {metric_name}'] = metric_value
+                # Skip metrics that already have Best/Current prefix to avoid double-prefixing
+                if not (metric_name.startswith('Best ') or metric_name.startswith('Current ') or 
+                        'Objective' in metric_name):
+                    all_metrics[f'Current {metric_name}'] = metric_value
             
             # Buffer all metrics for this step (using pre-extracted replica_id)
             current_step = state['step']

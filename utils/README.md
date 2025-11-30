@@ -10,12 +10,12 @@ Utility script to update version numbers consistently across the package.
 
 **Check current versions:**
 ```bash
-python scripts/update_version.py --check
+python utils/update_version.py --check
 ```
 
 **Update to new version:**
 ```bash
-python scripts/update_version.py 0.2.0
+python utils/update_version.py 0.2.0
 ```
 
 This will:
@@ -38,14 +38,14 @@ Examples:
 
 ```bash
 # Check if versions are consistent
-$ python scripts/update_version.py --check
+$ python utils/update_version.py --check
 __init__.py version:    0.1.0
 pyproject.toml version: 0.1.0
 
 ✓ Versions are consistent!
 
 # Update to new version
-$ python scripts/update_version.py 0.2.0
+$ python utils/update_version.py 0.2.0
 
 Updating to version 0.2.0...
 ✓ Updated __init__.py to version 0.2.0

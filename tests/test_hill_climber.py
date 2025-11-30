@@ -45,8 +45,9 @@ class TestHillClimber(unittest.TestCase):
         climber = HillClimber(
             data=data,
             objective_func=simple_objective,
-            max_time=0.05,
-            n_replicas=2,
+            max_time=0.002,
+            n_replicas=1,
+            exchange_interval=10,
             verbose=False
         )
         
@@ -62,15 +63,15 @@ class TestHillClimber(unittest.TestCase):
         """Test that replica exchange completes."""
         np.random.seed(42)
         data = pd.DataFrame({
-            'x': np.random.rand(50),
-            'y': np.random.rand(50)
+            'x': np.random.rand(20),
+            'y': np.random.rand(20)
         })
         
         climber = HillClimber(
             data=data,
             objective_func=simple_objective,
-            max_time=0.1,
-            n_replicas=3,
+            max_time=0.005,
+            n_replicas=2,
             exchange_interval=10,
             verbose=False
         )

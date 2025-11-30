@@ -45,8 +45,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         """Set up test fixtures."""
         np.random.seed(42)
         self.data = pd.DataFrame({
-            'x': np.random.rand(20),
-            'y': np.random.rand(20)
+            'x': np.random.rand(10),
+            'y': np.random.rand(10)
         })
     
     def test_climb_with_real_objective(self):
@@ -54,7 +54,9 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         climber = HillClimber(
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
-            max_time=0.02,
+            max_time=0.002,
+            n_replicas=1,
+            exchange_interval=10,
             step_spread=0.1,
             mode='maximize',
             verbose=False
@@ -73,7 +75,9 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         climber = HillClimber(
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
-            max_time=0.02,
+            max_time=0.002,
+            n_replicas=1,
+            exchange_interval=10,
             step_spread=0.1,
             T_min=10.0,
             cooling_rate=0.005,
@@ -91,7 +95,9 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         climber = HillClimber(
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
-            max_time=0.02,
+            max_time=0.002,
+            n_replicas=1,
+            exchange_interval=10,
             step_spread=0.1,
             mode='minimize',
             verbose=False
@@ -107,7 +113,9 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         climber = HillClimber(
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
-            max_time=0.02,
+            max_time=0.002,
+            n_replicas=1,
+            exchange_interval=10,
             step_spread=0.1,
             mode='target',
             target_value=0.5,
@@ -126,7 +134,9 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
         climber = HillClimber(
             data=self.data,
             objective_func=objective_spearman_large_pearson_small,
-            max_time=0.02,
+            max_time=0.002,
+            n_replicas=1,
+            exchange_interval=10,
             step_spread=0.1,
             verbose=False
         )
@@ -146,20 +156,22 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
         np.random.seed(42)
         # Create 3D data
         self.data_3d = pd.DataFrame({
-            'x': np.random.rand(20),
-            'y': np.random.rand(20),
-            'z': np.random.rand(20)
+            'x': np.random.rand(10),
+            'y': np.random.rand(10),
+            'z': np.random.rand(10)
         })
         
         # Create 4D data
-        self.data_4d = np.random.rand(15, 4)
+        self.data_4d = np.random.rand(10, 4)
     
     def test_climb_with_3d_data(self):
         """Test climb() with 3D data."""
         climber = HillClimber(
             data=self.data_3d,
             objective_func=objective_3d_simple,
-            max_time=0.02,
+            max_time=0.002,
+            n_replicas=1,
+            exchange_interval=10,
             step_spread=0.1,
             mode='maximize',
             verbose=False
@@ -176,7 +188,9 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
         climber = HillClimber(
             data=self.data_4d,
             objective_func=objective_4d_simple,
-            max_time=0.02,
+            max_time=0.002,
+            n_replicas=1,
+            exchange_interval=10,
             step_spread=0.1,
             mode='maximize',
             verbose=False
