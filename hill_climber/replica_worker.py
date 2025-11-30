@@ -22,20 +22,25 @@ def run_replica_steps(
     the updated state dict.
     
     Args:
-        state_dict: Replica state dictionary
-        objective_func: Function taking M column arrays, returns (metrics_dict, objective_value)
-        bounds: Tuple of (min_values, max_values) for boundary reflection
-        n_steps: Number of optimization steps to perform
-        mode: 'maximize', 'minimize', or 'target'
-        target_value: Target value (only used if mode='target')
-        db_config: Optional database configuration dict with keys:
-                  - enabled: bool
-                  - path: str
-                  - step_interval: int (collect every Nth step)
-                  - buffer_size: int (flush after N collected steps)
+        state_dict (Dict[str, Any]): Replica state dictionary containing current state,
+            best state, hyperparameters, and history.
+        objective_func (Callable): Function taking M column arrays, returns 
+            (metrics_dict, objective_value).
+        bounds (Tuple[np.ndarray, np.ndarray]): Tuple of (min_values, max_values) for 
+            boundary reflection.
+        n_steps (int): Number of optimization steps to perform.
+        mode (str): Optimization mode - 'maximize', 'minimize', or 'target'.
+        target_value (float, optional): Target value, only used if mode='target'. 
+            Default is None.
+        db_config (Dict[str, Any], optional): Optional database configuration dict with keys:
+            - enabled (bool): Whether database logging is enabled.
+            - path (str): Path to database file.
+            - step_interval (int): Collect every Nth step.
+            - buffer_size (int): Flush after N collected steps.
+            Default is None.
     
     Returns:
-        Updated state dictionary
+        Dict[str, Any]: Updated state dictionary with new current/best states and history.
     """
 
     # State is already a dict
@@ -167,7 +172,22 @@ def _should_accept(
     mode: str,
     target_value: float = None
 ) -> bool:
-    """Determine if new state should be accepted (simulated annealing)."""
+    """Determine if new state should be accepted using simulated annealing.
+    
+    Uses the Metropolis criterion: always accept improvements, accept
+    worse solutions with probability exp(delta/T).
+    
+    Args:
+        new_obj (float): New objective value.
+        current_obj (float): Current objective value.
+        temp (float): Current temperature.
+        mode (str): Optimization mode - 'maximize', 'minimize', or 'target'.
+        target_value (float, optional): Target value, only used if mode='target'.
+            Default is None.
+        
+    Returns:
+        bool: True if new state should be accepted, False otherwise.
+    """
 
     if mode == 'maximize':
         delta = new_obj - current_obj

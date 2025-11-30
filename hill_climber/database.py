@@ -19,7 +19,7 @@ class DatabaseWriter:
         """Initialize database writer.
         
         Args:
-            db_path: Path to SQLite database file
+            db_path (str): Path to SQLite database file.
         """
 
         self.db_path = db_path
@@ -30,8 +30,10 @@ class DatabaseWriter:
     def get_connection(self):
         """Context manager for database connections.
         
+        Enables WAL mode for concurrent read/write access.
+        
         Yields:
-            sqlite3.Connection: Database connection
+            sqlite3.Connection: Database connection with WAL mode enabled.
         """
 
         conn = sqlite3.connect(self.db_path, timeout=30.0)
@@ -57,7 +59,7 @@ class DatabaseWriter:
         """Create database schema.
         
         Args:
-            drop_existing: If True, drop existing tables first (default: True)
+            drop_existing (bool): If True, drop existing tables first. Default is True.
         """
 
         with self.get_connection() as conn:
@@ -157,14 +159,15 @@ class DatabaseWriter:
         """Insert run metadata.
         
         Args:
-            n_replicas: Number of replicas
-            exchange_interval: Steps between exchange attempts
-            db_step_interval: Steps between metric collection
-            db_buffer_size: Buffer size before database write
-            hyperparameters: Dictionary of hyperparameters
-            checkpoint_file: Path to checkpoint file (optional)
-            objective_function_name: Name of objective function (optional)
-            dataset_size: Total size of input dataset (optional)
+            n_replicas (int): Number of replicas.
+            exchange_interval (int): Steps between exchange attempts.
+            db_step_interval (int): Steps between metric collection.
+            db_buffer_size (int): Buffer size before database write.
+            hyperparameters (Dict[str, Any]): Dictionary of hyperparameters.
+            checkpoint_file (str, optional): Path to checkpoint file. Default is None.
+            objective_function_name (str, optional): Name of objective function. 
+                Default is None.
+            dataset_size (int, optional): Total size of input dataset. Default is None.
         """
 
         with self.get_connection() as conn:
@@ -196,12 +199,12 @@ class DatabaseWriter:
         """Update current replica status.
         
         Args:
-            replica_id: Replica ID
-            step: Current step number (accepted steps)
-            total_iterations: Total iterations attempted (all perturbations)
-            temperature: Current temperature
-            best_objective: Best objective value found
-            current_objective: Current objective value
+            replica_id (int): Replica ID.
+            step (int): Current step number (accepted steps).
+            total_iterations (int): Total iterations attempted (all perturbations).
+            temperature (float): Current temperature.
+            best_objective (float): Best objective value found.
+            current_objective (float): Current objective value.
         """
 
         with self.get_connection() as conn:
@@ -219,7 +222,8 @@ class DatabaseWriter:
         """Insert batch of metrics.
         
         Args:
-            metrics_data: List of tuples (replica_id, step, metric_name, value)
+            metrics_data (List[tuple]): List of tuples with format 
+                (replica_id, step, metric_name, value).
         """
 
         if not metrics_data:
@@ -241,7 +245,8 @@ class DatabaseWriter:
         """Insert temperature exchange records.
         
         Args:
-            exchanges: List of tuples (step, replica_id, new_temperature)
+            exchanges (List[tuple]): List of tuples with format 
+                (step, replica_id, new_temperature).
         """
 
         if not exchanges:
@@ -263,7 +268,7 @@ class DatabaseWriter:
         """Get run metadata.
         
         Returns:
-            Dictionary with run metadata or None if not found
+            Dict[str, Any]: Dictionary with run metadata, or None if not found.
         """
 
         with self.get_connection() as conn:
@@ -290,7 +295,9 @@ class DatabaseWriter:
         """Get current status of all replicas.
         
         Returns:
-            List of dictionaries with replica status
+            List[Dict[str, Any]]: List of dictionaries with replica status, sorted by
+                replica_id. Each dict contains replica_id, step, temperature, 
+                best_objective, current_objective, and timestamp.
         """
 
         with self.get_connection() as conn:
@@ -320,12 +327,14 @@ class DatabaseWriter:
         """Get metrics history.
         
         Args:
-            replica_id: Filter by replica ID (optional)
-            min_step: Minimum step (optional)
-            max_step: Maximum step (optional)
+            replica_id (int, optional): Filter by replica ID. Default is None (all replicas).
+            min_step (int, optional): Minimum step. Default is None (no minimum).
+            max_step (int, optional): Maximum step. Default is None (no maximum).
             
         Returns:
-            List of dictionaries with metrics history
+            List[Dict[str, Any]]: List of dictionaries with metrics history, sorted by
+                replica_id, step, and metric_name. Each dict contains replica_id, step,
+                metric_name, and value.
         """
 
         with self.get_connection() as conn:
@@ -363,7 +372,8 @@ class DatabaseWriter:
         """Get all temperature exchange records.
         
         Returns:
-            List of dictionaries with temperature exchanges
+            List[Dict[str, Any]]: List of dictionaries with temperature exchanges, sorted
+                by step. Each dict contains step, replica_id, new_temperature, and timestamp.
         """
 
         with self.get_connection() as conn:

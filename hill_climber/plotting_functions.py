@@ -2,7 +2,7 @@
 
 import os
 import pickle
-from typing import Optional, List
+from typing import Optional, List, Union, Tuple, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,16 +10,23 @@ import pandas as pd
 from scipy.stats import gaussian_kde
 
 
-def plot_input_data(data, plot_type='scatter'):
+def plot_input_data(data: Union[np.ndarray, pd.DataFrame], plot_type: str = 'scatter') -> None:
     """Plot input data distribution.
     
     Args:
-        data: numpy array (Nx2) or pandas DataFrame with 2 columns
-        plot_type: Type of plot, either ``'scatter'`` or ``'kde'``
-                   (default is ``'scatter'``)
+        data (Union[np.ndarray, pd.DataFrame]): Numpy array (Nx2) or pandas DataFrame 
+            with 2 columns.
+        plot_type (str): Type of plot - 'scatter' or 'kde'. Default is 'scatter'.
     
     Raises:
-        ValueError: If plot_type is not ``'scatter'`` or ``'kde'``
+        ValueError: If plot_type is not 'scatter' or 'kde'.
+        
+    Examples:
+        >>> import numpy as np
+        >>> from hill_climber import plot_input_data
+        >>> data = np.random.randn(100, 2)
+        >>> plot_input_data(data, plot_type='scatter')
+        >>> plot_input_data(data, plot_type='kde')
     """
 
     if plot_type not in ['scatter', 'kde']:
@@ -84,7 +91,13 @@ def plot_input_data(data, plot_type='scatter'):
     plt.show()
 
 
-def plot_results(results, plot_type='scatter', metrics=None, exchange_interval=None, show_current=False):
+def plot_results(
+    results: Union[Tuple[Any, pd.DataFrame], Tuple[List[Tuple[int, float]], Any, pd.DataFrame], List[Union[Tuple[Any, pd.DataFrame], Tuple[List[Tuple[int, float]], Any, pd.DataFrame]]]],
+    plot_type: str = 'scatter',
+    metrics: Optional[List[str]] = None,
+    exchange_interval: Optional[int] = None,
+    show_current: bool = False
+) -> None:
     """Visualize hill climbing results with progress and snapshots.
     
     Creates a comprehensive visualization showing:
@@ -92,22 +105,30 @@ def plot_results(results, plot_type='scatter', metrics=None, exchange_interval=N
     - Snapshot plots at 25%, 50%, 75%, and 100% completion
     
     Args:
-        results: Results from climb(). Can be:
-                 - Tuple (best_data, steps_df) from single climb() call
-                 - List of result tuples for multi-replica visualization
-        plot_type: Type of snapshot plots, either ``'scatter'`` or ``'histogram'``
-                   (default is ``'scatter'``).
-                   Note: ``'histogram'`` uses KDE (Kernel Density Estimation) plots
-        metrics: List of metric names to display in progress plots and snapshots.
-                 If None (default), all available metrics are shown.
-                 Example: ``['Pearson', 'Spearman']`` or ``['Mean X', 'Std X']``
-        exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)
-        show_current: If True, plot 'Current Objective' instead of 'Objective value'.
-                     Current shows SA exploration, Objective shows only improvements. (default: False)
+        results (Union[Tuple, List[Tuple]]): Results from climb(). Can be:
+            - Tuple (best_data, steps_df) from single climb() call
+            - Tuple (temp_history, best_data, steps_df) with replica exchange
+            - List of result tuples for multi-replica visualization
+        plot_type (str): Type of snapshot plots - 'scatter' or 'histogram'. 
+            Default is 'scatter'. Note: 'histogram' uses KDE plots.
+        metrics (List[str], optional): List of metric names to display. If None, all 
+            available metrics are shown. Default is None.
+        exchange_interval (int, optional): Number of steps per batch. If provided, 
+            x-axis shows batches instead of steps. Default is None.
+        show_current (bool): If True, plot 'Current Objective' (shows SA exploration).
+            If False, plot 'Objective value' (only improvements). Default is False.
     
     Raises:
-        ValueError: If plot_type is not ``'scatter'`` or ``'histogram'``
-        ValueError: If any specified metric is not found in the results
+        ValueError: If plot_type is not 'scatter' or 'histogram'.
+        ValueError: If any specified metric is not found in the results.
+        
+    Examples:
+        >>> from hill_climber import HillClimber, plot_results
+        >>> climber = HillClimber(data, objective_func)
+        >>> results = climber.climb()
+        >>> plot_results(results, plot_type='scatter')
+        >>> plot_results(results, metrics=['Pearson', 'Spearman'])
+        >>> plot_results(results, show_current=True)  # Show SA exploration
     """
 
     if plot_type not in ['scatter', 'histogram']:
@@ -144,14 +165,23 @@ def plot_results(results, plot_type='scatter', metrics=None, exchange_interval=N
         _plot_results_histogram(results_list, metrics, exchange_interval, show_current)
 
 
-def _plot_results_scatter(results, metrics=None, exchange_interval=None, show_current=False):
+def _plot_results_scatter(
+    results: List[Union[Tuple[Any, pd.DataFrame], Tuple[List[Tuple[int, float]], Any, pd.DataFrame]]],
+    metrics: Optional[List[str]] = None,
+    exchange_interval: Optional[int] = None,
+    show_current: bool = False
+) -> None:
     """Internal function: Visualize results with scatter plots.
     
     Args:
-        results: List of result tuples - handles both (data, df) and (_, data, df) formats
-        metrics: List of metric names to display, or None for all metrics
-        exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)
-        show_current: If True, plot Current Objective; if False, plot Objective value
+        results (List[Tuple]): List of result tuples - handles both (data, df) and 
+            (temp_history, data, df) formats.
+        metrics (List[str], optional): List of metric names to display, or None for all. 
+            Default is None.
+        exchange_interval (int, optional): Number of steps per batch. If provided, x-axis 
+            shows batches instead of steps. Default is None.
+        show_current (bool): If True, plot Current Objective; if False, plot Objective value.
+            Default is False.
     """
 
     n_replicates = len(results)
@@ -313,14 +343,23 @@ def _plot_results_scatter(results, metrics=None, exchange_interval=None, show_cu
     plt.show()
 
 
-def _plot_results_histogram(results, metrics=None, exchange_interval=None, show_current=False):
+def _plot_results_histogram(
+    results: List[Union[Tuple[Any, pd.DataFrame], Tuple[List[Tuple[int, float]], Any, pd.DataFrame]]],
+    metrics: Optional[List[str]] = None,
+    exchange_interval: Optional[int] = None,
+    show_current: bool = False
+) -> None:
     """Internal function: Visualize results with histogram/KDE plots.
     
     Args:
-        results: List of result tuples - handles both (data, df) and (_, data, df) formats
-        metrics: List of metric names to display, or None for all metrics
-        exchange_interval: Number of steps per batch (if provided, x-axis shows batches instead of steps)
-        show_current: If True, plot Current Objective; if False, plot Objective value
+        results (List[Tuple]): List of result tuples - handles both (data, df) and 
+            (temp_history, data, df) formats.
+        metrics (List[str], optional): List of metric names to display, or None for all.
+            Default is None.
+        exchange_interval (int, optional): Number of steps per batch. If provided, x-axis 
+            shows batches instead of steps. Default is None.
+        show_current (bool): If True, plot Current Objective; if False, plot Objective value.
+            Default is False.
     """
 
     n_replicates = len(results)
@@ -579,12 +618,12 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None, show_
 
 
 def plot_optimization_results(
-    source,
+    source: Union[str, Any],
     plot_type: str = 'scatter',
     metrics: Optional[List[str]] = None,
     all_replicas: bool = False,
     show_current: bool = False
-):
+) -> None:
     """Plot optimization results from a HillClimber instance or checkpoint file.
     
     This is a convenience function that extracts results data from either a completed
@@ -592,20 +631,20 @@ def plot_optimization_results(
     using the plot_results function.
     
     Args:
-        source: Either a HillClimber instance (after climb() has been called) or
-                a string path to a checkpoint file
-        plot_type: Type of plot - 'scatter' or 'histogram' (default: 'scatter')
-        metrics: List of metric names to plot. If None, all metrics are plotted.
-                 Example: ['Pearson', 'Spearman'] or ['Mean X', 'Std X']
-        all_replicas: If True, plot all replicas. If False, plot only the best replica
-                     (default: False)
-        show_current: If True, plot 'Current Objective' (shows SA exploration with fluctuations).
-                     If False, plot 'Objective value' (only accepted steps, always improving).
-                     (default: False)
+        source (Union[str, Any]): Either a HillClimber instance (after climb() has been 
+            called) or a string path to a checkpoint file.
+        plot_type (str): Type of plot - 'scatter' or 'histogram'. Default is 'scatter'.
+        metrics (List[str], optional): List of metric names to plot. If None, all metrics 
+            are plotted. Default is None.
+        all_replicas (bool): If True, plot all replicas. If False, plot only the best 
+            replica. Default is False.
+        show_current (bool): If True, plot 'Current Objective' (shows SA exploration with 
+            fluctuations). If False, plot 'Objective value' (only accepted steps, always 
+            improving). Default is False.
     
     Raises:
-        ValueError: If source is neither a HillClimber instance nor a valid checkpoint path
-        ValueError: If plot_type is not 'scatter' or 'histogram'
+        ValueError: If source is neither a HillClimber instance nor a valid checkpoint path.
+        ValueError: If plot_type is not 'scatter' or 'histogram'.
     
     Examples:
         >>> # From a HillClimber instance

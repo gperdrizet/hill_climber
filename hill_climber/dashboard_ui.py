@@ -7,7 +7,7 @@ keeping UI concerns separate from data and plotting.
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Set
+from typing import Optional, List, Dict, Any, Set, Tuple
 import pandas as pd
 
 try:
@@ -16,8 +16,11 @@ except ImportError:
     st = None
 
 
-def apply_custom_css():
-    """Apply custom CSS styling to the dashboard."""
+def apply_custom_css() -> None:
+    """Apply custom CSS styling to the dashboard.
+    
+    Adjusts padding, font sizes, and text wrapping for optimal dashboard appearance.
+    """
     if st is None:
         return
         
@@ -39,8 +42,11 @@ def apply_custom_css():
     """, unsafe_allow_html=True)
 
 
-def render_sidebar_title():
-    """Render the sidebar title."""
+def render_sidebar_title() -> None:
+    """Render the sidebar title.
+    
+    Displays 'Hill climber' as a multi-line title in the sidebar.
+    """
     if st is None:
         return
         
@@ -55,11 +61,11 @@ def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[s
     """Render database selection UI in sidebar.
     
     Args:
-        session_state: Streamlit session state object
-        dirs: List of available directories
+        session_state (Any): Streamlit session state object.
+        dirs (List[Path]): List of available directories to search for databases.
         
     Returns:
-        Selected database path or None
+        str: Selected database path, or None if no database selected.
     """
     if st is None:
         return None
@@ -129,11 +135,11 @@ def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[s
     return db_path
 
 
-def render_auto_refresh_controls() -> tuple[bool, float]:
+def render_auto_refresh_controls() -> Tuple[bool, float]:
     """Render auto-refresh controls in sidebar.
     
     Returns:
-        Tuple of (auto_refresh_enabled, refresh_interval_seconds)
+        Tuple[bool, float]: Tuple of (auto_refresh_enabled, refresh_interval_seconds).
     """
     if st is None:
         return False, 60.0
@@ -164,10 +170,12 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     """Render plot configuration options in sidebar.
     
     Args:
-        available_metrics: List of available metric names
+        available_metrics (List[str]): List of available metric names from database.
         
     Returns:
-        Dictionary with plot configuration options
+        Dict[str, Any]: Dictionary with plot configuration options including history_type,
+            objective_metric, additional_metrics, normalize_metrics, show_exchanges,
+            max_points, and n_cols.
     """
     if st is None:
         return {}
@@ -265,11 +273,13 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     }
 
 
-def render_run_information(metadata: Dict[str, Any]):
+def render_run_information(metadata: Dict[str, Any]) -> None:
     """Render run information section in sidebar.
     
     Args:
-        metadata: Dictionary with run metadata
+        metadata (Dict[str, Any]): Dictionary with run metadata including start_time,
+            hyperparameters, n_replicas, checkpoint_file, objective_function_name,
+            and dataset_size.
     """
     if st is None:
         return
@@ -309,11 +319,12 @@ def render_run_information(metadata: Dict[str, Any]):
     st.sidebar.markdown(run_info)
 
 
-def render_hyperparameters(metadata: Dict[str, Any]):
+def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     """Render hyperparameters section in sidebar.
     
     Args:
-        metadata: Dictionary with run metadata
+        metadata (Dict[str, Any]): Dictionary with run metadata containing hyperparameters
+            and exchange_interval.
     """
     if st is None:
         return
@@ -341,11 +352,11 @@ def render_hyperparameters(metadata: Dict[str, Any]):
     st.sidebar.markdown(hyperparams_text)
 
 
-def render_temperature_ladder(temp_ladder_df: pd.DataFrame):
+def render_temperature_ladder(temp_ladder_df: pd.DataFrame) -> None:
     """Render temperature ladder section in sidebar.
     
     Args:
-        temp_ladder_df: DataFrame with replica_id and temperature columns
+        temp_ladder_df (pd.DataFrame): DataFrame with replica_id and temperature columns.
     """
     if st is None:
         return
@@ -360,11 +371,12 @@ def render_temperature_ladder(temp_ladder_df: pd.DataFrame):
         st.sidebar.markdown("  \n".join(temp_lines))
 
 
-def render_leaderboard(leaderboard_df: pd.DataFrame):
+def render_leaderboard(leaderboard_df: pd.DataFrame) -> None:
     """Render replica leaderboard in main content area.
     
     Args:
-        leaderboard_df: DataFrame with replica stats
+        leaderboard_df (pd.DataFrame): DataFrame with replica stats including replica_id,
+            best_objective, step, and temperature.
     """
     if st is None:
         return
@@ -386,12 +398,12 @@ def render_leaderboard(leaderboard_df: pd.DataFrame):
         st.info("No replica data available yet")
 
 
-def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]):
+def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> None:
     """Render progress statistics in main content area.
     
     Args:
-        stats: Dictionary with total_iterations and total_accepted
-        metadata: Dictionary with run metadata including start_time
+        stats (Dict[str, Any]): Dictionary with total_iterations and total_accepted.
+        metadata (Dict[str, Any]): Dictionary with run metadata including start_time.
     """
     if st is None:
         return

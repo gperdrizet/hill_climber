@@ -12,10 +12,15 @@ import sys
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 
-def _init_session_state(st):
-    """Initialize session state variables."""
+def _init_session_state(st: Any) -> None:
+    """Initialize session state variables.
+    
+    Args:
+        st (Any): Streamlit module.
+    """
     if 'db_user_selected' not in st.session_state:
         st.session_state.db_user_selected = False
     
@@ -37,8 +42,12 @@ def _init_session_state(st):
         st.session_state.plot_refresh_key = 0
 
 
-def render():
-    """Render the Streamlit dashboard."""
+def render() -> None:
+    """Render the Streamlit dashboard.
+    
+    Main dashboard rendering function that orchestrates all UI components,
+    data loading, and plot generation.
+    """
     # Import modular dashboard components (use absolute imports for Streamlit compatibility)
     from hill_climber.dashboard_data import (
         get_connection,
@@ -223,10 +232,10 @@ def render():
     # End render
 
 
-def main():
-    """Launch the Streamlit dashboard via `streamlit run` for CLI use.
+def main() -> None:
+    """Launch the Streamlit dashboard via streamlit run for CLI use.
 
-    This replaces the current process with `streamlit run` pointing at this
+    This replaces the current process with streamlit run pointing at this
     module file, ensuring proper Streamlit runtime initialization.
     """
     module_path = Path(__file__).resolve()

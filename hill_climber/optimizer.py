@@ -224,9 +224,9 @@ class HillClimber:
         """Run replica exchange optimization.
         
         Returns:
-            Tuple of (best_data, steps_df) where:
-                best_data: Best configuration found across all replicas
-                steps_df: DataFrame with optimization history from best replica
+            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) where:
+                - best_data: Best configuration found across all replicas
+                - steps_df: DataFrame with optimization history from best replica
         """
 
         if self.verbose:
@@ -264,7 +264,14 @@ class HillClimber:
 
     
     def _climb_parallel(self, scheduler: ExchangeScheduler) -> Tuple[np.ndarray, pd.DataFrame]:
-        """Run optimization with parallel workers."""
+        """Run optimization with parallel workers.
+        
+        Args:
+            scheduler (ExchangeScheduler): Scheduler for replica exchange.
+            
+        Returns:
+            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) from best replica.
+        """
 
         start_time = time.time()
         avg_batch_time = 0.0
@@ -300,7 +307,12 @@ class HillClimber:
     
 
     def _parallel_step_batch(self, pool: PoolType, n_steps: int):
-        """Execute n_steps for all replicas in parallel."""
+        """Execute n_steps for all replicas in parallel.
+        
+        Args:
+            pool (PoolType): Multiprocessing pool for parallel execution.
+            n_steps (int): Number of optimization steps to execute per replica.
+        """
 
         # Serialize current replica states
         state_dicts = [self._serialize_state(r) for r in self.replicas]
@@ -362,7 +374,11 @@ class HillClimber:
     
 
     def _finalize_results(self) -> Tuple[np.ndarray, pd.DataFrame]:
-        """Complete optimization and return results."""
+        """Complete optimization and return results.
+        
+        Returns:
+            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) from best replica.
+        """
 
         # Final checkpoint
         if self.checkpoint_file:
@@ -388,7 +404,11 @@ class HillClimber:
     
 
     def _initialize_database(self):
-        """Initialize database schema and insert run metadata."""
+        """Initialize database schema and insert run metadata.
+        
+        Creates database directory if needed, drops existing tables, creates fresh schema,
+        and inserts run metadata.
+        """
 
         if not self.db_enabled or not self.db_writer:
             return
@@ -435,7 +455,11 @@ class HillClimber:
     
 
     def _initialize_replicas(self):
-        """Initialize all replica states."""
+        """Initialize all replica states.
+        
+        Creates replica states with temperatures from the temperature ladder,
+        evaluates initial objective, and records initial metrics.
+        """
 
         hyperparams = {
             'max_time': self.max_time,
@@ -474,7 +498,11 @@ class HillClimber:
     
 
     def _step_replica(self, replica: Dict):
-        """Perform one optimization step for a replica."""
+        """Perform one optimization step for a replica.
+        
+        Args:
+            replica (Dict): Replica state dictionary.
+        """
         # Perturb data (already includes boundary reflection)
         perturbed = perturb_vectors(
             replica['current_data'],
