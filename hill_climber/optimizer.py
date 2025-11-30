@@ -19,6 +19,7 @@ from .replica_exchange import (
 )
 from .replica_worker import run_replica_steps
 from .config import (
+    OptimizerConfig,
     DEFAULT_T_MIN,
     DEFAULT_T_MAX_MULTIPLIER,
     DEFAULT_COOLING_RATE,
@@ -35,9 +36,6 @@ from .config import (
     DEFAULT_DB_BUFFER_SIZE,
     DB_STEP_INTERVAL_DIVISOR,
     DEFAULT_COLUMN_PREFIX,
-    VALID_MODES,
-    VALID_TEMPERATURE_SCHEMES,
-    VALID_EXCHANGE_STRATEGIES,
 )
 
 
@@ -104,31 +102,31 @@ class HillClimber:
     ):
         """Initialize HillClimber optimizer."""
         
-        #### Input validation ########################################################
-
-        # Validate mode
-        if mode not in VALID_MODES:
-            raise ValueError(
-                f"mode must be one of {VALID_MODES}, got '{mode}'"
-            )
-        
-        # Validate target_value when mode is 'target'
-        if mode == 'target' and target_value is None:
-            raise ValueError(
-                "target_value must be specified when mode='target'"
-            )
-
-        # Validate temperature scheme
-        if temperature_scheme not in VALID_TEMPERATURE_SCHEMES:
-            raise ValueError(
-                f"temperature_scheme must be one of {VALID_TEMPERATURE_SCHEMES}, got '{temperature_scheme}'"
-            )
-
-        # Validate exchange strategy
-        if exchange_strategy not in VALID_EXCHANGE_STRATEGIES:
-            raise ValueError(
-                f"exchange_strategy must be one of {VALID_EXCHANGE_STRATEGIES}, got '{exchange_strategy}'"
-            )
+        # Create config object for validation and store validated parameters
+        # This delegates all validation to OptimizerConfig.__post_init__
+        config = OptimizerConfig(
+            objective_func=objective_func,
+            mode=mode,
+            target_value=target_value,
+            max_time=max_time,
+            step_spread=step_spread,
+            perturb_fraction=perturb_fraction,
+            n_replicas=n_replicas,
+            T_min=T_min,
+            T_max=T_max,
+            cooling_rate=cooling_rate,
+            temperature_scheme=temperature_scheme,
+            exchange_interval=exchange_interval,
+            exchange_strategy=exchange_strategy,
+            checkpoint_file=checkpoint_file,
+            checkpoint_interval=checkpoint_interval,
+            db_enabled=db_enabled,
+            db_path=db_path,
+            db_step_interval=db_step_interval,
+            db_buffer_size=db_buffer_size,
+            verbose=verbose,
+            n_workers=n_workers,
+        )
         
         # Convert data to numpy if needed
         if isinstance(data, pd.DataFrame):
@@ -142,31 +140,31 @@ class HillClimber:
             self.is_dataframe = False
 
 
-        #### Attribute assignments ###################################################
+        #### Attribute assignments from validated config #############################
         
         # Hill climbing run parameters
-        self.objective_func = objective_func
-        self.mode = mode
-        self.target_value = target_value
-        self.max_time = max_time
-        self.step_spread = step_spread
-        self.perturb_fraction = perturb_fraction
-        self.temperature = T_min
-        self.cooling_rate = cooling_rate
-        self.checkpoint_file = checkpoint_file
-        self.verbose = verbose
+        self.objective_func = config.objective_func
+        self.mode = config.mode
+        self.target_value = config.target_value
+        self.max_time = config.max_time
+        self.step_spread = config.step_spread
+        self.perturb_fraction = config.perturb_fraction
+        self.temperature = config.T_min
+        self.cooling_rate = config.cooling_rate
+        self.checkpoint_file = config.checkpoint_file
+        self.verbose = config.verbose
         
         # Replica exchange parameters
-        self.n_replicas = n_replicas
-        self.T_min = T_min
-        self.exchange_interval = exchange_interval
-        self.temperature_scheme = temperature_scheme
-        self.exchange_strategy = exchange_strategy
+        self.n_replicas = config.n_replicas
+        self.T_min = config.T_min
+        self.exchange_interval = config.exchange_interval
+        self.temperature_scheme = config.temperature_scheme
+        self.exchange_strategy = config.exchange_strategy
         
         # Database parameters
-        self.db_enabled = db_enabled
-        self.checkpoint_interval = checkpoint_interval
-        self.db_buffer_size = db_buffer_size
+        self.db_enabled = config.db_enabled
+        self.checkpoint_interval = config.checkpoint_interval
+        self.db_buffer_size = config.db_buffer_size
 
         # Placeholders - will be initialized in climb()
         self.replicas: List[Dict] = []
@@ -178,32 +176,20 @@ class HillClimber:
 
         #### Derived attributes ######################################################
 
-        # Highest temperature for replica ladder
-        self.T_max = T_max or (T_min * DEFAULT_T_MAX_MULTIPLIER)
+        # Highest temperature for replica ladder (already validated and set in config)
+        self.T_max = config.T_max
 
         # Bounds for boundary reflection
         self.bounds = (np.min(self.data, axis=0), np.max(self.data, axis=0))
         
         # Absolute step_spread from fraction of data range
         data_range = self.bounds[1] - self.bounds[0]
-        self.step_spread_absolute = step_spread * np.mean(data_range)
+        self.step_spread_absolute = config.step_spread * np.mean(data_range)
         
-        # Database settings
-        if db_enabled:
-
-            # Set database path (default to data/ directory)
-            if db_path is None:
-                self.db_path = DEFAULT_DB_PATH
-
-            else:
-                self.db_path = db_path
-            
-            # Set step interval (default: 0.1% of exchange interval)
-            if db_step_interval is None:
-                self.db_step_interval = max(1, exchange_interval // DB_STEP_INTERVAL_DIVISOR)
-
-            else:
-                self.db_step_interval = db_step_interval
+        # Database settings (already validated and defaults set in config)
+        if config.db_enabled:
+            self.db_path = config.db_path
+            self.db_step_interval = config.db_step_interval
             
             # Import database module only if enabled
             from .database import DatabaseWriter
@@ -216,25 +202,23 @@ class HillClimber:
             self.db_buffer_size = None
             self.db_writer = None
         
-        # Parallel processing parameters
-        if n_workers is None:
+        # Parallel processing parameters (already validated in config)
+        if config.n_workers is None:
             self.n_workers = self.n_replicas
-
-        elif n_workers == 0:
+        elif config.n_workers == 0:
             self.n_workers = 0
-
-        elif n_workers > cpu_count() - 1:
+        elif config.n_workers > cpu_count() - 1:
             print(
-                "Warning: Requested n_workers + main process exceeds available" +
+                "Warning: Requested n_workers + main process exceeds available " +
                 f"CPU cores ({cpu_count()}). Consider decreasing n_replicas and/or n_workers"
             )
-
-            self.n_workers = n_workers
-
-        elif n_workers > n_replicas:
-
+            self.n_workers = config.n_workers
+        elif config.n_workers > config.n_replicas:
             print('Requested workers exceed number of replicas; reducing n_workers to n_replicas.')
-            self.n_workers = n_replicas        
+            self.n_workers = config.n_replicas
+        else:
+            # Normal case: use the specified n_workers
+            self.n_workers = config.n_workers        
 
 
     def climb(self) -> Tuple[np.ndarray, pd.DataFrame]:
