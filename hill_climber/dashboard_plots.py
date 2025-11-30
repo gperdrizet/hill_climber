@@ -37,6 +37,21 @@ def create_replica_plot(
     Returns:
         go.Figure: Plotly Figure object with replica metrics plot.
     """
+    # Calculate total number of legend entries
+    total_metrics = 1 + len(additional_metrics)  # objective + additional
+    if show_exchanges:
+        total_metrics += 1  # add exchange marker
+    
+    # Base height + additional height per metric (beyond 1)
+    base_height = 350
+    height_per_metric = 35
+    plot_height = base_height + (total_metrics - 1) * height_per_metric
+    
+    # Calculate top margin based on number of metrics
+    base_top_margin = 90
+    margin_per_metric = 20
+    top_margin = base_top_margin + (total_metrics - 1) * margin_per_metric
+    
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     
     # Color palette
@@ -67,7 +82,7 @@ def create_replica_plot(
         fig.add_trace(
             go.Scatter(
                 x=batch_numbers, y=y_values, mode='lines', 
-                name=objective_metric, line=dict(color='#2E86AB', width=3),
+                name='Objective', line=dict(color='#2E86AB', width=3),
                 hovertemplate=hover_template, customdata=customdata
             ),
             secondary_y=False
@@ -124,7 +139,7 @@ def create_replica_plot(
                 go.Scatter(
                     x=[None], y=[None],
                     mode='lines',
-                    name='Temperature exchange',
+                    name='Exchange',
                     line=dict(color='#555', width=1, dash='dash'),
                     showlegend=True
                 ),
@@ -146,9 +161,9 @@ def create_replica_plot(
     fig.update_layout(
         title_text=title,
         title_font_size=20,
-        legend=dict(orientation='h', yanchor='bottom', y=-0.3),
-        margin=dict(l=40, r=20, t=40, b=70),
-        height=400
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5),
+        margin=dict(l=40, r=20, t=top_margin, b=40),
+        height=plot_height
     )
     
     return fig
