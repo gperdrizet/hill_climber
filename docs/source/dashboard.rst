@@ -275,8 +275,7 @@ Complete Example
        db_enabled=True,
        db_path='correlation_opt.db',
        checkpoint_file='correlation_opt.pkl',
-       checkpoint_interval=5,  # Checkpoint every 5 batches
-       plot_metrics=['Correlation']
+       checkpoint_interval=5  # Checkpoint every 5 batches
    )
    
    # Run optimization

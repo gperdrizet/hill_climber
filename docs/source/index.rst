@@ -48,8 +48,7 @@ Features
 - **Multi-column data**: Optimize datasets with any number of features
 - **Structured state management**: ReplicaState dataclass with type hints for clarity and IDE support
 - **Checkpointing**: Save and resume long-running optimizations with configurable checkpoint intervals
-- **Progress monitoring**: Live plotting during optimization runs
-- **Rich visualization**: Built-in plotting for results analysis
+- **Rich visualization**: Built-in plotting functions for results analysis
 - **JIT Compilation**: Numba-optimized core functions for performance
 
 Data Format

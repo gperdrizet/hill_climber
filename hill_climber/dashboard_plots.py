@@ -122,7 +122,7 @@ def create_replica_plot(
     replica_temp = replica_temps.get(replica_id)
     title = f"Replica {int(replica_id)}"
     if replica_temp is not None:
-        title += f" (T={replica_temp:.4f})"
+        title += f" (T={replica_temp:.1e})"
     
     fig.update_layout(
         title_text=title,

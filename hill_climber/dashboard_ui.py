@@ -139,12 +139,22 @@ def render_auto_refresh_controls() -> tuple[bool, float]:
         return False, 60.0
         
     st.sidebar.markdown("---")
-    auto_refresh = st.sidebar.checkbox("Auto-refresh", value=True)
+    auto_refresh = st.sidebar.checkbox("Auto-refresh", key="auto_refresh")
     refresh_interval_minutes = st.sidebar.slider(
         "Refresh interval (minutes)",
-        min_value=0.5, max_value=5.0, value=1.0, step=0.5
+        min_value=0.5, max_value=5.0, step=0.5,
+        key="refresh_interval"
     )
-    if st.sidebar.button("Refresh Now"):
+    if st.sidebar.button("Refresh Now", key="refresh_now"):
+        # Increment refresh key to force clean plot re-rendering
+        st.session_state.plot_refresh_key = st.session_state.get('plot_refresh_key', 0) + 1
+        # Save current plot options before refresh
+        st.session_state.saved_history_type = st.session_state.get('history_type', 'Best')
+        st.session_state.saved_additional_metrics = st.session_state.get('additional_metrics', [])
+        st.session_state.saved_normalize_metrics = st.session_state.get('normalize_metrics', False)
+        st.session_state.saved_show_exchanges = st.session_state.get('show_exchanges', False)
+        st.session_state.saved_max_points = st.session_state.get('max_points', 1000)
+        st.session_state.saved_plot_columns = st.session_state.get('plot_columns', 'Two columns')
         st.rerun()
     
     return auto_refresh, refresh_interval_minutes * 60
@@ -165,11 +175,35 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     st.sidebar.markdown("---")
     st.sidebar.subheader("Plot options")
     
-    # History type
+    # Restore saved values if they exist (from manual refresh)
+    if 'saved_history_type' in st.session_state and 'history_type' not in st.session_state:
+        st.session_state.history_type = st.session_state.saved_history_type
+    if 'saved_additional_metrics' in st.session_state and 'additional_metrics' not in st.session_state:
+        st.session_state.additional_metrics = st.session_state.saved_additional_metrics
+    if 'saved_normalize_metrics' in st.session_state and 'normalize_metrics' not in st.session_state:
+        st.session_state.normalize_metrics = st.session_state.saved_normalize_metrics
+    if 'saved_show_exchanges' in st.session_state and 'show_exchanges' not in st.session_state:
+        st.session_state.show_exchanges = st.session_state.saved_show_exchanges
+    if 'saved_max_points' in st.session_state and 'max_points' not in st.session_state:
+        st.session_state.max_points = st.session_state.saved_max_points
+    if 'saved_plot_columns' in st.session_state and 'plot_columns' not in st.session_state:
+        st.session_state.plot_columns = st.session_state.saved_plot_columns
+    
+    # Set initial defaults for widgets if not in session state
+    if 'max_points' not in st.session_state:
+        st.session_state.max_points = 1000
+    if 'plot_columns' not in st.session_state:
+        st.session_state.plot_columns = 'Two columns'
+    if 'auto_refresh' not in st.session_state:
+        st.session_state.auto_refresh = True
+    if 'refresh_interval' not in st.session_state:
+        st.session_state.refresh_interval = 1.0
+    
+    # History type - widget value automatically preserved via key
     history_type = st.sidebar.radio(
         "History type",
         options=["Best", "Current"],
-        index=0,
+        key="history_type",
         help="Best: Monotonically improving (best so far)\nCurrent: Includes exploration"
     )
     
@@ -185,35 +219,36 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     
     base_metrics.discard("Objective")
     
-    # Additional metrics selector
+    # Additional metrics - widget value automatically preserved via key
     additional_base_metrics = st.sidebar.multiselect(
         "Additional metrics",
         options=sorted(base_metrics),
-        default=[]
+        key="additional_metrics"
     )
     
-    # Build full metric names
+    # Build full metric names from current widget values
     objective_metric = f"{history_type} Objective"
     additional_metrics = [f"{history_type} {m}" for m in additional_base_metrics]
     
-    # Other options
-    normalize_metrics = st.sidebar.checkbox("Normalize", value=False)
+    # Other options - widget values automatically preserved via keys
+    normalize_metrics = st.sidebar.checkbox("Normalize", key="normalize_metrics")
     show_exchanges = st.sidebar.checkbox(
         "Show exchange markers",
-        value=False,
+        key="show_exchanges",
         help="Draw vertical markers at replica exchange events"
     )
     max_points = st.sidebar.slider(
         "Max points per replica",
-        min_value=100, max_value=2000, value=1000, step=100
+        min_value=100, max_value=2000, step=100,
+        key="max_points"
     )
     
-    # Layout
+    # Layout - widget value automatically preserved via key
     st.sidebar.markdown("**Plot layout:**")
     plot_columns = st.sidebar.radio(
         "Plot layout",
         options=["One column", "Two columns"],
-        index=1,
+        key="plot_columns",
         help="Switch between two-column or single-column plot layout",
         label_visibility="collapsed"
     )
@@ -245,8 +280,16 @@ def render_run_information(metadata: Dict[str, Any]):
     hyperparams = metadata['hyperparameters']
     
     # Format display values
-    max_time_minutes = hyperparams.get('max_time', 0)
-    max_time_display = f"{max_time_minutes:.1f}" if max_time_minutes else 'N/A'
+    max_time_seconds = hyperparams.get('max_time', 0)
+    if max_time_seconds:
+        if max_time_seconds > 3600:  # More than 60 minutes
+            max_time_display = f"{max_time_seconds / 3600:.2f} hr"
+        elif max_time_seconds > 60:  # More than 60 seconds
+            max_time_display = f"{int(max_time_seconds / 60)} min"
+        else:
+            max_time_display = f"{max_time_seconds} sec"
+    else:
+        max_time_display = 'N/A'
     
     checkpoint_file = metadata.get('checkpoint_file')
     checkpoint_display = Path(checkpoint_file).name if checkpoint_file else 'None'
@@ -257,7 +300,7 @@ def render_run_information(metadata: Dict[str, Any]):
     dataset_size_display = f"{dataset_size:,}" if dataset_size else 'N/A'
     
     run_info = f"""**Started:** {datetime.fromtimestamp(metadata['start_time']).strftime('%Y-%m-%d %H:%M')}  
-**Max time:** {max_time_display} min  
+**Max time:** {max_time_display}  
 **Dataset size:** {dataset_size_display}  
 **Replicas:** {metadata['n_replicas']}  
 **Objective:** {objective_func_name}  
@@ -280,13 +323,20 @@ def render_hyperparameters(metadata: Dict[str, Any]):
     
     hyperparams = metadata['hyperparameters']
     
+    # Format temperatures in scientific notation
+    t_min = hyperparams.get('T_min', 'N/A')
+    t_max = hyperparams.get('T_max', 'N/A')
+    t_min_str = f"{t_min:.1e}" if isinstance(t_min, (int, float)) else t_min
+    t_max_str = f"{t_max:.1e}" if isinstance(t_max, (int, float)) else t_max
+    
     hyperparams_text = f"""**Mode:** {hyperparams.get('mode', 'N/A')}  
 **Step spread:** {hyperparams.get('step_spread', 'N/A')}  
 **Perturb fraction:** {hyperparams.get('perturb_fraction', 'N/A')}  
 **Cooling rate:** {hyperparams.get('cooling_rate', 'N/A')}  
 **Exchange interval:** {metadata['exchange_interval']}  
-**T_min:** {hyperparams.get('T_min', 'N/A')}  
-**T_max:** {hyperparams.get('T_max', 'N/A')}"""
+**Exchange strategy:** {hyperparams.get('exchange_strategy', 'N/A')}  
+**T_min:** {t_min_str}  
+**T_max:** {t_max_str}"""
     
     st.sidebar.markdown(hyperparams_text)
 
@@ -306,7 +356,7 @@ def render_temperature_ladder(temp_ladder_df: pd.DataFrame):
     if not temp_ladder_df.empty:
         temp_lines = []
         for _, row in temp_ladder_df.iterrows():
-            temp_lines.append(f"**Replica {int(row['replica_id'])}:** {row['temperature']:.6f}")
+            temp_lines.append(f"**Replica {int(row['replica_id'])}:** {row['temperature']:.1e}")
         st.sidebar.markdown("  \n".join(temp_lines))
 
 
@@ -323,14 +373,14 @@ def render_leaderboard(leaderboard_df: pd.DataFrame):
     
     if not leaderboard_df.empty:
         cols = st.columns(3)
-        medals = ['1st:', '2nd:', '3rd:']
+        medals = ['1<sup>st</sup>:', '2<sup>nd</sup>:', '3<sup>rd</sup>:']
         for idx, (_, row) in enumerate(leaderboard_df.iterrows()):
             with cols[idx]:
-                st.markdown(f"### {medals[idx]} Replica {int(row['replica_id'])}")
+                st.markdown(f"### {medals[idx]} Replica {int(row['replica_id'])}", unsafe_allow_html=True)
                 st.markdown(
                     f"**Objective:** {row['best_objective']:.4f}  \n"
                     f"**Accepted steps:** {int(row['step'])}  \n"
-                    f"**Temperature:** {row['temperature']:.2f}"
+                    f"**Temperature:** {row['temperature']:.1e}"
                 )
     else:
         st.info("No replica data available yet")
@@ -345,12 +395,20 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]):
     """
     if st is None:
         return
-        
-    st.header("Optimization progress")
     
     total_iterations = stats.get('total_iterations', 0)
     total_accepted = stats.get('total_accepted', 0)
     elapsed_time = time.time() - metadata['start_time']
+    
+    # Format elapsed time
+    if elapsed_time > 3600:  # More than 60 minutes
+        elapsed_display = f"{elapsed_time / 3600:.2f} hr"
+    elif elapsed_time > 60:  # More than 60 seconds
+        elapsed_display = f"{int(elapsed_time / 60)} min"
+    else:
+        elapsed_display = f"{int(elapsed_time)} sec"
+    
+    st.header(f"Optimization progress ({elapsed_display})")
     
     if elapsed_time > 0 and total_iterations:
         exploration_rate = total_iterations / elapsed_time

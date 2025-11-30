@@ -12,13 +12,10 @@ A Python package for hill climbing optimization of user-supplied objective funct
 
 - **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
 - **Real-Time Monitoring Dashboard**: Streamlit-based modular dashboard for live progress visualization with SQLite backend
-- **Type-Safe Configuration**: Dataclass-based configuration with automatic validation
 - **Simulated Annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
 - **Flexible Objectives**: Support for any objective function with multiple metrics
 - **Multi-Column Support**: Optimize datasets with any number of features/columns
 - **Checkpoint/Resume**: Save and resume long-running optimizations with configurable checkpoint intervals
-- **Boundary Handling**: Reflection-based strategy prevents point accumulation at boundaries
-- **Visualization**: Built-in plotting for both input data and optimization results
 - **JIT Compilation**: Numba-optimized core functions for performance
 
 ## 3. Quick Start
@@ -66,9 +63,6 @@ climber = HillClimber(
 
 # Run optimization
 best_data, history_df = climber.climb()
-
-# Visualize results
-climber.plot_results((best_data, history_df), plot_type='histogram')
 ```
 
 ### 3.3. Real-Time Monitoring Dashboard
@@ -103,10 +97,8 @@ hill-climber-dashboard
 The dashboard provides:
 - Replica leaderboard showing top performers
 - Exploration rate (total perturbations/sec) and progress rate (accepted steps/sec)
-- Acceptance rate percentage
 - Interactive time series plots for all metrics across replicas
 - Temperature exchange event markers
-- Configurable auto-refresh intervals
 - Plot normalization and layout options
 - Run information including objective function name, dataset size, and hyperparameters
 
