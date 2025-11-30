@@ -485,6 +485,10 @@ class HillClimber:
             initial_metrics['Objective value'] = objective
             state['metrics_history'].append(initial_metrics)
             state['step'] += 1
+            
+            # Initialize best_metrics (excluding 'Objective' entries)
+            state['best_metrics'] = {k: v for k, v in metrics.items() if 'Objective' not in k}
+            
             self.replicas.append(state)
     
 

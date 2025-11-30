@@ -258,7 +258,7 @@ class DatabaseWriter:
                 INSERT INTO temperature_exchanges
                 (step, replica_id, new_temperature, timestamp)
                 VALUES (?, ?, ?, ?)
-            """, [(step, rid, temp, timestamp) for step, rid, temp in exchanges])
+            """, [(int(step), int(rid), float(temp), timestamp) for step, rid, temp in exchanges])
 
 
     def get_run_metadata(self) -> Optional[Dict[str, Any]]:

@@ -156,7 +156,7 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
         st.session_state.plot_refresh_key = st.session_state.get('plot_refresh_key', 0) + 1
         # Save current plot options before refresh
         st.session_state.saved_history_type = st.session_state.get('history_type', 'Best')
-        st.session_state.saved_additional_metrics = st.session_state.get('additional_metrics', [])
+        st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
         st.session_state.saved_normalize_metrics = st.session_state.get('normalize_metrics', False)
         st.session_state.saved_show_exchanges = st.session_state.get('show_exchanges', False)
         st.session_state.saved_max_points = st.session_state.get('max_points', 1000)
@@ -186,8 +186,8 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     # Restore saved values if they exist (from manual refresh)
     if 'saved_history_type' in st.session_state and 'history_type' not in st.session_state:
         st.session_state.history_type = st.session_state.saved_history_type
-    if 'saved_additional_metrics' in st.session_state and 'additional_metrics' not in st.session_state:
-        st.session_state.additional_metrics = st.session_state.saved_additional_metrics
+    if 'saved_additional_base_metrics' in st.session_state and 'additional_base_metrics' not in st.session_state:
+        st.session_state.additional_base_metrics = st.session_state.saved_additional_base_metrics
     if 'saved_normalize_metrics' in st.session_state and 'normalize_metrics' not in st.session_state:
         st.session_state.normalize_metrics = st.session_state.saved_normalize_metrics
     if 'saved_show_exchanges' in st.session_state and 'show_exchanges' not in st.session_state:
@@ -215,23 +215,25 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         help="Best: Monotonically improving (best so far)\nCurrent: Includes exploration"
     )
     
-    # Extract base metrics
+    # Extract base metrics (without Best/Current prefixes, excluding Objective)
     base_metrics: Set[str] = set()
     for m in available_metrics:
+        # Skip any metric with "Objective" in the name - it's always shown
+        if "Objective" in m:
+            continue
+        # Remove Best/Current prefix to get base metric name
         if m.startswith("Best "):
             base_metrics.add(m[5:])
         elif m.startswith("Current "):
             base_metrics.add(m[8:])
-        elif m not in ["Objective value", "Best Objective", "Current Objective"]:
+        else:
             base_metrics.add(m)
-    
-    base_metrics.discard("Objective")
     
     # Additional metrics - widget value automatically preserved via key
     additional_base_metrics = st.sidebar.multiselect(
         "Additional metrics",
         options=sorted(base_metrics),
-        key="additional_metrics"
+        key="additional_base_metrics"  # Use different key to avoid confusion with full metric names
     )
     
     # Build full metric names from current widget values

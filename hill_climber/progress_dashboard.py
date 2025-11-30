@@ -220,7 +220,7 @@ def render() -> None:
         st.session_state.plot_refresh_key = st.session_state.get('plot_refresh_key', 0) + 1
         # Save current plot options before auto-refresh
         st.session_state.saved_history_type = st.session_state.get('history_type', 'Best')
-        st.session_state.saved_additional_metrics = st.session_state.get('additional_metrics', [])
+        st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
         st.session_state.saved_normalize_metrics = st.session_state.get('normalize_metrics', False)
         st.session_state.saved_show_exchanges = st.session_state.get('show_exchanges', False)
         st.session_state.saved_max_points = st.session_state.get('max_points', 1000)

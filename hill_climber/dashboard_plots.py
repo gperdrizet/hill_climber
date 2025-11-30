@@ -108,9 +108,28 @@ def create_replica_plot(
     # Add temperature exchange markers if enabled
     if show_exchanges and not exchanges_df.empty:
         replica_exchanges = exchanges_df[exchanges_df['replica_id'] == replica_id]
+        # Draw vertical lines for each exchange
         for _, exchange in replica_exchanges.iterrows():
             exchange_batch = exchange['step'] / exchange_interval
-            fig.add_vline(x=exchange_batch, line_dash="dash", line_color="#555", line_width=1)
+            fig.add_vline(
+                x=exchange_batch, 
+                line_dash="dash", 
+                line_color="#555", 
+                line_width=1
+            )
+        
+        # Add a dummy trace for the legend entry (vlines don't show in legend)
+        if len(replica_exchanges) > 0:
+            fig.add_trace(
+                go.Scatter(
+                    x=[None], y=[None],
+                    mode='lines',
+                    name='Temperature exchange',
+                    line=dict(color='#555', width=1, dash='dash'),
+                    showlegend=True
+                ),
+                secondary_y=False
+            )
     
     # Configure axes
     fig.update_xaxes(title_text="Batch")
@@ -127,8 +146,8 @@ def create_replica_plot(
     fig.update_layout(
         title_text=title,
         title_font_size=20,
-        legend=dict(orientation='h', yanchor='bottom', y=-0.2),
-        margin=dict(l=40, r=20, t=40, b=40),
+        legend=dict(orientation='h', yanchor='bottom', y=-0.3),
+        margin=dict(l=40, r=20, t=40, b=70),
         height=400
     )
     
