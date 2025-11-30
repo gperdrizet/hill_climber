@@ -452,9 +452,6 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None, show_
             
             ax.set_xlabel('Value', fontsize=8)
             ax.set_ylabel('Density', fontsize=8)
-            # ax.tick_params(axis='both', which='major', labelsize=7)
-            # ax.locator_params(axis='x', nbins=4)
-            # ax.locator_params(axis='y', nbins=4)
             
         except (np.linalg.LinAlgError, ValueError):
             # If KDE fails, fall back to histogram
@@ -465,7 +462,6 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None, show_
             
             ax.set_xlabel('Value', fontsize=8)
             ax.set_ylabel('Frequency', fontsize=8)
-            # ax.tick_params(axis='both', which='major', labelsize=7)
         
         # Add metrics annotation
         initial_metrics = steps_df.iloc[0]
@@ -475,8 +471,6 @@ def _plot_results_histogram(results, metrics=None, exchange_interval=None, show_
             ax.text(0.02, 0.98, metric_text, transform=ax.transAxes,
                    fontsize=6, verticalalignment='top',
                    bbox=dict(facecolor='white', edgecolor='black', alpha=0.8, pad=2))
-            # ax.locator_params(axis='x', nbins=4)
-            # ax.locator_params(axis='y', nbins=4)
         
         # Snapshot histograms at 25%, 50%, 75%, 100% (bottom row, columns 1-4)
         for j, pct in enumerate([0.25, 0.50, 0.75, 1.0]):

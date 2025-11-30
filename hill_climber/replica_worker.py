@@ -49,7 +49,6 @@ def run_replica_steps(
         db_step_interval = db_config['step_interval']
         db_buffer_size = db_config['buffer_size']
         db_path = db_config['path']
-        # db_pool_size = db_config.get('pool_size', 4)
         
         # Import database writer only if needed
         from .database import DatabaseWriter

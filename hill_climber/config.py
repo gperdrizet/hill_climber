@@ -5,7 +5,7 @@ all optimizer parameters with validation, along with default values and
 constants used throughout the package.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, Callable
 
 

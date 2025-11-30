@@ -1,7 +1,7 @@
 """Replica exchange coordination and utilities."""
 import numpy as np
 from typing import List, Tuple
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

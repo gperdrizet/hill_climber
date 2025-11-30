@@ -5,7 +5,6 @@ import pickle
 import time
 from typing import Callable, Optional, Dict, Any, Tuple, List
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from functools import partial
