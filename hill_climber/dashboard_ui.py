@@ -151,11 +151,11 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
         min_value=0.5, max_value=5.0, step=0.5,
         key="refresh_interval"
     )
-    if st.sidebar.button("Refresh Now", key="refresh_now"):
+    if st.sidebar.button("Refresh now", key="refresh_now"):
         # Increment refresh key to force clean plot re-rendering
         st.session_state.plot_refresh_key = st.session_state.get('plot_refresh_key', 0) + 1
         # Save current plot options before refresh
-        st.session_state.saved_history_type = st.session_state.get('history_type', 'Best')
+        st.session_state.saved_history_type = st.session_state.get('history_type', 'Improvements (best)')
         st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
         st.session_state.saved_normalize_metrics = st.session_state.get('normalize_metrics', False)
         st.session_state.saved_show_exchanges = st.session_state.get('show_exchanges', False)
@@ -207,41 +207,46 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     if 'refresh_interval' not in st.session_state:
         st.session_state.refresh_interval = 1.0
     
-    # History type - widget value automatically preserved via key
+    # History type selector - choose which event type to display
     history_type = st.sidebar.radio(
         "History type",
-        options=["Best", "Current"],
+        options=["Improvements (best)", "Accepted steps", "All perturbations"],
         key="history_type",
-        help="Best: Monotonically improving (best so far)\nCurrent: Includes exploration"
+        help="Improvements: Only new best values (monotonically improving)\n"
+             "Accepted steps: All SA acceptances (includes exploration)\n"
+             "All perturbations: Sampled perturbations (at db_step_interval)\n"
+             "  - Includes both accepted and rejected\n"
+             "  - Metrics shown only for accepted perturbations"
     )
     
-    # Extract base metrics (without Best/Current prefixes, excluding Objective)
-    base_metrics: Set[str] = set()
-    for m in available_metrics:
-        # Skip any metric with "Objective" in the name - it's always shown
-        if "Objective" in m:
-            continue
-        # Remove Best/Current prefix to get base metric name
-        if m.startswith("Best "):
-            base_metrics.add(m[5:])
-        elif m.startswith("Current "):
-            base_metrics.add(m[8:])
-        else:
-            base_metrics.add(m)
+    # Map display name to internal key
+    history_type_map = {
+        "Improvements (best)": "improvements",
+        "Accepted steps": "accepted",
+        "All perturbations": "perturbations"
+    }
+    history_key = history_type_map[history_type]
+    
+    # Extract non-objective metrics
+    base_metrics = [m for m in available_metrics if "Objective" not in m]
     
     # Additional metrics - widget value automatically preserved via key
-    additional_base_metrics = st.sidebar.multiselect(
+    additional_metrics = st.sidebar.multiselect(
         "Additional metrics",
         options=sorted(base_metrics),
-        key="additional_base_metrics"  # Use different key to avoid confusion with full metric names
+        key="additional_base_metrics",
+        help="Note: 'All perturbations' shows metrics only for accepted perturbations (rejected ones have no metrics)"
     )
     
-    # Build full metric names from current widget values
-    objective_metric = f"{history_type} Objective"
-    additional_metrics = [f"{history_type} {m}" for m in additional_base_metrics]
+    # Objective is always "Objective value"
+    objective_metric = "Objective value"
     
     # Other options - widget values automatically preserved via keys
-    normalize_metrics = st.sidebar.checkbox("Normalize", key="normalize_metrics")
+    normalize_metrics = st.sidebar.checkbox(
+        "Normalize", 
+        key="normalize_metrics",
+        help="Scale all metrics to [0, 1] range for easier comparison when they have different scales"
+    )
     show_exchanges = st.sidebar.checkbox(
         "Show exchange markers",
         key="show_exchanges",
@@ -265,7 +270,7 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     n_cols = 2 if plot_columns == "Two columns" else 1
     
     return {
-        'history_type': history_type,
+        'history_type': history_key,
         'objective_metric': objective_metric,
         'additional_metrics': additional_metrics,
         'normalize_metrics': normalize_metrics,
@@ -378,7 +383,7 @@ def render_leaderboard(leaderboard_df: pd.DataFrame) -> None:
     
     Args:
         leaderboard_df (pd.DataFrame): DataFrame with replica stats including replica_id,
-            best_objective, step, and temperature.
+            best_objective, current_perturbation_num, and temperature.
     """
     if st is None:
         return
@@ -393,7 +398,7 @@ def render_leaderboard(leaderboard_df: pd.DataFrame) -> None:
                 st.markdown(f"### {medals[idx]} Replica {int(row['replica_id'])}", unsafe_allow_html=True)
                 st.markdown(
                     f"**Objective:** {row['best_objective']:.4f}  \n"
-                    f"**Accepted steps:** {int(row['step'])}  \n"
+                    f"**Perturbations:** {int(row['current_perturbation_num'])}  \n"
                     f"**Temperature:** {row['temperature']:.1e}"
                 )
     else:
@@ -404,13 +409,13 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
     """Render progress statistics in main content area.
     
     Args:
-        stats (Dict[str, Any]): Dictionary with total_iterations and total_accepted.
+        stats (Dict[str, Any]): Dictionary with total_perturbations and total_accepted.
         metadata (Dict[str, Any]): Dictionary with run metadata including start_time.
     """
     if st is None:
         return
     
-    total_iterations = stats.get('total_iterations', 0)
+    total_perturbations = stats.get('total_perturbations', 0)
     total_accepted = stats.get('total_accepted', 0)
     elapsed_time = time.time() - metadata['start_time']
     
@@ -424,15 +429,15 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
     
     st.header(f"Optimization progress ({elapsed_display})")
     
-    if elapsed_time > 0 and total_iterations:
-        exploration_rate = total_iterations / elapsed_time
+    if elapsed_time > 0 and total_perturbations:
+        exploration_rate = total_perturbations / elapsed_time
         progress_rate = total_accepted / elapsed_time
-        acceptance_rate = (total_accepted / total_iterations * 100) if total_iterations > 0 else 0
+        acceptance_rate = (total_accepted / total_perturbations * 100) if total_perturbations > 0 else 0
         
         st.markdown(
-            f"**Exploration rate:** {exploration_rate:,.1f} steps/sec | "
-            f"**Progress rate:** {progress_rate:,.1f} moves/sec | "
-            f"**Acceptance rate:** {acceptance_rate:.1f}% ({total_accepted:,} / {total_iterations:,})"
+            f"**Exploration rate:** {exploration_rate:,.1f} perturbations/sec | "
+            f"**Progress rate:** {progress_rate:,.1f} accepted/sec | "
+            f"**Acceptance rate:** {acceptance_rate:.1f}% ({total_accepted:,} / {total_perturbations:,})"
         )
     else:
         st.markdown("**Exploration rate:** N/A")

@@ -24,7 +24,7 @@ def create_replica_plot(
     """Create a plot for a single replica showing objective and additional metrics.
     
     Args:
-        metrics_df (pd.DataFrame): DataFrame with columns: replica_id, step, metric_name, value.
+        metrics_df (pd.DataFrame): DataFrame with columns: replica_id, perturbation_num, metric_name, value.
         replica_id (int): ID of the replica to plot.
         objective_metric (str): Name of the objective metric to plot on primary y-axis.
         additional_metrics (List[str]): List of additional metric names to plot.
@@ -65,7 +65,7 @@ def create_replica_plot(
     ]
     
     if not obj_data.empty:
-        batch_numbers = obj_data['step'] / exchange_interval
+        batch_numbers = obj_data['perturbation_num'] / exchange_interval
         obj_values = obj_data['value'].values
         
         # Normalize if requested
@@ -96,7 +96,7 @@ def create_replica_plot(
         ]
         
         if not add_data.empty:
-            batch_numbers_add = add_data['step'] / exchange_interval
+            batch_numbers_add = add_data['perturbation_num'] / exchange_interval
             add_values = add_data['value'].values
             color = colors[i % len(colors)]
             
@@ -125,7 +125,7 @@ def create_replica_plot(
         replica_exchanges = exchanges_df[exchanges_df['replica_id'] == replica_id]
         # Draw vertical lines for each exchange
         for _, exchange in replica_exchanges.iterrows():
-            exchange_batch = exchange['step'] / exchange_interval
+            exchange_batch = exchange['perturbation_num'] / exchange_interval
             fig.add_vline(
                 x=exchange_batch, 
                 line_dash="dash", 

@@ -123,8 +123,10 @@ def render() -> None:
             st.rerun()
         st.stop()
 
-    available_metrics = get_available_metrics(conn)
-
+    # Get all available metrics (from improvements table - superset of all metrics)
+    # Note: perturbations won't have detailed metrics, but UI will show them in selector
+    available_metrics = get_available_metrics(conn, history_type='improvements')
+    
     # Sidebar: Plot options (renders widgets and updates session state)
     plot_config = render_plot_options(available_metrics)
     
@@ -140,6 +142,7 @@ def render() -> None:
     metrics_df = load_metrics_history(
         conn,
         metric_names=[plot_config['objective_metric']] + plot_config['additional_metrics'],
+        history_type=plot_config['history_type'],
         max_points_per_replica=plot_config['max_points']
     )
     exchanges_df = load_temperature_exchanges(conn)
