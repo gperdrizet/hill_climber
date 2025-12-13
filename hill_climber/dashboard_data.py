@@ -36,24 +36,28 @@ def load_run_metadata(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
     Returns:
         Dict[str, Any]: Dictionary with run metadata, or None if not found.
     """
-    query = "SELECT * FROM run_metadata WHERE run_id = 1"
-    cursor = conn.cursor()
-    cursor.execute(query)
-    row = cursor.fetchone()
-    
-    if row:
-        return {
-            'run_id': row[0],
-            'start_time': row[1],
-            'n_replicas': row[2],
-            'exchange_interval': row[3],
-            'db_step_interval': row[4],
-            'hyperparameters': json.loads(row[5]) if row[5] else {},
-            'checkpoint_file': row[6] if len(row) > 6 else None,
-            'objective_function_name': row[7] if len(row) > 7 else None,
-            'dataset_size': row[8] if len(row) > 8 else None
-        }
-    return None
+    try:
+        query = "SELECT * FROM run_metadata WHERE run_id = 1"
+        cursor = conn.cursor()
+        cursor.execute(query)
+        row = cursor.fetchone()
+        
+        if row:
+            return {
+                'run_id': row[0],
+                'start_time': row[1],
+                'n_replicas': row[2],
+                'exchange_interval': row[3],
+                'db_step_interval': row[4],
+                'hyperparameters': json.loads(row[5]) if row[5] else {},
+                'checkpoint_file': row[6] if len(row) > 6 else None,
+                'objective_function_name': row[7] if len(row) > 7 else None,
+                'dataset_size': row[8] if len(row) > 8 else None
+            }
+        return None
+    except sqlite3.OperationalError:
+        # Table doesn't exist - likely an old database schema
+        return None
 
 
 def load_metrics_history(
