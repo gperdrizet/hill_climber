@@ -214,13 +214,12 @@ class HillClimber:
             self.n_workers = config.n_workers        
 
 
-    def climb(self) -> Tuple[np.ndarray, pd.DataFrame]:
+    def climb(self) -> np.ndarray:
         """Run replica exchange optimization.
         
         Returns:
-            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) where:
-                - best_data: Best configuration found across all replicas
-                - steps_df: DataFrame with optimization history from best replica
+            np.ndarray: Best configuration found across all replicas.
+                If database is enabled, use the dashboard to view optimization history.
         """
 
         if self.verbose:
@@ -257,14 +256,14 @@ class HillClimber:
         return self._climb_parallel(scheduler)
 
     
-    def _climb_parallel(self, scheduler: ExchangeScheduler) -> Tuple[np.ndarray, pd.DataFrame]:
+    def _climb_parallel(self, scheduler: ExchangeScheduler) -> np.ndarray:
         """Run optimization with parallel workers.
         
         Args:
             scheduler (ExchangeScheduler): Scheduler for replica exchange.
             
         Returns:
-            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) from best replica.
+            np.ndarray: Best configuration from best replica.
         """
 
         start_time = time.time()
@@ -379,13 +378,13 @@ class HillClimber:
                 )
     
 
-    def _finalize_results(self) -> Tuple[np.ndarray, pd.DataFrame]:
+    def _finalize_results(self) -> np.ndarray:
         """Complete optimization and return results.
         
         Writes final database snapshots and returns best solution found.
         
         Returns:
-            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, history_df) from best replica.
+            np.ndarray: Best configuration from best replica.
         """
 
         # Write final state to database to ensure dashboard shows final values
@@ -465,34 +464,7 @@ class HillClimber:
         else:
             best_data_output = best_replica['best_data']
         
-        # Build history dataframe from database (single source of truth)
-        if self.db_enabled:
-            import sqlite3
-            conn = sqlite3.connect(self.db_path)
-            history_query = """
-                SELECT perturbation_num, metric_name, value
-                FROM improvement_metrics
-                WHERE replica_id = ?
-                ORDER BY perturbation_num
-            """
-            history_df = pd.read_sql_query(
-                history_query, conn,
-                params=(best_replica['replica_id'],)
-            )
-            conn.close()
-            
-            # Pivot to wide format
-            if not history_df.empty:
-                history_df = history_df.pivot(
-                    index='perturbation_num',
-                    columns='metric_name',
-                    values='value'
-                ).reset_index()
-        else:
-            # Fallback to empty dataframe if no database
-            history_df = pd.DataFrame()
-        
-        return best_data_output, history_df
+        return best_data_output
     
 
     def _initialize_database(self):

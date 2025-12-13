@@ -51,12 +51,9 @@ class TestHillClimber(unittest.TestCase):
             verbose=False
         )
         
-        best_data, history = climber.climb()
+        best_data = climber.climb()
         
         self.assertEqual(best_data.shape, (3, 2))
-        self.assertIsInstance(history, pd.DataFrame)
-        self.assertIn('Step', history.columns)
-        self.assertIn('Objective value', history.columns)
         self.assertFalse(climber.is_dataframe)
     
     def test_replica_exchange_runs(self):
@@ -76,10 +73,9 @@ class TestHillClimber(unittest.TestCase):
             verbose=False
         )
         
-        best_data, history = climber.climb()
+        best_data = climber.climb()
         
         self.assertEqual(best_data.shape, data.shape)
-        self.assertGreater(len(history), 0)
 
 
 if __name__ == '__main__':
