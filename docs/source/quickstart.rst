@@ -41,10 +41,14 @@ Here's a simple example that optimizes a 2-column dataset for high Pearson corre
    )
 
    # Run optimization
-   best_data, steps_df = climber.climb()
+   best_data, history_df = climber.climb()
 
    # View results
-   print(f"Final correlation: {steps_df['Pearson correlation'].iloc[-1]:.3f}")
+   print(f"Best replica: {climber.replicas[0]['replica_id']}")
+   print(f"Best objective: {climber.replicas[0]['best_objective']:.3f}")
+   print(f"Total perturbations tried: {climber.replicas[0]['perturbation_num']}")
+   print(f"Steps accepted: {climber.replicas[0]['num_accepted']}")
+   print(f"Improvements found: {climber.replicas[0]['num_improvements']}")
 
 Visualization
 -------------

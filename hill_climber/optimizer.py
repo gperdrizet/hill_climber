@@ -11,7 +11,7 @@ from functools import partial
 from multiprocessing import Pool, cpu_count
 from multiprocessing.pool import Pool as PoolType
 
-from .optimizer_state import create_replica_state, record_temperature_change, record_exchange, get_history_dataframe
+from .optimizer_state import create_replica_state, record_temperature_change, record_exchange
 from .climber_functions import perturb_vectors, evaluate_objective
 from .replica_exchange import (
     TemperatureLadder, ExchangeScheduler, should_exchange
@@ -335,31 +335,44 @@ class HillClimber:
         # Execute in parallel
         updated_states = pool.map(worker_func, state_dicts)
         
-        # Collect database buffers and update replicas
-        all_db_buffers = []
+        # Collect database buffers from all replicas
+        all_perturbations = []
+        all_accepted = []
+        all_step_metrics = []
+        all_improvements = []
+        all_improvement_metrics = []
 
         for i, state_dict in enumerate(updated_states):
 
-            # Extract and collect database buffer if present
-            if 'db_buffer' in state_dict:
-                all_db_buffers.extend(state_dict.pop('db_buffer'))
+            # Extract and collect database buffers if present
+            if 'db_buffers' in state_dict:
+                buffers = state_dict.pop('db_buffers')
+                all_perturbations.extend(buffers.get('perturbations', []))
+                all_accepted.extend(buffers.get('accepted', []))
+                all_step_metrics.extend(buffers.get('step_metrics', []))
+                all_improvements.extend(buffers.get('improvements', []))
+                all_improvement_metrics.extend(buffers.get('improvement_metrics', []))
             
             # Preserve temperature_history before updating
             temp_history = self.replicas[i]['temperature_history']
             self.replicas[i] = state_dict
             self.replicas[i]['temperature_history'] = temp_history
         
-        # Flush all collected database buffers to database
-        if self.db_enabled and all_db_buffers:
-            self.db_writer.insert_metrics_batch(all_db_buffers)
-        
-        # Update replica status in database
+        # Flush all collected database buffers to database (single source of truth)
         if self.db_enabled:
+            self.db_writer.insert_perturbations_batch(all_perturbations)
+            self.db_writer.insert_accepted_steps_batch(all_accepted)
+            self.db_writer.insert_step_metrics_batch(all_step_metrics)
+            self.db_writer.insert_improvements_batch(all_improvements)
+            self.db_writer.insert_improvement_metrics_batch(all_improvement_metrics)
+            
+            # Update replica status snapshot
             for replica in self.replicas:
                 self.db_writer.update_replica_status(
                     replica_id=replica['replica_id'],
-                    step=replica['step'],
-                    total_iterations=replica['total_iterations'],
+                    current_perturbation_num=replica['perturbation_num'],
+                    num_accepted=replica['num_accepted'],
+                    num_improvements=replica['num_improvements'],
                     temperature=replica['temperature'],
                     best_objective=replica['best_objective'],
                     current_objective=replica['current_objective']
@@ -369,9 +382,68 @@ class HillClimber:
     def _finalize_results(self) -> Tuple[np.ndarray, pd.DataFrame]:
         """Complete optimization and return results.
         
+        Writes final database snapshots and returns best solution found.
+        
         Returns:
-            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) from best replica.
+            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, history_df) from best replica.
         """
+
+        # Write final state to database to ensure dashboard shows final values
+        if self.db_enabled:
+            import time
+            timestamp = time.time()
+            
+            final_perturbations = []
+            final_improvements = []
+            final_improvement_metrics = []
+            
+            for replica in self.replicas:
+                # Write final perturbation snapshot
+                final_perturbations.append((
+                    replica['replica_id'],
+                    replica['perturbation_num'],
+                    replica['current_objective'],
+                    False,  # not newly accepted (just a snapshot)
+                    False,  # not a new improvement (just a snapshot)
+                    replica['temperature'],
+                    timestamp
+                ))
+                
+                # Write final best as improvement
+                final_improvements.append((
+                    replica['replica_id'],
+                    replica['perturbation_num'],
+                    replica['best_objective'],
+                    replica['temperature'],
+                    timestamp
+                ))
+                
+                # Write final best metrics
+                if 'best_metrics' in replica:
+                    for metric_name, metric_value in replica['best_metrics'].items():
+                        final_improvement_metrics.append((
+                            replica['replica_id'],
+                            replica['perturbation_num'],
+                            metric_name,
+                            metric_value
+                        ))
+            
+            # Flush final snapshots to database
+            self.db_writer.insert_perturbations_batch(final_perturbations)
+            self.db_writer.insert_improvements_batch(final_improvements)
+            self.db_writer.insert_improvement_metrics_batch(final_improvement_metrics)
+            
+            # Update final replica status
+            for replica in self.replicas:
+                self.db_writer.update_replica_status(
+                    replica_id=replica['replica_id'],
+                    current_perturbation_num=replica['perturbation_num'],
+                    num_accepted=replica['num_accepted'],
+                    num_improvements=replica['num_improvements'],
+                    temperature=replica['temperature'],
+                    best_objective=replica['best_objective'],
+                    current_objective=replica['current_objective']
+                )
 
         # Final checkpoint
         if self.checkpoint_file:
@@ -393,7 +465,34 @@ class HillClimber:
         else:
             best_data_output = best_replica['best_data']
         
-        return best_data_output, get_history_dataframe(best_replica)
+        # Build history dataframe from database (single source of truth)
+        if self.db_enabled:
+            import sqlite3
+            conn = sqlite3.connect(self.db_path)
+            history_query = """
+                SELECT perturbation_num, metric_name, value
+                FROM improvement_metrics
+                WHERE replica_id = ?
+                ORDER BY perturbation_num
+            """
+            history_df = pd.read_sql_query(
+                history_query, conn,
+                params=(best_replica['replica_id'],)
+            )
+            conn.close()
+            
+            # Pivot to wide format
+            if not history_df.empty:
+                history_df = history_df.pivot(
+                    index='perturbation_num',
+                    columns='metric_name',
+                    values='value'
+                ).reset_index()
+        else:
+            # Fallback to empty dataframe if no database
+            history_df = pd.DataFrame()
+        
+        return best_data_output, history_df
     
 
     def _initialize_database(self):
@@ -480,11 +579,10 @@ class HillClimber:
                 hyperparameters=hyperparams.copy()
             )
 
-            # Record initial metrics (including objective value)
-            initial_metrics = metrics.copy()
-            initial_metrics['Objective value'] = objective
-            state['metrics_history'].append(initial_metrics)
-            state['step'] += 1
+            # Initialize new state counters
+            state['perturbation_num'] = 0
+            state['num_accepted'] = 0
+            state['num_improvements'] = 0
             
             # Initialize best_metrics (excluding 'Objective' entries)
             state['best_metrics'] = {k: v for k, v in metrics.items() if 'Objective' not in k}
@@ -581,15 +679,15 @@ class HillClimber:
                 old_temp_i = replica_i['temperature']
                 old_temp_j = replica_j['temperature']
                 
-                # Record temperature changes with current step number
-                current_step = replica_i['step']  # Use step from replica i
-                record_temperature_change(replica_i, old_temp_j, current_step)
-                record_temperature_change(replica_j, old_temp_i, replica_j['step'])
+                # Record temperature changes with current perturbation number
+                current_pnum = replica_i['perturbation_num']  # Use perturbation_num from replica i
+                record_temperature_change(replica_i, old_temp_j, current_pnum)
+                record_temperature_change(replica_j, old_temp_i, replica_j['perturbation_num'])
                 
                 # Collect for database logging
                 if self.db_enabled:
-                    db_exchanges.append((current_step, i, old_temp_j))
-                    db_exchanges.append((replica_j['step'], j, old_temp_i))
+                    db_exchanges.append((current_pnum, i, old_temp_j))
+                    db_exchanges.append((replica_j['perturbation_num'], j, old_temp_i))
             
             # Record statistics
             record_exchange(replica_i, j, accepted)

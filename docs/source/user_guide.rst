@@ -162,9 +162,13 @@ Hyperparameters
    Path to SQLite database file for dashboard data.
 
 **db_step_interval** (default: exchange_interval // 10)
-   Collect metrics every Nth step for database logging. Defaults to 10% sampling
-   (every 10th step). For small exchange intervals (≤10), defaults to 1 (every step).
-   Must be less than exchange_interval.
+   Sample perturbations every Nth evaluation for database logging. Defaults to 10% sampling
+   (every 1000th perturbation if exchange_interval=10000). This creates a sampled view
+   of all perturbations in the database while keeping database size manageable.
+   
+   .. note::
+      All accepted steps and improvements are recorded regardless of this setting.
+      Only the sampled perturbation records are affected by db_step_interval.
 
 **verbose** (default: False)
    Print progress messages during optimization.
@@ -291,30 +295,113 @@ The ``climb()`` method returns a tuple:
 
 .. code-block:: python
 
-   best_data, steps_df = climber.climb()
+   best_data, history_df = climber.climb()
 
 Where:
 
 - ``best_data``: Optimized data (DataFrame or numpy array, same format as input)
-- ``steps_df``: DataFrame tracking optimization progress with columns:
+- ``history_df``: DataFrame showing improvement history (if db_enabled)
   
-  - ``Step``: Step number when improvement was accepted
-  - ``Objective value``: Objective value at that step
-  - ``Best_data``: Snapshot of best data at that step
-  - Additional metric columns (defined by your objective function)
+  - Loaded from database improvements table
+  - Contains perturbation_num and all user-defined metrics
+  - Shows monotonic progress (only improvements, not SA exploration)
+  - Empty DataFrame if db_enabled=False
 
-The best result is automatically selected from the replica with the best objective value.
+After optimization, you can access replica state:
+
+.. code-block:: python
+
+   # Get best replica
+   best_replica = max(climber.replicas, key=lambda r: r['best_objective'])
+   
+   # Access state
+   print(f"Perturbation number: {best_replica['perturbation_num']}")
+   print(f"Accepted steps: {best_replica['num_accepted']}")
+   print(f"Improvements found: {best_replica['num_improvements']}")
+   print(f"Best objective: {best_replica['best_objective']}")
+   print(f"Best metrics: {best_replica['best_metrics']}")
+
+State Tracking
+--------------
+
+Hill Climber tracks three types of events:
+
+**Perturbations** (all evaluations)
+   Every perturbation is evaluated. A sampled view is recorded to the database
+   every ``db_step_interval`` evaluations for monitoring without overwhelming storage.
+
+**Accepted Steps** (SA acceptances)
+   When simulated annealing accepts a move (even if worse), it's recorded with
+   full user-defined metrics. This shows the complete SA exploration path.
+
+**Improvements** (new best found)
+   When a new best solution is found, it's recorded with full metrics. This
+   provides a monotonic view of progress toward the optimal solution.
+
+All events are indexed by ``perturbation_num``, a monotonically increasing counter
+that never resets. This provides:
+
+- **Single source of truth**: Database contains complete history
+- **Clear semantics**: No confusion between different counters
+- **Three views**: Sample, complete SA path, improvements only
+- **Easy analysis**: Query any view independently
+
+Database Schema
+---------------
+
+When ``db_enabled=True``, Hill Climber creates:
+
+**perturbations** table
+   Sampled view of all evaluations (every db_step_interval)
+   
+   - perturbation_num, objective, is_accepted, is_improvement, temperature
+
+**accepted_steps** table
+   Complete record of all SA-accepted moves
+   
+   - perturbation_num, objective, temperature
+
+**step_metrics** table
+   User-defined metrics for each accepted step
+   
+   - perturbation_num, metric_name, value
+
+**improvements** table
+   Complete record of all improvements found
+   
+   - perturbation_num, best_objective, temperature
+
+**improvement_metrics** table
+   User-defined metrics at each improvement
+   
+   - perturbation_num, metric_name, value
+
+**replica_status** table
+   Current snapshot of each replica (updated after each batch)
+   
+   - current_perturbation_num, num_accepted, num_improvements, best_objective
 
 Internal Architecture
 ---------------------
 
 Hill Climber uses a ``ReplicaState`` dataclass to manage the state of each replica
-during optimization. This provides:
+during optimization. Key state attributes:
 
-- **Clean separation**: Hyperparameters stay in ``HillClimber``, runtime state in ``ReplicaState``
-- **Easy checkpointing**: State can be serialized/deserialized as a unit
-- **Better organization**: All tracking data (current/best solutions, metrics, history, timing) in one place
-- **Type safety**: Dataclass provides clear typing for all state attributes
+- **perturbation_num**: Global counter (increments with every evaluation)
+- **num_accepted**: Count of SA-accepted moves  
+- **num_improvements**: Count of improvements found
+- **current_data**: Current solution being explored
+- **best_data**: Best solution found so far
+- **best_objective**: Best objective value found
+- **best_metrics**: User-defined metrics at best solution
+- **temperature**: Current temperature
+
+This provides:
+
+- **Clean separation**: Hyperparameters in ``HillClimber``, runtime state in ``ReplicaState``
+- **Easy checkpointing**: State serializes as a unit
+- **Single counter**: No confusion between different metrics
+- **Type safety**: Dataclass provides clear typing
 
 You don't need to interact with ``ReplicaState`` directly - it's used internally
 by the ``HillClimber`` class to manage each replica's optimization state.

@@ -63,6 +63,10 @@ climber = HillClimber(
 
 # Run optimization
 best_data, history_df = climber.climb()
+
+# Results
+# - best_data: DataFrame/array with optimal solution
+# - history_df: DataFrame showing improvement history (if db_enabled)
 ```
 
 ### 3.3. Real-Time Monitoring Dashboard
@@ -80,11 +84,18 @@ climber = HillClimber(
     n_replicas=8,
     db_enabled=True,  # Enable real-time monitoring
     db_path='optimization.db',
+    db_step_interval=1000,  # Sample every 1000 perturbations
     checkpoint_interval=10  # Checkpoint every 10 batches
 )
 
 # Run optimization
-best_data, history = climber.climb()
+best_data, history_df = climber.climb()
+
+# Access replica state
+print(f"Best replica: {climber.replicas[0]['replica_id']}")
+print(f"Total perturbations: {climber.replicas[0]['perturbation_num']}")
+print(f"Accepted steps: {climber.replicas[0]['num_accepted']}")
+print(f"Improvements found: {climber.replicas[0]['num_improvements']}")
 ```
 
 Launch the dashboard in a separate terminal:
@@ -95,12 +106,15 @@ hill-climber-dashboard
 ```
 
 The dashboard provides:
-- Replica leaderboard showing top performers
-- Exploration rate (total perturbations/sec) and progress rate (accepted steps/sec)
-- Interactive time series plots for all metrics across replicas
-- Temperature exchange event markers
-- Plot normalization and layout options
-- Run information including objective function name, dataset size, and hyperparameters
+- Replica leaderboard showing current best from each replica
+- Three views of optimization progress:
+  - **All Perturbations**: Sampled overview (every db_step_interval)
+  - **Accepted Steps**: Complete SA exploration path
+  - **Improvements**: Monotonic progress toward best solution
+- Acceptance rate tracking
+- Interactive time series plots for all metrics
+- Temperature exchange visualization
+- Run metadata including hyperparameters and configuration
 
 See [DASHBOARD_README.md](DASHBOARD_README.md) for complete dashboard documentation.
 

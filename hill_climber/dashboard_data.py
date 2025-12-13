@@ -69,16 +69,16 @@ def load_metrics_history(
         max_points_per_replica (int): Downsample if more points exist. Default is 1000.
         
     Returns:
-        pd.DataFrame: DataFrame with columns: replica_id, step, metric_name, value.
+        pd.DataFrame: DataFrame with columns: replica_id, perturbation_num, metric_name, value.
             Returns empty DataFrame if no data found.
     """
     if not metric_names:
         return pd.DataFrame()
 
     try:
-        # Load all metrics for the requested metric names
+        # Load all metrics for the requested metric names from improvement_metrics
         placeholders = ','.join(['?' for _ in metric_names])
-        query = f"SELECT replica_id, step, metric_name, value FROM metrics_history WHERE metric_name IN ({placeholders}) ORDER BY replica_id, step, metric_name"
+        query = f"SELECT replica_id, perturbation_num, metric_name, value FROM improvement_metrics WHERE metric_name IN ({placeholders}) ORDER BY replica_id, perturbation_num, metric_name"
         df = pd.read_sql_query(query, conn, params=metric_names)
         
         if df.empty:
@@ -131,7 +131,7 @@ def get_available_metrics(conn: sqlite3.Connection) -> List[str]:
     Returns:
         List[str]: Sorted list of unique metric names.
     """
-    query = "SELECT DISTINCT metric_name FROM metrics_history ORDER BY metric_name"
+    query = "SELECT DISTINCT metric_name FROM improvement_metrics ORDER BY metric_name"
     cursor = conn.cursor()
     cursor.execute(query)
     return [row[0] for row in cursor.fetchall()]
