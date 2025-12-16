@@ -52,16 +52,17 @@ def run_replica_steps(
     # Pre-extract frequently accessed variables to avoid repeated dict lookups
     perturb_fraction = state['hyperparameters']['perturb_fraction']
     step_spread_initial = state['hyperparameters']['step_spread_absolute_initial']
-    step_spread_cooling_rate = state['hyperparameters'].get('step_spread_cooling_rate', 0.0)
+    step_spread_final = state['hyperparameters'].get('step_spread_absolute_final', None)
     max_time = state['hyperparameters']['max_time']
     cooling_rate = state['hyperparameters']['cooling_rate']
     replica_id = state['replica_id']
     
     # Calculate time-based step spread cooling (applies to all features proportionally)
-    if start_time is not None and step_spread_cooling_rate > 0:
+    if start_time is not None and step_spread_final is not None:
         elapsed_time = time.time() - start_time
         progress = min(elapsed_time / (max_time * 60.0), 1.0)  # max_time is in minutes
-        step_spread = step_spread_initial * (1.0 - progress * step_spread_cooling_rate)
+        # Linear interpolation from initial to final
+        step_spread = step_spread_initial + (step_spread_final - step_spread_initial) * progress
     else:
         step_spread = step_spread_initial
     

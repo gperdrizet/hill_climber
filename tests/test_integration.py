@@ -57,7 +57,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='maximize',
             verbose=False
         )
@@ -74,7 +74,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             T_min=10.0,
             cooling_rate=0.005,
             mode='maximize',
@@ -93,7 +93,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='minimize',
             verbose=False
         )
@@ -110,7 +110,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='target',
             target_value=0.5,
             verbose=False
@@ -130,7 +130,7 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             verbose=False
         )
         
@@ -165,7 +165,7 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='maximize',
             verbose=False
         )
@@ -183,7 +183,7 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='maximize',
             verbose=False
         )

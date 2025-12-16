@@ -22,8 +22,8 @@ from .config import (
     DEFAULT_T_MIN,
     DEFAULT_T_MAX_MULTIPLIER,
     DEFAULT_COOLING_RATE,
-    DEFAULT_STEP_SPREAD,
-    DEFAULT_STEP_SPREAD_COOLING_RATE,
+    DEFAULT_INITIAL_STEP_SPREAD,
+    DEFAULT_FINAL_STEP_SPREAD,
     DEFAULT_PERTURB_FRACTION,
     DEFAULT_N_REPLICAS,
     DEFAULT_EXCHANGE_INTERVAL,
@@ -52,9 +52,14 @@ class HillClimber:
         mode: 'maximize', 'minimize', or 'target'
         target_value: Target value (only used if mode='target')
         max_time: Maximum runtime in minutes
-        step_spread: Perturbation spread as fraction of input range (default: 0.01 = 1%). Step 
-            values are sampled from a gaussian distribution with mean 0 and standard deviation = 
-            input range * step_spread
+        initial_step_spread: Initial perturbation spread as fraction of input range (default: 0.25 = 25%).
+            Step values are sampled from a gaussian distribution with mean 0 and standard deviation
+            calculated per-feature as: feature_range * initial_step_spread. Each feature uses its own
+            range for more appropriate perturbations across different scales.
+        final_step_spread: Final perturbation spread as fraction of input range (default: None). If
+            specified, step spread linearly decreases from initial_step_spread to final_step_spread
+            over the course of max_time, enabling time-based cooling for more refined optimization
+            near the end of the run.
         perturb_fraction: Fraction of data points to perturb each step
         n_replicas: Number of replicas for parallel tempering (default: 4), setting to 1 runs
             simulated annealing without replica exchange
@@ -80,8 +85,8 @@ class HillClimber:
         mode: str = DEFAULT_MODE,
         target_value: Optional[float] = None,
         max_time: float = DEFAULT_MAX_TIME,
-        step_spread: float = DEFAULT_STEP_SPREAD,
-        step_spread_cooling_rate: float = DEFAULT_STEP_SPREAD_COOLING_RATE,
+        initial_step_spread: float = DEFAULT_INITIAL_STEP_SPREAD,
+        final_step_spread: Optional[float] = DEFAULT_FINAL_STEP_SPREAD,
         perturb_fraction: float = DEFAULT_PERTURB_FRACTION,
         n_replicas: int = DEFAULT_N_REPLICAS,
         T_min: float = DEFAULT_T_MIN,
@@ -107,8 +112,8 @@ class HillClimber:
             mode=mode,
             target_value=target_value,
             max_time=max_time,
-            step_spread=step_spread,
-            step_spread_cooling_rate=step_spread_cooling_rate,
+            initial_step_spread=initial_step_spread,
+            final_step_spread=final_step_spread,
             perturb_fraction=perturb_fraction,
             n_replicas=n_replicas,
             T_min=T_min,
@@ -145,8 +150,8 @@ class HillClimber:
         self.mode = config.mode
         self.target_value = config.target_value
         self.max_time = config.max_time
-        self.step_spread = config.step_spread
-        self.step_spread_cooling_rate = config.step_spread_cooling_rate
+        self.initial_step_spread = config.initial_step_spread
+        self.final_step_spread = config.final_step_spread
         self.perturb_fraction = config.perturb_fraction
         self.temperature = config.T_min
         self.cooling_rate = config.cooling_rate
@@ -226,6 +231,7 @@ class HillClimber:
         print("=" * 70)
         print("HillClimber Configuration")
         print("=" * 70)
+        print()
         print(f"Data shape:           {self.data.shape}")
         print(f"Optimization mode:    {self.mode}" + (f" (target={self.target_value})" if self.mode == 'target' else ""))
         print(f"Max runtime:          {self.max_time} minutes")
@@ -243,9 +249,10 @@ class HillClimber:
         print(f"  Worker processes:   {self.n_workers}")
         print()
         print("Perturbation settings:")
-        print(f"  Step spread:        {self.step_spread} (fraction of range)")
-        print(f"  Step spread cooling:{self.step_spread_cooling_rate} (time-based reduction)")
-        print(f"  Perturb fraction:   {self.perturb_fraction}")
+        print(f"  Initial step spread: {self.initial_step_spread} (fraction of range)")
+        if self.final_step_spread is not None:
+            print(f"  Final step spread:   {self.final_step_spread} (fraction at end of run)")
+        print(f"  Perturb fraction:    {self.perturb_fraction}")
         print()
         print("Database settings:")
         print(f"  Enabled:            {self.db_enabled}")
@@ -269,7 +276,7 @@ class HillClimber:
         # Calculate absolute step_spread from current bounds
         # Done here so users can modify bounds after initialization
         data_range = self.bounds[1] - self.bounds[0]
-        self.step_spread_absolute = self.step_spread * data_range
+        self.step_spread_absolute = self.initial_step_spread * data_range
 
         if self.verbose:
             print(f"Starting replica exchange with {self.n_replicas} replicas...")
@@ -566,7 +573,8 @@ class HillClimber:
             'cooling_rate': self.cooling_rate,
             'mode': self.mode,
             'target_value': self.target_value,
-            'step_spread': self.step_spread,
+            'initial_step_spread': self.initial_step_spread,
+            'final_step_spread': self.final_step_spread,
             'T_min': self.T_min,
             'T_max': self.T_max,
             'temperature_scheme': self.temperature_scheme,
@@ -601,9 +609,10 @@ class HillClimber:
             'cooling_rate': self.cooling_rate,
             'mode': self.mode,
             'target_value': self.target_value,
-            'step_spread': self.step_spread,
-            'step_spread_cooling_rate': self.step_spread_cooling_rate,
-            'step_spread_absolute_initial': self.step_spread_absolute.copy()
+            'initial_step_spread': self.initial_step_spread,
+            'final_step_spread': self.final_step_spread,
+            'step_spread_absolute_initial': self.step_spread_absolute.copy(),
+            'step_spread_absolute_final': self.final_step_spread * (self.bounds[1] - self.bounds[0]) if self.final_step_spread is not None else None
         }
         
         # Evaluate initial objective
@@ -824,7 +833,9 @@ class HillClimber:
             cooling_rate=hyperparams['cooling_rate'],
             mode=hyperparams['mode'],
             target_value=hyperparams.get('target_value'),
-            step_spread=hyperparams['step_spread'],
+            # Handle both old (step_spread) and new (initial_step_spread) names for backward compatibility
+            initial_step_spread=hyperparams.get('initial_step_spread', hyperparams.get('step_spread', 0.25)),
+            final_step_spread=hyperparams.get('final_step_spread'),
             n_replicas=len(checkpoint['replicas']),
             verbose=checkpoint.get('verbose', False),
             n_workers=checkpoint.get('n_workers')

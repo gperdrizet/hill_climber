@@ -211,7 +211,7 @@ def render() -> None:
                 normalize_metrics=plot_config['normalize_metrics'],
                 show_exchanges=plot_config['show_exchanges']
             )
-            st.plotly_chart(fig, key=f"plot_{replica_id}_{plot_container_key}", use_container_width=True)
+            st.plotly_chart(fig, key=f"plot_{replica_id}_{plot_container_key}", width='stretch')
     
     # Auto-refresh logic
     if auto_refresh:

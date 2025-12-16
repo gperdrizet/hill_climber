@@ -19,9 +19,9 @@ DEFAULT_T_MAX_MULTIPLIER = 100  # T_max = T_min * this multiplier when not speci
 DEFAULT_COOLING_RATE = 1e-10  # Default temperature decay rate per step
 
 # Perturbation parameters
-DEFAULT_STEP_SPREAD = 0.25  # Default perturbation spread (25% of data range)
+DEFAULT_INITIAL_STEP_SPREAD = 0.25  # Default perturbation spread (25% of data range)
 DEFAULT_PERTURB_FRACTION = 0.001  # Default fraction of points to perturb (0.1%)
-DEFAULT_STEP_SPREAD_COOLING_RATE = 0.0  # Default step spread cooling (0 = no cooling)
+DEFAULT_FINAL_STEP_SPREAD = None  # Default final step spread (None = no cooling)
 
 # Replica exchange parameters
 DEFAULT_N_REPLICAS = 4  # Default number of replicas for parallel tempering
@@ -70,8 +70,8 @@ class OptimizerConfig:
         mode: Optimization mode - 'maximize', 'minimize', or 'target'
         target_value: Target value (only used if mode='target')
         max_time: Maximum runtime in minutes
-        step_spread: Perturbation spread as fraction of input range (default: 0.01 = 1%)
-        step_spread_cooling_rate: Fraction of step_spread reduction over time (0-1, default: 0 = no cooling)
+        initial_step_spread: Initial perturbation spread as fraction of input range (default: 0.25 = 25%)
+        final_step_spread: Final perturbation spread at end of run (default: None = no cooling)
         perturb_fraction: Fraction of data points to perturb each step
         n_replicas: Number of replicas for parallel tempering (default: 4)
         T_min: Base temperature (will be used as T_min for ladder)
@@ -93,8 +93,8 @@ class OptimizerConfig:
     mode: str = DEFAULT_MODE
     target_value: Optional[float] = None
     max_time: float = DEFAULT_MAX_TIME
-    step_spread: float = DEFAULT_STEP_SPREAD
-    step_spread_cooling_rate: float = DEFAULT_STEP_SPREAD_COOLING_RATE
+    initial_step_spread: float = DEFAULT_INITIAL_STEP_SPREAD
+    final_step_spread: Optional[float] = DEFAULT_FINAL_STEP_SPREAD
     perturb_fraction: float = DEFAULT_PERTURB_FRACTION
     n_replicas: int = DEFAULT_N_REPLICAS
     T_min: float = DEFAULT_T_MIN
@@ -149,13 +149,16 @@ class OptimizerConfig:
                 f"perturb_fraction must be in (0, 1], got {self.perturb_fraction}"
             )
         
-        if self.step_spread <= 0:
-            raise ValueError(f"step_spread must be positive, got {self.step_spread}")
+        if self.initial_step_spread <= 0:
+            raise ValueError(f"initial_step_spread must be positive, got {self.initial_step_spread}")
         
-        if not 0 <= self.step_spread_cooling_rate <= 1:
-            raise ValueError(
-                f"step_spread_cooling_rate must be in [0, 1], got {self.step_spread_cooling_rate}"
-            )
+        if self.final_step_spread is not None:
+            if self.final_step_spread < 0:
+                raise ValueError(f"final_step_spread must be non-negative, got {self.final_step_spread}")
+            if self.final_step_spread > self.initial_step_spread:
+                raise ValueError(
+                    f"final_step_spread must be <= initial_step_spread, got final={self.final_step_spread}, initial={self.initial_step_spread}"
+                )
         
         if not 0 < self.cooling_rate < 1:
             raise ValueError(

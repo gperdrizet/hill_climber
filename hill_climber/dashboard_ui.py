@@ -347,9 +347,14 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     t_min_str = f"{t_min:.1e}" if isinstance(t_min, (int, float)) else t_min
     t_max_str = f"{t_max:.1e}" if isinstance(t_max, (int, float)) else t_max
     
+    initial_step_spread = hyperparams.get('initial_step_spread', hyperparams.get('step_spread', 'N/A'))
+    final_step_spread = hyperparams.get('final_step_spread', 'N/A')
+    step_spread_text = f"**Initial step spread:** {initial_step_spread}  \n"
+    if final_step_spread != 'N/A':
+        step_spread_text += f"**Final step spread:** {final_step_spread}  \n"
+    
     hyperparams_text = f"""**Mode:** {hyperparams.get('mode', 'N/A')}  
-**Step spread:** {hyperparams.get('step_spread', 'N/A')}  
-**Perturb fraction:** {hyperparams.get('perturb_fraction', 'N/A')}  
+{step_spread_text}**Perturb fraction:** {hyperparams.get('perturb_fraction', 'N/A')}  
 **Cooling rate:** {hyperparams.get('cooling_rate', 'N/A')}  
 **Exchange interval:** {metadata['exchange_interval']}  
 **Exchange strategy:** {hyperparams.get('exchange_strategy', 'N/A')}  

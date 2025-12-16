@@ -56,54 +56,28 @@ def my_objective(x, y):
 climber = HillClimber(
     data=data,
     objective_func=my_objective,
-    max_time=1,  # minutes
+    max_time=1,
     mode='maximize',
-    n_replicas=4  # Use 4 replicas for parallel tempering
+    n_replicas=4
 )
 
 # Run optimization
-best_data, history_df = climber.climb()
+best_data = climber.climb()
 
-# Results
-# - best_data: DataFrame/array with optimal solution
-# - history_df: DataFrame showing improvement history (if db_enabled)
 ```
+
+Best data contains the winning solution from all replicates at the end of the run. Individual replicate results can be accessed with the climber object's `.get_replicas()` method after the run is complete.
 
 ### 3.3. Real-Time Monitoring Dashboard
 
-Monitor optimization progress in real-time with the Streamlit dashboard:
-
-```python
-from hill_climber import HillClimber
-
-# Enable database logging
-climber = HillClimber(
-    data=data,
-    objective_func=my_objective,
-    max_time=30,
-    n_replicas=8,
-    db_enabled=True,  # Enable real-time monitoring
-    db_path='optimization.db',
-    db_step_interval=1000,  # Sample every 1000 perturbations
-    checkpoint_interval=10  # Checkpoint every 10 batches
-)
-
-# Run optimization
-best_data, history_df = climber.climb()
-
-# Access replica state
-print(f"Best replica: {climber.replicas[0]['replica_id']}")
-print(f"Total perturbations: {climber.replicas[0]['perturbation_num']}")
-print(f"Accepted steps: {climber.replicas[0]['num_accepted']}")
-print(f"Improvements found: {climber.replicas[0]['num_improvements']}")
-```
-
-Launch the dashboard in a separate terminal:
+You can monitor real-time optimization with the built-in Streamlit dashboard. To use the dashboard, install hill climber with the dashboard extras and then launch the dashboard.
 
 ```bash
-pip install "parallel-hill-climber[dashboard]"
+pip install parallel-hill-climber[dashboard]
 hill-climber-dashboard
 ```
+
+Then open the provided url in a web browser. Note: the dashboard is only avalible on the same machine (or same LAN) running hill climber.
 
 The dashboard provides:
 - Replica leaderboard showing current best from each replica
@@ -116,19 +90,6 @@ The dashboard provides:
 - Temperature exchange visualization
 - Run metadata including hyperparameters and configuration
 
-See [DASHBOARD_README.md](DASHBOARD_README.md) for complete dashboard documentation.
-
-### 3.4. Example Notebooks
-
-The `notebooks/` directory contains demonstration of key concepts and complete worked examples demonstrating various use cases:
-
-1. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/01-simulated_annealing.ipynb" target="_blank">Simulated Annealing</a>**: Introduction to simulated annealing algorithm
-2. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/02-pearson_spearman.ipynb" target="_blank">Pearson & Spearman</a>**: Optimizing for different correlation measures
-3. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/03-mean_std.ipynb" target="_blank">Mean & Std</a>**: Creating distributions with matching statistics but diverse structures
-4. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/04-entropy_pearson.ipynb" target="_blank">Entropy & Correlation</a>**: Low correlation with internal structure
-5. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/05-feature_interactions.ipynb" target="_blank">Feature Interactions</a>**: Machine learning feature engineering demonstrations
-6. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/06-checkpoint_example.ipynb" target="_blank">Checkpointing</a>**: Long-running optimization with save/resume
-
 
 ## 4. Development Environment Setup
 
@@ -140,6 +101,7 @@ To explore the examples, modify the code, or contribute:
 2. Open in GitHub Codespaces
 3. The development environment will be configured automatically
 4. Documentation will be built and served at http://localhost:8000 automatically
+5. The monitoring dashboard will start and be served at http://localhost:8501 automatically
 
 ### 4.2. Setup Option 2: Local Development
 

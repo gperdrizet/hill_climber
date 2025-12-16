@@ -127,12 +127,19 @@ Hyperparameters
    - 'random': Random pair selection
    - 'all_neighbors': All neighboring pairs
 
-**step_spread** (default: 0.01)
-   Perturbation spread as a fraction of the input data range (0.01 = 1% of range).
+**initial_step_spread** (default: 0.25)
+   Initial perturbation spread as a fraction of each feature's data range (0.25 = 25% of range).
    Controls the magnitude of changes relative to your data scale. The actual perturbation
-   standard deviation is calculated as ``step_spread * mean(data_range)``, making it
-   automatically scale-appropriate for your data. Larger values create more dramatic
-   perturbations, smaller values make more subtle adjustments.
+   standard deviation is calculated per-feature as ``initial_step_spread * feature_range``,
+   where each feature uses its own range for more appropriate perturbations across different
+   scales. Larger values create more dramatic perturbations, smaller values make more subtle
+   adjustments.
+
+**final_step_spread** (default: None)
+   Final perturbation spread as a fraction of each feature's data range. If specified,
+   step spread linearly decreases from initial_step_spread to final_step_spread over
+   the course of max_time, enabling time-based cooling for more refined optimization
+   near the end of the run. Leave as None to maintain constant step spread throughout.
 
 **perturb_fraction** (default: 0.001)
    Fraction of data points to modify in each iteration (0.0 to 1.0). 
