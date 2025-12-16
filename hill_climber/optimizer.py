@@ -90,7 +90,7 @@ class HillClimber:
         exchange_strategy: str = DEFAULT_EXCHANGE_STRATEGY,
         checkpoint_file: Optional[str] = None,
         checkpoint_interval: int = DEFAULT_CHECKPOINT_INTERVAL,
-        db_enabled: bool = False,
+        db_enabled: bool = True,
         db_path: Optional[str] = None,
         db_step_interval: Optional[int] = None,
         verbose: bool = False,
@@ -176,9 +176,9 @@ class HillClimber:
         # Bounds for boundary reflection
         self.bounds = (np.min(self.data, axis=0), np.max(self.data, axis=0))
         
-        # Absolute step_spread from fraction of data range
-        data_range = self.bounds[1] - self.bounds[0]
-        self.step_spread_absolute = config.step_spread * np.mean(data_range)
+        # step_spread_absolute will be calculated in climb() using current bounds
+        # This allows users to modify bounds after initialization
+        self.step_spread_absolute = None
         
         # Database settings (already validated and defaults set in config)
         if config.db_enabled:
@@ -211,7 +211,46 @@ class HillClimber:
             self.n_workers = config.n_replicas
         else:
             # Normal case: use the specified n_workers
-            self.n_workers = config.n_workers        
+            self.n_workers = config.n_workers
+        
+        # Print configuration summary
+        self._print_settings()
+
+
+    def _print_settings(self):
+        """Print optimizer configuration settings."""
+        print("=" * 70)
+        print("HillClimber Configuration")
+        print("=" * 70)
+        print(f"Data shape:           {self.data.shape}")
+        print(f"Optimization mode:    {self.mode}" + (f" (target={self.target_value})" if self.mode == 'target' else ""))
+        print(f"Max runtime:          {self.max_time} minutes")
+        print()
+        print("Temperature settings:")
+        print(f"  T_min:              {self.T_min}")
+        print(f"  T_max:              {self.T_max}")
+        print(f"  Cooling rate:       {self.cooling_rate}")
+        print(f"  Temperature scheme: {self.temperature_scheme}")
+        print()
+        print("Replica exchange:")
+        print(f"  Number of replicas: {self.n_replicas}")
+        print(f"  Exchange interval:  {self.exchange_interval} steps")
+        print(f"  Exchange strategy:  {self.exchange_strategy}")
+        print(f"  Worker processes:   {self.n_workers}")
+        print()
+        print("Perturbation settings:")
+        print(f"  Step spread:        {self.step_spread} (fraction of range)")
+        print(f"  Perturb fraction:   {self.perturb_fraction}")
+        print()
+        print("Database settings:")
+        print(f"  Enabled:            {self.db_enabled}")
+        if self.db_enabled:
+            print(f"  Path:               {self.db_path}")
+            print(f"  Step interval:      {self.db_step_interval}")
+        print()
+        if self.checkpoint_file:
+            print(f"Checkpointing:        {self.checkpoint_file} (every {self.checkpoint_interval} batch)")
+        print("=" * 70)
 
 
     def climb(self) -> np.ndarray:
@@ -221,6 +260,11 @@ class HillClimber:
             np.ndarray: Best configuration found across all replicas.
                 If database is enabled, use the dashboard to view optimization history.
         """
+
+        # Calculate absolute step_spread from current bounds
+        # Done here so users can modify bounds after initialization
+        data_range = self.bounds[1] - self.bounds[0]
+        self.step_spread_absolute = self.step_spread * data_range
 
         if self.verbose:
             print(f"Starting replica exchange with {self.n_replicas} replicas...")
@@ -465,6 +509,27 @@ class HillClimber:
             best_data_output = best_replica['best_data']
         
         return best_data_output
+    
+
+    def get_replicas(self) -> tuple:
+        """Get best data from all replicas.
+        
+        Returns:
+            tuple: Tuple of DataFrames (or numpy arrays if input was numpy), one for each replica,
+                containing the best data found by that replica. Ordered by replica_id.
+        """
+        if not self.replicas:
+            raise RuntimeError("No replicas available. Run climb() first.")
+        
+        replica_results = []
+        for replica in sorted(self.replicas, key=lambda r: r['replica_id']):
+            if self.is_dataframe:
+                replica_df = pd.DataFrame(replica['best_data'], columns=self.column_names)
+                replica_results.append(replica_df)
+            else:
+                replica_results.append(replica['best_data'])
+        
+        return tuple(replica_results)
     
 
     def _initialize_database(self):

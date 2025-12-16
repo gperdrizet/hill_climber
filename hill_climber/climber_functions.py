@@ -13,7 +13,7 @@ def _perturb_core(data_array, step_spread, n_perturb, min_bounds, max_bounds):
     
     Args:
         data_array (np.ndarray): 2D numpy array to perturb with shape (N, M).
-        step_spread (float): Standard deviation of normal distribution for perturbation.
+        step_spread (np.ndarray): Standard deviation of normal distribution for perturbation (per-feature).
         n_perturb (int): Number of elements to perturb.
         min_bounds (np.ndarray): 1D array of minimum bounds for each column.
         max_bounds (np.ndarray): 1D array of maximum bounds for each column.
@@ -30,7 +30,7 @@ def _perturb_core(data_array, step_spread, n_perturb, min_bounds, max_bounds):
 
         row_idx = np.random.randint(0, n_rows)
         col_idx = np.random.randint(0, n_cols)
-        perturbation = np.random.normal(0.0, step_spread)
+        perturbation = np.random.normal(0.0, step_spread[col_idx])
         new_value = result[row_idx, col_idx] + perturbation
         
         # Reflect values back into bounds instead of clipping
@@ -72,8 +72,8 @@ def perturb_vectors(data, perturb_fraction=0.1, bounds=None, step_spread=1.0):
             Note: HillClimber uses 0.001 as its default.
         bounds (tuple, optional): Tuple of (min_bounds, max_bounds) arrays for each column.
             If None, uses data min/max. Default is None.
-        step_spread (float): Standard deviation of normal distribution for perturbations.
-            Default is 1.0.
+        step_spread (float or np.ndarray): Standard deviation of normal distribution for perturbations.
+            Can be a scalar (same for all features) or array (per-feature). Default is 1.0.
         
     Returns:
         np.ndarray: Perturbed numpy array with same shape as input.
@@ -90,6 +90,10 @@ def perturb_vectors(data, perturb_fraction=0.1, bounds=None, step_spread=1.0):
 
     else:
         min_bounds, max_bounds = bounds
+    
+    # Ensure step_spread is an array (broadcast scalar if needed)
+    if np.isscalar(step_spread):
+        step_spread = np.full(data.shape[1], step_spread)
     
     # Call JIT-compiled function
     return _perturb_core(data, step_spread, n_perturb, min_bounds, max_bounds)
