@@ -46,13 +46,14 @@ def load_run_metadata(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
             return {
                 'run_id': row[0],
                 'start_time': row[1],
-                'n_replicas': row[2],
-                'exchange_interval': row[3],
-                'db_step_interval': row[4],
-                'hyperparameters': json.loads(row[5]) if row[5] else {},
-                'checkpoint_file': row[6] if len(row) > 6 else None,
-                'objective_function_name': row[7] if len(row) > 7 else None,
-                'dataset_size': row[8] if len(row) > 8 else None
+                'end_time': row[2] if len(row) > 2 else None,
+                'n_replicas': row[3],
+                'exchange_interval': row[4],
+                'db_step_interval': row[5],
+                'hyperparameters': json.loads(row[6]) if row[6] else {},
+                'checkpoint_file': row[7] if len(row) > 7 else None,
+                'objective_function_name': row[8] if len(row) > 8 else None,
+                'dataset_size': row[9] if len(row) > 9 else None
             }
         return None
     except sqlite3.OperationalError:

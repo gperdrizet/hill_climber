@@ -2,21 +2,20 @@
 
 [![PyPI Package](https://github.com/gperdrizet/hill_climber/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/publish-to-pypi.yml) [![Documentation](https://github.com/gperdrizet/hill_climber/actions/workflows/docs.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/docs.yml) [![PR Validation](https://github.com/gperdrizet/hill_climber/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/pr-validation.yml)
 
-A Python package for hill climbing optimization of user-supplied objective functions with simulated annealing. Designed for flexible multi-objective optimization with support for multi-column datasets.
+A Python package for hill climbing optimization of user-supplied objective functions with [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing). Designed for flexible multi-objective optimization with support for multi-column datasets.
 
 ## 1. Documentation
 
-**<a href="https://gperdrizet.github.io/hill_climber" target="_blank">View Full Documentation on GitHub Pages</a>**
+**<a href="https://gperdrizet.github.io/hill_climber" target="_blank">Documentation on GitHub Pages</a>**
 
 ## 2. Features
 
-- **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
-- **Real-Time Monitoring Dashboard**: Streamlit-based modular dashboard for live progress visualization with SQLite backend
-- **Simulated Annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
-- **Flexible Objectives**: Support for any objective function with multiple metrics
-- **Multi-Column Support**: Optimize datasets with any number of features/columns
-- **Checkpoint/Resume**: Save and resume long-running optimizations with configurable checkpoint intervals
-- **JIT Compilation**: Numba-optimized core functions for performance
+- **Replica exchange (parallel tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization (`multiprocessing.Pool`)
+- **Real-time monitoring dashboard**: Live progress plots and run info. with SQLite backend
+- **Simulated annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
+- **Flexible objectives**: Support for user supplied objective functions with custom multiple metrics
+- **Checkpoint/resume**: Save and resume long-running optimizations with configurable checkpoint intervals
+- **JIT compilation**: Numba-optimized core functions for performance
 
 ## 3. Quick start
 
@@ -63,7 +62,6 @@ climber = HillClimber(
 
 # Run optimization
 best_data = climber.climb()
-
 ```
 
 Best data contains the winning solution from all replicates at the end of the run. Individual replicate results can be accessed with the climber object's `.get_replicas()` method after the run is complete.

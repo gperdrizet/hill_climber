@@ -51,7 +51,7 @@ def render_sidebar_title() -> None:
         return
         
     st.sidebar.markdown(
-        "<h1 style='margin-top: -2rem; padding-top: 0.25rem; font-size: 2.8rem; line-height: 1.2;'>"
+        "<h1 style='margin-top: -3rem; padding-top: 0.25rem; font-size: 2.8rem; line-height: 1.2; color: #ff4b4b;'>"
         "Hill<br>climber</h1>",
         unsafe_allow_html=True
     )
@@ -144,7 +144,7 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
     if st is None:
         return False, 60.0
         
-    st.sidebar.markdown("---")
+    st.sidebar.markdown("<hr style='margin-top: 0.5rem; margin-bottom: 1rem;'>", unsafe_allow_html=True)
     auto_refresh = st.sidebar.checkbox("Auto-refresh", key="auto_refresh")
     refresh_interval_minutes = st.sidebar.slider(
         "Refresh interval (minutes)",
@@ -180,7 +180,7 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     if st is None:
         return {}
         
-    st.sidebar.markdown("---")
+    st.sidebar.markdown("<hr style='margin-top: 0.5rem; margin-bottom: 1rem;'>", unsafe_allow_html=True)
     st.sidebar.subheader("Plot options")
     
     # Restore saved values if they exist (from manual refresh)
@@ -422,7 +422,13 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
     
     total_perturbations = stats.get('total_perturbations', 0)
     total_accepted = stats.get('total_accepted', 0)
-    elapsed_time = time.time() - metadata['start_time']
+    
+    # Calculate elapsed time - use end_time if run is complete, otherwise current time
+    end_time = metadata.get('end_time')
+    if end_time is not None:
+        elapsed_time = end_time - metadata['start_time']
+    else:
+        elapsed_time = time.time() - metadata['start_time']
     
     # Format elapsed time
     if elapsed_time > 3600:  # More than 60 minutes
@@ -432,7 +438,7 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
     else:
         elapsed_display = f"{int(elapsed_time)} sec"
     
-    st.header(f"Optimization progress ({elapsed_display})")
+    st.subheader(f"Optimization progress ({elapsed_display})")
     
     if elapsed_time > 0 and total_perturbations:
         exploration_rate = total_perturbations / elapsed_time

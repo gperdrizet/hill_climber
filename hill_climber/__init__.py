@@ -44,7 +44,7 @@ Example:
     >>> plot_optimization_results('checkpoint.pkl', all_replicas=True)
 """
 
-__version__ = '2.1.5'
+__version__ = '3.0.0'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber

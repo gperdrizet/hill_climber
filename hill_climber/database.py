@@ -83,6 +83,7 @@ class DatabaseWriter:
                 CREATE TABLE IF NOT EXISTS run_metadata (
                     run_id INTEGER PRIMARY KEY,
                     start_time REAL NOT NULL,
+                    end_time REAL,
                     n_replicas INTEGER NOT NULL,
                     exchange_interval INTEGER NOT NULL,
                     db_step_interval INTEGER NOT NULL,
@@ -267,6 +268,21 @@ class DatabaseWriter:
                 objective_function_name,
                 dataset_size
             ))
+
+
+    def set_run_end_time(self):
+        """Set the end time for the optimization run.
+        
+        Should be called when the optimization completes to mark the
+        completion time for accurate elapsed time calculation.
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE run_metadata
+                SET end_time = ?
+                WHERE run_id = 1
+            """, (time.time(),))
 
 
     def update_replica_status(self, replica_id: int, current_perturbation_num: int,

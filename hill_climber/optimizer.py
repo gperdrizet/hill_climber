@@ -501,6 +501,9 @@ class HillClimber:
                     best_objective=replica['best_objective'],
                     current_objective=replica['current_objective']
                 )
+            
+            # Mark run as complete
+            self.db_writer.set_run_end_time()
 
         # Final checkpoint
         if self.checkpoint_file:
