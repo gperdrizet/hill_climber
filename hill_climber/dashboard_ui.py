@@ -60,12 +60,13 @@ def render_sidebar_title() -> None:
     )
 
 
-def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[str]:
+def render_database_selector(session_state: Any, dirs: List[Path], project_root: Path) -> Optional[str]:
     """Render database selection UI in sidebar.
     
     Args:
         session_state (Any): Streamlit session state object.
         dirs (List[Path]): List of available directories to search for databases.
+        project_root (Path): Project root directory for relative path display.
         
     Returns:
         str: Selected database path, or None if no database selected.
@@ -80,21 +81,35 @@ def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[s
     expander_open = not (session_state.db_user_selected and Path(db_path).exists())
     
     with st.sidebar.expander("Database", expanded=expander_open):
-        st.write("Select the directory and database file.")
-
+        # Show current browsing path
+        current_path = session_state.browse_path
+        try:
+            rel_path = current_path.relative_to(project_root)
+            path_display = "." if rel_path == Path('.') else str(rel_path)
+        except ValueError:
+            path_display = str(current_path)
+        
+        st.write(f"**Current location:** `{path_display}`")
+        
+        # Add parent directory option if not at project root
+        if current_path != project_root:
+            if st.button("↑ Parent Directory", key="nav_parent"):
+                session_state.browse_path = current_path.parent
+                st.rerun()
+        
         # Directory dropdown
-        cwd = Path.cwd()
-        dir_labels = ["None"]
+        # First directory is current location, rest are subdirectories
+        dir_labels = []
+        
+        for i, d in enumerate(dirs):
+            if i == 0:
+                dir_labels.append("(current)")
+            else:
+                dir_labels.append(d.name)
 
-        for d in dirs:
-            try:
-                rel = d.relative_to(cwd)
-                label = "." if rel == Path('.') else str(rel)
-
-            except ValueError:
-                label = str(d)
-
-            dir_labels.append(label)
+        if not dir_labels:
+            st.warning("No directories available")
+            return db_path
 
         selected_dir_idx = st.selectbox(
             "Directory",
@@ -102,24 +117,31 @@ def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[s
             format_func=lambda i: dir_labels[i]
         )
         
-        selected_dir = dirs[selected_dir_idx - 1] if selected_dir_idx > 0 else None
+        selected_dir = dirs[selected_dir_idx]
+        
+        # Navigate into subdirectory
+        if selected_dir_idx > 0:  # Not current directory
+            if st.button("→ Open", key="nav_open"):
+                session_state.browse_path = selected_dir
+                st.rerun()
 
         # File dropdown
-        file_labels = ["None"]
+        file_labels = []
         file_candidates = []
         
-        if selected_dir is not None:
-            try:
-                file_candidates = [p for p in selected_dir.iterdir() if p.is_file() and p.suffix == ".db"]
+        try:
+            file_candidates = [p for p in selected_dir.iterdir() if p.is_file() and p.suffix == ".db"]
 
-                if file_candidates:
-                    file_labels.extend([p.name for p in file_candidates])
+            if file_candidates:
+                file_labels = [p.name for p in file_candidates]
+            else:
+                st.info("No .db files in selected directory")
 
-                else:
-                    st.info("No .db files in selected directory")
+        except PermissionError:
+            st.warning("Permission denied reading directory")
 
-            except PermissionError:
-                st.warning("Permission denied reading directory")
+        if not file_labels:
+            return db_path
 
         selected_file_idx = st.selectbox(
             "Database file",
@@ -129,16 +151,11 @@ def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[s
 
         # Apply selection
         if st.sidebar.button("Use selected file", key="db_use_selected"):
-
-            if selected_dir_idx > 0 and selected_file_idx > 0 and file_candidates:
-                chosen_file = file_candidates[selected_file_idx - 1]
-                session_state.db_path = str(chosen_file)
-                session_state.db_user_selected = True
-                st.toast("Database selected")
-                st.rerun()
-
-            else:
-                st.warning("Please select both a directory and a database file")
+            chosen_file = file_candidates[selected_file_idx]
+            session_state.db_path = str(chosen_file)
+            session_state.db_user_selected = True
+            st.toast("Database selected")
+            st.rerun()
     
     # Warn if path doesn't exist
     if session_state.db_user_selected and not Path(db_path).exists():

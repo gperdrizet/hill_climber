@@ -216,22 +216,39 @@ def get_available_metrics(conn: sqlite3.Connection, history_type: str = 'improve
     return metrics
 
 
-def get_available_directories() -> List[Path]:
-    """Return list of candidate directories for database selection.
+def get_project_root() -> Path:
+    """Find the project root by looking for pyproject.toml or .git.
     
-    Includes:
-    - Current working directory
-    - Immediate subdirectories (non-hidden)
+    Returns:
+        Path: Project root directory.
+    """
+    cwd = Path.cwd()
+    for parent in [cwd] + list(cwd.parents):
+        if (parent / 'pyproject.toml').exists() or (parent / '.git').exists():
+            return parent
+    return cwd
+
+
+def get_available_directories(base_path: Optional[Path] = None) -> List[Path]:
+    """Return list of directories for database selection.
+    
+    Returns the base_path along with its immediate subdirectories.
+    If base_path is None, uses project root.
+    
+    Args:
+        base_path (Path, optional): Base directory to list. Defaults to project root.
     
     Returns:
         List[Path]: De-duplicated list of directories in deterministic order.
     """
-    cwd = Path.cwd()
-    dirs = [cwd]
+    if base_path is None:
+        base_path = get_project_root()
+    
+    dirs = [base_path]
     
     # Add immediate subdirectories (sorted for consistent order)
     try:
-        for item in sorted(cwd.iterdir()):
+        for item in sorted(base_path.iterdir()):
             if item.is_dir() and not item.name.startswith('.') and not item.name.startswith('__'):
                 dirs.append(item)
     except PermissionError:

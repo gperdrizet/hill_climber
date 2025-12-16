@@ -37,6 +37,11 @@ def _init_session_state(st: Any) -> None:
                 return
         st.session_state.db_path = "data/hill_climber_progress.db"
     
+    # Initialize directory browsing path
+    if 'browse_path' not in st.session_state:
+        from hill_climber.dashboard_data import get_project_root
+        st.session_state.browse_path = get_project_root()
+    
     # Initialize plot refresh counter for forcing clean re-renders
     if 'plot_refresh_key' not in st.session_state:
         st.session_state.plot_refresh_key = 0
@@ -56,6 +61,7 @@ def render() -> None:
         load_temperature_exchanges,
         get_available_metrics,
         get_available_directories,
+        get_project_root,
         load_leaderboard,
         load_replica_temperatures,
         load_temperature_ladder,
@@ -98,8 +104,8 @@ def render() -> None:
     _init_session_state(st)
     
     # Sidebar: Database selection
-    dirs = get_available_directories()
-    db_path = render_database_selector(st.session_state, dirs)
+    dirs = get_available_directories(st.session_state.browse_path)
+    db_path = render_database_selector(st.session_state, dirs, get_project_root())
     
     # Sidebar: Auto-refresh controls
     auto_refresh, refresh_interval = render_auto_refresh_controls()
