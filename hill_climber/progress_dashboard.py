@@ -238,7 +238,13 @@ def main() -> None:
     module file, ensuring proper Streamlit runtime initialization.
     """
     module_path = Path(__file__).resolve()
-    os.execvp('streamlit', ['streamlit', 'run', str(module_path)])
+    os.execvp('streamlit', [
+        'streamlit', 'run',
+        '--server.headless=true',
+        '--server.showEmailPrompt=false',
+        '--browser.gatherUsageStats=false',
+        str(module_path)
+    ])
 
 
 if __name__ == "__main__":

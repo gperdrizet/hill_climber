@@ -12,6 +12,7 @@ import pandas as pd
 
 try:
     import streamlit as st
+
 except ImportError:
     st = None
 
@@ -21,6 +22,7 @@ def apply_custom_css() -> None:
     
     Adjusts padding, font sizes, and text wrapping for optimal dashboard appearance.
     """
+
     if st is None:
         return
         
@@ -47,6 +49,7 @@ def render_sidebar_title() -> None:
     
     Displays 'Hill climber' as a multi-line title in the sidebar.
     """
+
     if st is None:
         return
         
@@ -67,6 +70,7 @@ def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[s
     Returns:
         str: Selected database path, or None if no database selected.
     """
+
     if st is None:
         return None
         
@@ -81,12 +85,15 @@ def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[s
         # Directory dropdown
         cwd = Path.cwd()
         dir_labels = ["None"]
+
         for d in dirs:
             try:
                 rel = d.relative_to(cwd)
                 label = "." if rel == Path('.') else str(rel)
+
             except ValueError:
                 label = str(d)
+
             dir_labels.append(label)
 
         selected_dir_idx = st.selectbox(
@@ -104,10 +111,13 @@ def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[s
         if selected_dir is not None:
             try:
                 file_candidates = [p for p in selected_dir.iterdir() if p.is_file() and p.suffix == ".db"]
+
                 if file_candidates:
                     file_labels.extend([p.name for p in file_candidates])
+
                 else:
                     st.info("No .db files in selected directory")
+
             except PermissionError:
                 st.warning("Permission denied reading directory")
 
@@ -119,12 +129,14 @@ def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[s
 
         # Apply selection
         if st.sidebar.button("Use selected file", key="db_use_selected"):
+
             if selected_dir_idx > 0 and selected_file_idx > 0 and file_candidates:
                 chosen_file = file_candidates[selected_file_idx - 1]
                 session_state.db_path = str(chosen_file)
                 session_state.db_user_selected = True
                 st.toast("Database selected")
                 st.rerun()
+
             else:
                 st.warning("Please select both a directory and a database file")
     
@@ -141,19 +153,24 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
     Returns:
         Tuple[bool, float]: Tuple of (auto_refresh_enabled, refresh_interval_seconds).
     """
+
     if st is None:
         return False, 60.0
         
     st.sidebar.markdown("<hr style='margin-top: 0.5rem; margin-bottom: 1rem;'>", unsafe_allow_html=True)
     auto_refresh = st.sidebar.checkbox("Auto-refresh", key="auto_refresh")
+
     refresh_interval_minutes = st.sidebar.slider(
         "Refresh interval (minutes)",
         min_value=0.5, max_value=5.0, step=0.5,
         key="refresh_interval"
     )
+
     if st.sidebar.button("Refresh now", key="refresh_now"):
+
         # Increment refresh key to force clean plot re-rendering
         st.session_state.plot_refresh_key = st.session_state.get('plot_refresh_key', 0) + 1
+
         # Save current plot options before refresh
         st.session_state.saved_history_type = st.session_state.get('history_type', 'Improvements (best)')
         st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
@@ -177,6 +194,7 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
             objective_metric, additional_metrics, normalize_metrics, show_exchanges,
             max_points, and n_cols.
     """
+
     if st is None:
         return {}
         
@@ -247,11 +265,13 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         key="normalize_metrics",
         help="Scale all metrics to [0, 1] range for easier comparison when they have different scales"
     )
+
     show_exchanges = st.sidebar.checkbox(
         "Show exchange markers",
         key="show_exchanges",
         help="Draw vertical markers at replica exchange events"
     )
+
     max_points = st.sidebar.slider(
         "Max points per replica",
         min_value=100, max_value=2000, step=100,
@@ -260,6 +280,7 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     
     # Layout - widget value automatically preserved via key
     st.sidebar.markdown("**Plot layout:**")
+
     plot_columns = st.sidebar.radio(
         "Plot layout",
         options=["One column", "Two columns"],
@@ -267,6 +288,7 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         help="Switch between two-column or single-column plot layout",
         label_visibility="collapsed"
     )
+
     n_cols = 2 if plot_columns == "Two columns" else 1
     
     return {
@@ -288,6 +310,7 @@ def render_run_information(metadata: Dict[str, Any]) -> None:
             hyperparameters, n_replicas, checkpoint_file, objective_function_name,
             and dataset_size.
     """
+
     if st is None:
         return
         
@@ -298,11 +321,14 @@ def render_run_information(metadata: Dict[str, Any]) -> None:
     
     # Format display values
     max_time_seconds = hyperparams.get('max_time', 0)
+
     if max_time_seconds:
         if max_time_seconds > 3600:  # More than 60 minutes
             max_time_display = f"{max_time_seconds / 3600:.2f} hr"
+
         elif max_time_seconds > 60:  # More than 60 seconds
             max_time_display = f"{int(max_time_seconds / 60)} min"
+
         else:
             max_time_display = f"{max_time_seconds} sec"
     else:
@@ -333,6 +359,7 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
         metadata (Dict[str, Any]): Dictionary with run metadata containing hyperparameters
             and exchange_interval.
     """
+
     if st is None:
         return
         
@@ -350,6 +377,7 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     initial_step_spread = hyperparams.get('initial_step_spread', hyperparams.get('step_spread', 'N/A'))
     final_step_spread = hyperparams.get('final_step_spread', 'N/A')
     step_spread_text = f"**Initial step spread:** {initial_step_spread}  \n"
+
     if final_step_spread != 'N/A':
         step_spread_text += f"**Final step spread:** {final_step_spread}  \n"
     
@@ -370,6 +398,7 @@ def render_temperature_ladder(temp_ladder_df: pd.DataFrame) -> None:
     Args:
         temp_ladder_df (pd.DataFrame): DataFrame with replica_id and temperature columns.
     """
+
     if st is None:
         return
         
@@ -378,8 +407,10 @@ def render_temperature_ladder(temp_ladder_df: pd.DataFrame) -> None:
     
     if not temp_ladder_df.empty:
         temp_lines = []
+
         for _, row in temp_ladder_df.iterrows():
             temp_lines.append(f"**Replica {int(row['replica_id'])}:** {row['temperature']:.1e}")
+
         st.sidebar.markdown("  \n".join(temp_lines))
 
 
@@ -396,8 +427,10 @@ def render_leaderboard(leaderboard_df: pd.DataFrame) -> None:
     st.header("Replica leaderboard")
     
     if not leaderboard_df.empty:
+
         cols = st.columns(3)
         medals = ['1<sup>st</sup>:', '2<sup>nd</sup>:', '3<sup>rd</sup>:']
+
         for idx, (_, row) in enumerate(leaderboard_df.iterrows()):
             with cols[idx]:
                 st.markdown(f"### {medals[idx]} Replica {int(row['replica_id'])}", unsafe_allow_html=True)
@@ -417,6 +450,7 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
         stats (Dict[str, Any]): Dictionary with total_perturbations and total_accepted.
         metadata (Dict[str, Any]): Dictionary with run metadata including start_time.
     """
+
     if st is None:
         return
     
@@ -425,16 +459,20 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
     
     # Calculate elapsed time - use end_time if run is complete, otherwise current time
     end_time = metadata.get('end_time')
+
     if end_time is not None:
         elapsed_time = end_time - metadata['start_time']
+
     else:
         elapsed_time = time.time() - metadata['start_time']
     
     # Format elapsed time
     if elapsed_time > 3600:  # More than 60 minutes
         elapsed_display = f"{elapsed_time / 3600:.2f} hr"
+
     elif elapsed_time > 60:  # More than 60 seconds
         elapsed_display = f"{int(elapsed_time / 60)} min"
+
     else:
         elapsed_display = f"{int(elapsed_time)} sec"
     
@@ -450,5 +488,6 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
             f"**Progress rate:** {progress_rate:,.1f} accepted/sec | "
             f"**Acceptance rate:** {acceptance_rate:.1f}% ({total_accepted:,} / {total_perturbations:,})"
         )
+
     else:
         st.markdown("**Exploration rate:** N/A")

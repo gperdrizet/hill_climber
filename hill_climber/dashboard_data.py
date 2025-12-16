@@ -221,19 +221,18 @@ def get_available_directories() -> List[Path]:
     
     Includes:
     - Current working directory
-    - Parent directory
     - Immediate subdirectories (non-hidden)
     
     Returns:
         List[Path]: De-duplicated list of directories in deterministic order.
     """
     cwd = Path.cwd()
-    dirs = [cwd, cwd.parent]
+    dirs = [cwd]
     
-    # Add immediate subdirectories
+    # Add immediate subdirectories (sorted for consistent order)
     try:
-        for item in cwd.iterdir():
-            if item.is_dir() and not item.name.startswith('.'):
+        for item in sorted(cwd.iterdir()):
+            if item.is_dir() and not item.name.startswith('.') and not item.name.startswith('__'):
                 dirs.append(item)
     except PermissionError:
         pass
