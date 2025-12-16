@@ -75,7 +75,7 @@
 	// Executes a script that rebuilds documentation and starts a local web server
 	// The script is separated for maintainability and better error handling
 	// See .devcontainer/build-and-serve-docs.sh for implementation details
-	"postAttachCommand": "bash .devcontainer/build-and-serve-docs.sh",
+	"postAttachCommand": "bash .devcontainer/build-and-serve-docs.sh && hill_climber_dashboard",
 
 	// Configure port forwarding for the documentation server
 	// Port 8000 is used to serve the built Sphinx documentation locally
