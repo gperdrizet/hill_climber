@@ -1,5 +1,6 @@
 """Worker process for parallel replica optimization."""
 
+import time
 import numpy as np
 from typing import Dict, Any, Tuple, Callable
 
@@ -13,7 +14,8 @@ def run_replica_steps(
     n_steps: int,
     mode: str,
     target_value: float = None,
-    db_config: Dict[str, Any] = None
+    db_config: Dict[str, Any] = None,
+    start_time: float = None
 ) -> Dict[str, Any]:
     """Run n optimization steps for a single replica.
     
@@ -37,6 +39,8 @@ def run_replica_steps(
             - path (str): Path to database file.
             - step_interval (int): Collect every Nth step.
             Default is None.
+        start_time (float, optional): Start time of optimization run for calculating
+            time-based step spread cooling. Default is None.
     
     Returns:
         Dict[str, Any]: Updated state dictionary with new current/best states and history.
@@ -47,9 +51,19 @@ def run_replica_steps(
     
     # Pre-extract frequently accessed variables to avoid repeated dict lookups
     perturb_fraction = state['hyperparameters']['perturb_fraction']
-    step_spread = state['hyperparameters'].get('step_spread', 1.0)
+    step_spread_initial = state['hyperparameters']['step_spread_absolute_initial']
+    step_spread_cooling_rate = state['hyperparameters'].get('step_spread_cooling_rate', 0.0)
+    max_time = state['hyperparameters']['max_time']
     cooling_rate = state['hyperparameters']['cooling_rate']
     replica_id = state['replica_id']
+    
+    # Calculate time-based step spread cooling (applies to all features proportionally)
+    if start_time is not None and step_spread_cooling_rate > 0:
+        elapsed_time = time.time() - start_time
+        progress = min(elapsed_time / (max_time * 60.0), 1.0)  # max_time is in minutes
+        step_spread = step_spread_initial * (1.0 - progress * step_spread_cooling_rate)
+    else:
+        step_spread = step_spread_initial
     
     # Pre-compute mode integer for faster comparison (avoid string comparisons)
     MODE_MAXIMIZE = 0
@@ -67,7 +81,6 @@ def run_replica_steps(
     
     if db_enabled:
         db_step_interval = db_config['step_interval']
-        import time
     
     # Run n steps
     for iteration in range(n_steps):

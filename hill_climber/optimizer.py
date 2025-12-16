@@ -23,6 +23,7 @@ from .config import (
     DEFAULT_T_MAX_MULTIPLIER,
     DEFAULT_COOLING_RATE,
     DEFAULT_STEP_SPREAD,
+    DEFAULT_STEP_SPREAD_COOLING_RATE,
     DEFAULT_PERTURB_FRACTION,
     DEFAULT_N_REPLICAS,
     DEFAULT_EXCHANGE_INTERVAL,
@@ -80,6 +81,7 @@ class HillClimber:
         target_value: Optional[float] = None,
         max_time: float = DEFAULT_MAX_TIME,
         step_spread: float = DEFAULT_STEP_SPREAD,
+        step_spread_cooling_rate: float = DEFAULT_STEP_SPREAD_COOLING_RATE,
         perturb_fraction: float = DEFAULT_PERTURB_FRACTION,
         n_replicas: int = DEFAULT_N_REPLICAS,
         T_min: float = DEFAULT_T_MIN,
@@ -106,6 +108,7 @@ class HillClimber:
             target_value=target_value,
             max_time=max_time,
             step_spread=step_spread,
+            step_spread_cooling_rate=step_spread_cooling_rate,
             perturb_fraction=perturb_fraction,
             n_replicas=n_replicas,
             T_min=T_min,
@@ -143,6 +146,7 @@ class HillClimber:
         self.target_value = config.target_value
         self.max_time = config.max_time
         self.step_spread = config.step_spread
+        self.step_spread_cooling_rate = config.step_spread_cooling_rate
         self.perturb_fraction = config.perturb_fraction
         self.temperature = config.T_min
         self.cooling_rate = config.cooling_rate
@@ -240,6 +244,7 @@ class HillClimber:
         print()
         print("Perturbation settings:")
         print(f"  Step spread:        {self.step_spread} (fraction of range)")
+        print(f"  Step spread cooling:{self.step_spread_cooling_rate} (time-based reduction)")
         print(f"  Perturb fraction:   {self.perturb_fraction}")
         print()
         print("Database settings:")
@@ -319,7 +324,7 @@ class HillClimber:
                 batch_start = time.time()
                 
                 # Run batch of steps in parallel
-                self._parallel_step_batch(pool, self.exchange_interval)
+                self._parallel_step_batch(pool, self.exchange_interval, start_time)
                 
                 # Attempt exchanges if we are optimizing multiple replicas
                 if self.n_replicas > 1:
@@ -343,12 +348,13 @@ class HillClimber:
         return self._finalize_results()
     
 
-    def _parallel_step_batch(self, pool: PoolType, n_steps: int):
+    def _parallel_step_batch(self, pool: PoolType, n_steps: int, start_time: float):
         """Execute n_steps for all replicas in parallel.
         
         Args:
             pool (PoolType): Multiprocessing pool for parallel execution.
             n_steps (int): Number of optimization steps to execute per replica.
+            start_time (float): Start time of the optimization run for time-based step cooling.
         """
 
         # Serialize current replica states
@@ -372,7 +378,8 @@ class HillClimber:
             n_steps=n_steps,
             mode=self.mode,
             target_value=self.target_value,
-            db_config=db_config
+            db_config=db_config,
+            start_time=start_time
         )
         
         # Execute in parallel
@@ -594,7 +601,9 @@ class HillClimber:
             'cooling_rate': self.cooling_rate,
             'mode': self.mode,
             'target_value': self.target_value,
-            'step_spread': self.step_spread
+            'step_spread': self.step_spread,
+            'step_spread_cooling_rate': self.step_spread_cooling_rate,
+            'step_spread_absolute_initial': self.step_spread_absolute.copy()
         }
         
         # Evaluate initial objective
