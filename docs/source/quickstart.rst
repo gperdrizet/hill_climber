@@ -1,4 +1,4 @@
-Quick Start
+Quick start
 ===========
 
 This guide will get you started with Hill Climber in just a few minutes.
@@ -6,7 +6,7 @@ This guide will get you started with Hill Climber in just a few minutes.
 Hill Climber works with multi-column datasets. Your objective function receives
 one argument for each column/feature in your data.
 
-Basic Example
+Basic example
 -------------
 
 Here's a simple example that optimizes a 2-column dataset for high Pearson correlation:
@@ -41,7 +41,7 @@ Here's a simple example that optimizes a 2-column dataset for high Pearson corre
    )
 
    # Run optimization
-   best_data, history_df = climber.climb()
+   best_data = climber.climb()
 
    # View results
    print(f"Best replica: {climber.replicas[0]['replica_id']}")
@@ -73,9 +73,9 @@ Visualize the optimization results using the plotting functions:
        all_replicas=True  # Show all replicas, not just best
    )
 
-Next Steps
+Next steps
 ----------
-Replica Exchange (Parallel Tempering)
+Replica exchange (parallel tempering)
 --------------------------------------
 
 Hill Climber uses replica exchange (parallel tempering) by default. Multiple
@@ -96,6 +96,6 @@ global optimization:
        temperature_scheme='geometric'  # or 'linear'
    )
 
-   best_data, steps_df = climber.climb()
+   best_data = climber.climb()
 
 The ``climb()`` method automatically runs all replicas and returns the best result.

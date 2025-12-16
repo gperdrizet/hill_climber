@@ -59,7 +59,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             exchange_interval=10,
             initial_step_spread=0.1,
             mode='maximize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
         best_data = climber.climb()
@@ -78,7 +79,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             T_min=10.0,
             cooling_rate=0.005,
             mode='maximize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
         best_data = climber.climb()
@@ -95,7 +97,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             exchange_interval=10,
             initial_step_spread=0.1,
             mode='minimize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
         best_data = climber.climb()
@@ -113,7 +116,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             initial_step_spread=0.1,
             mode='target',
             target_value=0.5,
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
         best_data = climber.climb()
@@ -131,7 +135,8 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             n_replicas=1,
             exchange_interval=10,
             initial_step_spread=0.1,
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
         best_data = climber.climb()
@@ -167,7 +172,8 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             exchange_interval=10,
             initial_step_spread=0.1,
             mode='maximize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
         best_data = climber.climb()
@@ -185,7 +191,8 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             exchange_interval=10,
             initial_step_spread=0.1,
             mode='maximize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
         best_data = climber.climb()

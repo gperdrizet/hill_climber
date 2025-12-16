@@ -18,7 +18,7 @@ A Python package for hill climbing optimization of user-supplied objective funct
 - **Checkpoint/Resume**: Save and resume long-running optimizations with configurable checkpoint intervals
 - **JIT Compilation**: Numba-optimized core functions for performance
 
-## 3. Quick Start
+## 3. Quick start
 
 ### 3.1. Installation
 
@@ -68,7 +68,7 @@ best_data = climber.climb()
 
 Best data contains the winning solution from all replicates at the end of the run. Individual replicate results can be accessed with the climber object's `.get_replicas()` method after the run is complete.
 
-### 3.3. Real-Time Monitoring Dashboard
+### 3.3. Real-time monitoring dashboard
 
 You can monitor real-time optimization with the built-in Streamlit dashboard. To use the dashboard, install hill climber with the dashboard extras and then launch the dashboard.
 
@@ -91,11 +91,11 @@ The dashboard provides:
 - Run metadata including hyperparameters and configuration
 
 
-## 4. Development Environment Setup
+## 4. Development environment setup
 
 To explore the examples, modify the code, or contribute:
 
-### 4.1. Setup Option 1: GitHub Codespaces (No local setup required)
+### 4.1. Setup option 1: GitHub Codespaces (No local setup required)
 
 1. Fork this repository
 2. Open in GitHub Codespaces
@@ -103,7 +103,7 @@ To explore the examples, modify the code, or contribute:
 4. Documentation will be built and served at http://localhost:8000 automatically
 5. The monitoring dashboard will start and be served at http://localhost:8501 automatically
 
-### 4.2. Setup Option 2: Local Development
+### 4.2. Setup option 2: Local development
 
 1. Clone or fork the repository:
    ```bash
@@ -122,7 +122,7 @@ To explore the examples, modify the code, or contribute:
    pip install -r requirements.txt
    ```
 
-### 4.3. Building Documentation
+### 4.3. Building documentation
 
 You can build and view a local copy of the documentation as follows:
 
@@ -133,7 +133,7 @@ make html
 # Or serve locally with: python -m http.server 8000 --directory build/html
 ```
 
-### 4.4. Running Tests
+### 4.4. Running tests
 
 To run the test suite:
 

@@ -1,9 +1,9 @@
-User Guide
+User guide
 ==========
 
 This guide explains the key concepts and parameters of Hill Climber.
 
-Data Format and Terminology
+Data format and terminology
 ----------------------------
 
 Hill Climber works with tabular data:
@@ -14,11 +14,11 @@ Hill Climber works with tabular data:
    - ``N`` = number of samples (rows/data points)
    - ``M`` = number of features (columns)
 
-**Accepted Formats**
+**Accepted formats**
    - NumPy arrays: ``np.ndarray`` with shape ``(N, M)``
    - Pandas DataFrames: ``pd.DataFrame`` with M columns
 
-**Objective Function Signature**
+**Objective function signature**
    Your objective function receives M separate 1D arrays (one per column):
    
    - For M=2: ``objective_func(x, y)``
@@ -30,25 +30,25 @@ Hill Climber works with tabular data:
    not the numpy array dimensionality. All input data are 2D numpy arrays with
    shape ``(N, M)``.
 
-Optimization Modes
+Optimization modes
 ------------------
 
 Hill Climber supports three modes:
 
-**Maximize Mode** (``mode='maximize'``)
+**Maximize mode** (``mode='maximize'``)
    Searches for solutions that maximize the objective function value.
    Use this when higher objective values are better.
 
-**Minimize Mode** (``mode='minimize'``)
+**Minimize mode** (``mode='minimize'``)
    Searches for solutions that minimize the objective function value.
    Use this when lower objective values are better.
 
-**Target Mode** (``mode='target'``)
+**Target mode** (``mode='target'``)
    Searches for solutions that approach a specific target value.
    Requires setting ``target_value`` parameter. The objective function
    should return the distance from the target (minimized internally).
 
-Objective Functions
+Objective functions
 -------------------
 
 An objective function takes the data columns as arguments and returns:
@@ -194,7 +194,7 @@ after the run ends.
    Checkpoints store the entire optimizer state, including current solutions,
    best solutions, temperatures, and history. This allows seamless resumption.
 
-**Batch Size**
+**Batch size**
    The batch size is determined by ``exchange_interval`` (default: 10000 steps).
    After each batch, the optimizer:
    
@@ -202,12 +202,12 @@ after the run ends.
    - Saves a checkpoint (if ``checkpoint_file`` is specified and checkpoint_interval condition is met)
    - Updates the progress dashboard database (if ``db_enabled`` is True)
 
-**Checkpoint Frequency**
+**Checkpoint frequency**
    The actual frequency of checkpoints is controlled by ``checkpoint_interval``. By default,
    a checkpoint is saved after every batch (i.e., every ``exchange_interval`` steps). You can
    save checkpoints less frequently by setting ``checkpoint_interval`` to a higher value to reduce I/O.
 
-Boundary Handling
+Boundary handling
 -----------------
 
 Hill Climber uses **reflection** to keep perturbed values within the original
@@ -220,13 +220,13 @@ data bounds:
 
 Example: If minimum is 5 and a perturbation creates 4.5, it reflects to 5.5.
 
-Replica Exchange (Parallel Tempering)
+Replica exchange (parallel tempering)
 -------------------------------------
 
 Hill Climber 2.0 uses replica exchange to improve global optimization. Multiple
 replicas run simultaneously at different temperatures:
 
-**How it works:**
+**How it works**
 
 1. Each replica has its own temperature from a ladder (e.g., 1000, 2154, 4641, 10000)
 2. All replicas perform optimization steps independently
@@ -234,7 +234,7 @@ replicas run simultaneously at different temperatures:
 4. Exchanges use Metropolis criterion: better solutions move to cooler temperatures
 5. The coldest replica typically finds the best solution
 
-**Temperature Ladder:**
+**Temperature ladder**
 
 .. code-block:: python
 
@@ -248,7 +248,7 @@ replicas run simultaneously at different temperatures:
    ladder = TemperatureLadder.linear(n_replicas=4, T_min=1000, T_max=10000)
    print(ladder.temperatures)  # [1000, 4000, 7000, 10000]
 
-**Benefits:**
+**Benefits**
 
 - Better global optimization compared to single-temperature annealing
 - Hotter replicas explore broadly, cooler replicas exploit locally
@@ -289,30 +289,24 @@ Resume from a checkpoint:
    )
    
    # Continue optimizing
-   best_data, history_df = resumed.climb()
+   best_data = resumed.climb()
 
 .. note::
    It is also possible to resume a run while it is still in memory by simply calling
    ``climb()`` again on the existing ``HillClimber`` instance.
 
-Results Structure
+Results structure
 -----------------
 
-The ``climb()`` method returns a tuple:
+The ``climb()`` method returns the best data found:
 
 .. code-block:: python
 
-   best_data, history_df = climber.climb()
+   best_data = climber.climb()
 
 Where:
 
-- ``best_data``: Optimized data (DataFrame or numpy array, same format as input)
-- ``history_df``: DataFrame showing improvement history (if db_enabled)
-  
-  - Loaded from database improvements table
-  - Contains perturbation_num and all user-defined metrics
-  - Shows monotonic progress (only improvements, not SA exploration)
-  - Empty DataFrame if db_enabled=False
+- ``best_data``: Optimized data (DataFrame or numpy array, same format as input) from the best-performing replica
 
 After optimization, you can access replica state:
 
@@ -328,7 +322,7 @@ After optimization, you can access replica state:
    print(f"Best objective: {best_replica['best_objective']}")
    print(f"Best metrics: {best_replica['best_metrics']}")
 
-State Tracking
+State tracking
 --------------
 
 Hill Climber tracks three types of events:
@@ -337,7 +331,7 @@ Hill Climber tracks three types of events:
    Every perturbation is evaluated. A sampled view is recorded to the database
    every ``db_step_interval`` evaluations for monitoring without overwhelming storage.
 
-**Accepted Steps** (SA acceptances)
+**Accepted steps** (SA acceptances)
    When simulated annealing accepts a move (even if worse), it's recorded with
    full user-defined metrics. This shows the complete SA exploration path.
 
@@ -353,7 +347,7 @@ that never resets. This provides:
 - **Three views**: Sample, complete SA path, improvements only
 - **Easy analysis**: Query any view independently
 
-Database Schema
+Database schema
 ---------------
 
 When ``db_enabled=True``, Hill Climber creates:

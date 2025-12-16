@@ -22,7 +22,7 @@ Install the package directly from PyPI to use it in your own projects:
 
 This is the recommended method for using Hill Climber in your code.
 
-Development Installation
+Development installation
 ------------------------
 
 To explore the examples, modify the code, or contribute:
@@ -36,8 +36,9 @@ No local setup required:
 2. Open in GitHub Codespaces
 3. The development environment will be configured automatically
 4. Documentation will be built and served at http://localhost:8000 automatically
+5. The monitoring dashboard will start and be served at http://localhost:8501 automatically
 
-Option 2: Local Development
+Option 2: Local development
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Clone and install locally:
@@ -86,7 +87,7 @@ Clone and install locally:
 
    All tests should pass.
 
-Verifying Installation
+Verifying installation
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Test that the installation was successful:
