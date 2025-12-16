@@ -68,7 +68,7 @@
 	// 1. Creates the 'data' directory for storing hill climbing results and checkpoints
 	// 2. Builds documentation and starts the server (same as postAttachCommand)
 	// Using mkdir -p ensures no error if directory already exists
-	"postCreateCommand": "mkdir -p data && bash .devcontainer/build-and-serve-docs.sh",
+	"postCreateCommand": "mkdir -p data && bash .devcontainer/build-and-serve-docs.sh && pip install -e '.[dashboard]'",
 
 	// Use 'postAttachCommand' to run commands each time a user connects to the container
 	// This runs every time VS Code attaches/reconnects to the container
