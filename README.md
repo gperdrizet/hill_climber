@@ -79,6 +79,8 @@ hill-climber-dashboard
 
 Then open the provided url in a web browser. Note: the dashboard is only avalible on the same machine (or same LAN) running hill climber.
 
+![Dashboard Screenshot](docs/source/dashboard.png)
+
 The dashboard provides:
 - Replica leaderboard showing current best from each replica
 - Three views of optimization progress:
@@ -89,7 +91,6 @@ The dashboard provides:
 - Interactive time series plots for all metrics
 - Temperature exchange visualization
 - Run metadata including hyperparameters and configuration
-
 
 ## 4. Development environment setup
 
