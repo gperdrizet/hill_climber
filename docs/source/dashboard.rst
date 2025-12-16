@@ -1,4 +1,4 @@
-Real-Time Monitoring Dashboard
+Real-time monitoring dashboard
 ==============================
 
 The Hill Climber package includes a real-time monitoring dashboard built with Streamlit and SQLite for visualizing optimization progress as it runs. The dashboard uses a modular architecture separating data loading, UI components, and plot generation.
@@ -8,20 +8,20 @@ Features
 
 The dashboard provides:
 
-- **Replica Leaderboard**: Top-performing replicas with current objectives, steps, and temperatures
-- **Progress Statistics**: 
+- **Replica leaderboard**: Top-performing replicas with current objectives, steps, and temperatures
+- **Progress statistics**: 
   - Exploration rate (total perturbations per second across all replicas)
   - Progress rate (accepted steps per second)
   - Acceptance rate percentage
-- **Interactive Time Series Plots**: Plotly charts for metrics over time with zoom and pan
-- **Temperature Exchange Markers**: Optional visualization of replica exchange events
-- **Configurable Refresh Rate**: Adjust polling frequency (0.5-5 minutes)
-- **Plot Options**: 
+- **Interactive time series plots**: Plotly charts for metrics over time with zoom and pan
+- **Temperature exchange markers**: Optional visualization of replica exchange events
+- **Configurable refresh rate**: Adjust polling frequency (0.5-5 minutes)
+- **Plot options**: 
   - Metric selection (Best vs Current history)
   - Normalization toggle
   - Layout control (1 or 2 columns)
   - Downsampling for performance
-- **Run Information**: Objective function name, dataset size, hyperparameters, and initial temperatures
+- **Run information**: Objective function name, dataset size, hyperparameters, and initial temperatures
 
 Installation
 ------------
@@ -40,7 +40,7 @@ This will install:
 Usage
 -----
 
-Enabling Database Logging
+Enabling database logging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To use the dashboard, enable database logging in your HillClimber instance:
@@ -59,9 +59,9 @@ To use the dashboard, enable database logging in your HillClimber instance:
        # ... other parameters
    )
    
-   best_data, history = climber.climb()
+   best_data = climber.climb()
 
-Launching the Dashboard
+Launching the dashboard
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 While your optimization is running (or after it completes), launch the dashboard:
@@ -72,21 +72,21 @@ While your optimization is running (or after it completes), launch the dashboard
 
 Then navigate to http://localhost:8501 in your browser. The dashboard will automatically discover databases in common locations, or you can select a specific database file using the sidebar controls.
 
-Dashboard Configuration
+Dashboard configuration
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 Configure the dashboard using the sidebar:
 
-- **Database Selection**: Choose directory and database file from dropdowns
+- **Database selection**: Choose directory and database file from dropdowns
 - **Auto-refresh**: Enable/disable automatic updates
-- **Refresh Interval**: Set polling frequency (0.5-5 minutes)
-- **History Type**: Select Best (monotonic improvement) or Current (includes exploration)
-- **Additional Metrics**: Select extra metrics beyond the objective to plot
+- **Refresh interval**: Set polling frequency (0.5-5 minutes)
+- **History type**: Select Best (monotonic improvement) or Current (includes exploration)
+- **Additional metrics**: Select extra metrics beyond the objective to plot
 - **Normalize**: Toggle metric normalization to [0, 1]
-- **Exchange Markers**: Show vertical lines at temperature exchange events
-- **Plot Layout**: Choose 1 or 2 column display
+- **Exchange markers**: Show vertical lines at temperature exchange events
+- **Plot layout**: Choose 1 or 2 column display
 
-Database Configuration Parameters
+Database configuration parameters
 ----------------------------------
 
 The database logging system uses an efficient collection and write strategy:
@@ -111,10 +111,10 @@ checkpoint_interval : int, default=1
     Set to higher values (e.g., 10) to reduce checkpoint I/O while database provides
     real-time monitoring
 
-Performance Tuning
+Performance tuning
 ------------------
 
-Default Settings (Recommended)
+Default settings (recommended)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
@@ -133,7 +133,7 @@ This provides good balance between resolution and performance:
 - Main process writes all collected metrics once per batch
 - No worker I/O contention
 
-Higher Resolution (More Database Load)
+Higher resolution (more database load)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
@@ -148,7 +148,7 @@ Higher Resolution (More Database Load)
 
 Collects 2000 steps per replica per batch (twice the default resolution).
 
-Lower Resolution (Faster, Smaller Database)
+Lower resolution (faster, smaller database)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
@@ -163,7 +163,7 @@ Lower Resolution (Faster, Smaller Database)
 
 Collects 500 steps per replica per batch (half the default, smaller database).
 
-Database Schema
+Database schema
 ---------------
 
 The database contains four tables:
@@ -214,7 +214,7 @@ Record of temperature swaps between replicas:
 - ``new_temperature``: New temperature after exchange
 - ``timestamp``: Unix timestamp
 
-Checkpoint Independence
+Checkpoint independence
 -----------------------
 
 Database logging and checkpointing are decoupled for flexibility:
@@ -241,7 +241,7 @@ Example:
        db_path='optimization.db'  # Monitor every batch
    )
 
-Complete Example
+Complete example
 ----------------
 
 .. code-block:: python
@@ -276,15 +276,15 @@ Complete Example
    )
    
    # Run optimization
-   best_data, history = climber.climb()
+   best_data = climber.climb()
 
 Then in a separate terminal:
 
 .. code-block:: bash
 
-   streamlit run progress_dashboard.py
+   hill-climber-dashboard
 
-Set the database path to ``correlation_opt.db`` in the dashboard sidebar.
+The dashboard will automatically discover the ``correlation_opt.db`` database file, or you can select it using the sidebar controls.
 
 Troubleshooting
 ---------------
@@ -317,7 +317,7 @@ Slow optimization performance
 - Consider disabling database logging (``db_enabled=False``) for production runs
 - Use checkpoints for state recovery instead of database monitoring
 
-Database Size Estimation
+Database size estimation
 ------------------------
 
 With default settings:
@@ -340,7 +340,7 @@ To reduce size, increase ``db_step_interval``:
    # Half the database size
    db_step_interval = 2000  # 20% sampling instead of 10%
 
-See Also
+See also
 --------
 
 - :doc:`user_guide`: Core optimization concepts

@@ -123,8 +123,10 @@ def render() -> None:
             st.rerun()
         st.stop()
 
-    available_metrics = get_available_metrics(conn)
-
+    # Get all available metrics (from improvements table - superset of all metrics)
+    # Note: perturbations won't have detailed metrics, but UI will show them in selector
+    available_metrics = get_available_metrics(conn, history_type='improvements')
+    
     # Sidebar: Plot options (renders widgets and updates session state)
     plot_config = render_plot_options(available_metrics)
     
@@ -140,6 +142,7 @@ def render() -> None:
     metrics_df = load_metrics_history(
         conn,
         metric_names=[plot_config['objective_metric']] + plot_config['additional_metrics'],
+        history_type=plot_config['history_type'],
         max_points_per_replica=plot_config['max_points']
     )
     exchanges_df = load_temperature_exchanges(conn)
@@ -185,34 +188,30 @@ def render() -> None:
         st.session_state.previous_layout = current_n_cols
         st.session_state.plot_refresh_key += 1
     
-    # Use a keyed container to ensure complete re-rendering on refresh
-    # The key changes on layout changes, forcing Streamlit to completely
-    # rebuild the container and eliminate ghost plots
-    plot_container_key = f"plot_container_{st.session_state.plot_refresh_key}_{current_n_cols}"
+    # Generate unique key for this render that includes layout
+    plot_container_key = f"{st.session_state.plot_refresh_key}_{current_n_cols}"
     
-    # Render all plots inside a keyed container
-    with st.container(key=plot_container_key):
-        # Create all plots
-        for idx, replica_id in enumerate(replica_ids):
-            # Create column layout at start of each row
-            if idx % current_n_cols == 0:
-                cols = st.columns(current_n_cols)
-            
-            # Use the appropriate column
-            col_idx = idx % current_n_cols
-            with cols[col_idx]:
-                fig = create_replica_plot(
-                    metrics_df=metrics_df,
-                    replica_id=replica_id,
-                    objective_metric=plot_config['objective_metric'],
-                    additional_metrics=plot_config['additional_metrics'],
-                    exchange_interval=metadata['exchange_interval'],
-                    replica_temps=replica_temps,
-                    exchanges_df=exchanges_df,
-                    normalize_metrics=plot_config['normalize_metrics'],
-                    show_exchanges=plot_config['show_exchanges']
-                )
-                st.plotly_chart(fig, key=f"plot_{replica_id}_{plot_container_key}", width='stretch')
+    # Create all plots
+    for idx, replica_id in enumerate(replica_ids):
+        # Create column layout at start of each row
+        if idx % current_n_cols == 0:
+            cols = st.columns(current_n_cols)
+        
+        # Use the appropriate column
+        col_idx = idx % current_n_cols
+        with cols[col_idx]:
+            fig = create_replica_plot(
+                metrics_df=metrics_df,
+                replica_id=replica_id,
+                objective_metric=plot_config['objective_metric'],
+                additional_metrics=plot_config['additional_metrics'],
+                exchange_interval=metadata['exchange_interval'],
+                replica_temps=replica_temps,
+                exchanges_df=exchanges_df,
+                normalize_metrics=plot_config['normalize_metrics'],
+                show_exchanges=plot_config['show_exchanges']
+            )
+            st.plotly_chart(fig, key=f"plot_{replica_id}_{plot_container_key}", width='stretch')
     
     # Auto-refresh logic
     if auto_refresh:

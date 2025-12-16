@@ -57,18 +57,15 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='maximize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
-        best_data, steps_df = climber.climb()
+        best_data = climber.climb()
         
         self.assertIsInstance(best_data, pd.DataFrame)
-        self.assertIsInstance(steps_df, pd.DataFrame)
-        self.assertIn('Pearson coefficient', steps_df.columns)
-        self.assertIn('Spearman coefficient', steps_df.columns)
-        self.assertIn('Objective value', steps_df.columns)
     
     def test_climb_with_simulated_annealing(self):
         """Test climb() with simulated annealing enabled."""
@@ -78,17 +75,17 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             T_min=10.0,
             cooling_rate=0.005,
             mode='maximize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
-        best_data, steps_df = climber.climb()
+        best_data = climber.climb()
         
         self.assertIsNotNone(best_data)
-        self.assertGreater(len(steps_df), 0)
     
     def test_minimize_mode_with_real_objective(self):
         """Test minimize mode with real objective function."""
@@ -98,15 +95,15 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='minimize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
-        best_data, steps_df = climber.climb()
+        best_data = climber.climb()
         
         self.assertIsNotNone(best_data)
-        self.assertGreater(len(steps_df), 0)
     
     def test_target_mode_with_real_objective(self):
         """Test target mode with real objective function."""
@@ -116,16 +113,16 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='target',
             target_value=0.5,
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
-        best_data, steps_df = climber.climb()
+        best_data = climber.climb()
         
         self.assertIsNotNone(best_data)
-        self.assertGreater(len(steps_df), 0)
     
     def test_data_format_preservation(self):
         """Test that optimization preserves DataFrame format and columns."""
@@ -137,11 +134,12 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
-            verbose=False
+            initial_step_spread=0.1,
+            verbose=False,
+            db_enabled=False
         )
         
-        best_data, _ = climber.climb()
+        best_data = climber.climb()
         
         self.assertIsInstance(best_data, pd.DataFrame)
         self.assertListEqual(list(best_data.columns), original_columns)
@@ -172,16 +170,16 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='maximize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
-        best_data, steps_df = climber.climb()
+        best_data = climber.climb()
         
         self.assertIsInstance(best_data, pd.DataFrame)
         self.assertEqual(best_data.shape[1], 3)
-        self.assertIn('total_mean', steps_df.columns)
     
     def test_climb_with_4d_numpy_array(self):
         """Test climb() with 4D numpy array data."""
@@ -191,16 +189,16 @@ class TestIntegrationWithNDimensionalData(unittest.TestCase):
             max_time=0.002,
             n_replicas=1,
             exchange_interval=10,
-            step_spread=0.1,
+            initial_step_spread=0.1,
             mode='maximize',
-            verbose=False
+            verbose=False,
+            db_enabled=False
         )
         
-        best_data, steps_df = climber.climb()
+        best_data = climber.climb()
         
         self.assertIsInstance(best_data, np.ndarray)
         self.assertEqual(best_data.shape[1], 4)
-        self.assertIn('total_variance', steps_df.columns)
 
 
 if __name__ == '__main__':

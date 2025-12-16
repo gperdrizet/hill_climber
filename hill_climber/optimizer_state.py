@@ -21,9 +21,10 @@ class ReplicaState:
         current_objective: Current objective value
         best_data: Best data found so far
         best_objective: Best objective value found
-        step: Number of accepted steps
-        total_iterations: Total number of perturbations attempted
-        metrics_history: List of metric dictionaries for each accepted step
+        best_metrics: Best metrics dictionary
+        perturbation_num: Global perturbation counter (monotonically increasing)
+        num_accepted: Number of accepted steps
+        num_improvements: Number of improvements found
         temperature_history: List of (step, temperature) tuples for temperature changes
         exchange_attempts: Total number of exchange attempts
         exchange_acceptances: Number of successful exchanges
@@ -38,9 +39,10 @@ class ReplicaState:
     current_objective: float
     best_data: np.ndarray
     best_objective: float
-    step: int = 0
-    total_iterations: int = 0
-    metrics_history: List[Dict[str, Any]] = field(default_factory=list)
+    best_metrics: Dict[str, Any] = field(default_factory=dict)
+    perturbation_num: int = 0
+    num_accepted: int = 0
+    num_improvements: int = 0
     temperature_history: List[Tuple[int, float]] = field(default_factory=list)
     exchange_attempts: int = 0
     exchange_acceptances: int = 0
@@ -62,9 +64,10 @@ class ReplicaState:
             'current_objective': self.current_objective,
             'best_data': self.best_data,
             'best_objective': self.best_objective,
-            'step': self.step,
-            'total_iterations': self.total_iterations,
-            'metrics_history': self.metrics_history,
+            'best_metrics': self.best_metrics,
+            'perturbation_num': self.perturbation_num,
+            'num_accepted': self.num_accepted,
+            'num_improvements': self.num_improvements,
             'temperature_history': self.temperature_history,
             'exchange_attempts': self.exchange_attempts,
             'exchange_acceptances': self.exchange_acceptances,
@@ -92,9 +95,10 @@ class ReplicaState:
             current_objective=state_dict['current_objective'],
             best_data=state_dict['best_data'],
             best_objective=state_dict['best_objective'],
-            step=state_dict.get('step', 0),
-            total_iterations=state_dict.get('total_iterations', 0),
-            metrics_history=state_dict.get('metrics_history', []),
+            best_metrics=state_dict.get('best_metrics', {}),
+            perturbation_num=state_dict.get('perturbation_num', 0),
+            num_accepted=state_dict.get('num_accepted', 0),
+            num_improvements=state_dict.get('num_improvements', 0),
             temperature_history=state_dict.get('temperature_history', []),
             exchange_attempts=state_dict.get('exchange_attempts', 0),
             exchange_acceptances=state_dict.get('exchange_acceptances', 0),
@@ -173,26 +177,3 @@ def record_exchange(state: Dict, partner_id: int, accepted: bool) -> None:
     if accepted:
         state['exchange_acceptances'] += 1
         state['partner_history'].append(partner_id)
-
-
-def get_history_dataframe(state: Dict) -> pd.DataFrame:
-    """Convert replica history to DataFrame.
-    
-    Args:
-        state (Dict): Replica state dictionary containing metrics_history.
-        
-    Returns:
-        pd.DataFrame: DataFrame with step and metric columns. Returns empty DataFrame
-            if no history exists.
-    """
-    if not state['metrics_history']:
-        return pd.DataFrame()
-    
-    # metrics_history is now a list of metric dicts
-    # Each dict contains all metrics including 'Objective value'
-    df = pd.DataFrame(state['metrics_history'])
-    
-    # Add step numbers (1-indexed, based on number of accepted steps)
-    df.insert(0, 'Step', range(1, len(df) + 1))
-    
-    return df

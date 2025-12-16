@@ -11,7 +11,7 @@ from functools import partial
 from multiprocessing import Pool, cpu_count
 from multiprocessing.pool import Pool as PoolType
 
-from .optimizer_state import create_replica_state, record_temperature_change, record_exchange, get_history_dataframe
+from .optimizer_state import create_replica_state, record_temperature_change, record_exchange
 from .climber_functions import perturb_vectors, evaluate_objective
 from .replica_exchange import (
     TemperatureLadder, ExchangeScheduler, should_exchange
@@ -22,7 +22,8 @@ from .config import (
     DEFAULT_T_MIN,
     DEFAULT_T_MAX_MULTIPLIER,
     DEFAULT_COOLING_RATE,
-    DEFAULT_STEP_SPREAD,
+    DEFAULT_INITIAL_STEP_SPREAD,
+    DEFAULT_FINAL_STEP_SPREAD,
     DEFAULT_PERTURB_FRACTION,
     DEFAULT_N_REPLICAS,
     DEFAULT_EXCHANGE_INTERVAL,
@@ -51,9 +52,14 @@ class HillClimber:
         mode: 'maximize', 'minimize', or 'target'
         target_value: Target value (only used if mode='target')
         max_time: Maximum runtime in minutes
-        step_spread: Perturbation spread as fraction of input range (default: 0.01 = 1%). Step 
-            values are sampled from a gaussian distribution with mean 0 and standard deviation = 
-            input range * step_spread
+        initial_step_spread: Initial perturbation spread as fraction of input range (default: 0.25 = 25%).
+            Step values are sampled from a gaussian distribution with mean 0 and standard deviation
+            calculated per-feature as: feature_range * initial_step_spread. Each feature uses its own
+            range for more appropriate perturbations across different scales.
+        final_step_spread: Final perturbation spread as fraction of input range (default: None). If
+            specified, step spread linearly decreases from initial_step_spread to final_step_spread
+            over the course of max_time, enabling time-based cooling for more refined optimization
+            near the end of the run.
         perturb_fraction: Fraction of data points to perturb each step
         n_replicas: Number of replicas for parallel tempering (default: 4), setting to 1 runs
             simulated annealing without replica exchange
@@ -79,7 +85,8 @@ class HillClimber:
         mode: str = DEFAULT_MODE,
         target_value: Optional[float] = None,
         max_time: float = DEFAULT_MAX_TIME,
-        step_spread: float = DEFAULT_STEP_SPREAD,
+        initial_step_spread: float = DEFAULT_INITIAL_STEP_SPREAD,
+        final_step_spread: Optional[float] = DEFAULT_FINAL_STEP_SPREAD,
         perturb_fraction: float = DEFAULT_PERTURB_FRACTION,
         n_replicas: int = DEFAULT_N_REPLICAS,
         T_min: float = DEFAULT_T_MIN,
@@ -90,7 +97,7 @@ class HillClimber:
         exchange_strategy: str = DEFAULT_EXCHANGE_STRATEGY,
         checkpoint_file: Optional[str] = None,
         checkpoint_interval: int = DEFAULT_CHECKPOINT_INTERVAL,
-        db_enabled: bool = False,
+        db_enabled: bool = True,
         db_path: Optional[str] = None,
         db_step_interval: Optional[int] = None,
         verbose: bool = False,
@@ -105,7 +112,8 @@ class HillClimber:
             mode=mode,
             target_value=target_value,
             max_time=max_time,
-            step_spread=step_spread,
+            initial_step_spread=initial_step_spread,
+            final_step_spread=final_step_spread,
             perturb_fraction=perturb_fraction,
             n_replicas=n_replicas,
             T_min=T_min,
@@ -142,7 +150,8 @@ class HillClimber:
         self.mode = config.mode
         self.target_value = config.target_value
         self.max_time = config.max_time
-        self.step_spread = config.step_spread
+        self.initial_step_spread = config.initial_step_spread
+        self.final_step_spread = config.final_step_spread
         self.perturb_fraction = config.perturb_fraction
         self.temperature = config.T_min
         self.cooling_rate = config.cooling_rate
@@ -176,9 +185,9 @@ class HillClimber:
         # Bounds for boundary reflection
         self.bounds = (np.min(self.data, axis=0), np.max(self.data, axis=0))
         
-        # Absolute step_spread from fraction of data range
-        data_range = self.bounds[1] - self.bounds[0]
-        self.step_spread_absolute = config.step_spread * np.mean(data_range)
+        # step_spread_absolute will be calculated in climb() using current bounds
+        # This allows users to modify bounds after initialization
+        self.step_spread_absolute = None
         
         # Database settings (already validated and defaults set in config)
         if config.db_enabled:
@@ -211,17 +220,63 @@ class HillClimber:
             self.n_workers = config.n_replicas
         else:
             # Normal case: use the specified n_workers
-            self.n_workers = config.n_workers        
+            self.n_workers = config.n_workers
+        
+        # Print configuration summary
+        self._print_settings()
 
 
-    def climb(self) -> Tuple[np.ndarray, pd.DataFrame]:
+    def _print_settings(self):
+        """Print optimizer configuration settings."""
+        print("=" * 70)
+        print("HillClimber Configuration")
+        print("=" * 70)
+        print()
+        print(f"Data shape:           {self.data.shape}")
+        print(f"Optimization mode:    {self.mode}" + (f" (target={self.target_value})" if self.mode == 'target' else ""))
+        print(f"Max runtime:          {self.max_time} minutes")
+        print()
+        print("Temperature settings:")
+        print(f"  T_min:              {self.T_min}")
+        print(f"  T_max:              {self.T_max}")
+        print(f"  Cooling rate:       {self.cooling_rate}")
+        print(f"  Temperature scheme: {self.temperature_scheme}")
+        print()
+        print("Replica exchange:")
+        print(f"  Number of replicas: {self.n_replicas}")
+        print(f"  Exchange interval:  {self.exchange_interval} steps")
+        print(f"  Exchange strategy:  {self.exchange_strategy}")
+        print(f"  Worker processes:   {self.n_workers}")
+        print()
+        print("Perturbation settings:")
+        print(f"  Initial step spread: {self.initial_step_spread} (fraction of range)")
+        if self.final_step_spread is not None:
+            print(f"  Final step spread:   {self.final_step_spread} (fraction at end of run)")
+        print(f"  Perturb fraction:    {self.perturb_fraction}")
+        print()
+        print("Database settings:")
+        print(f"  Enabled:            {self.db_enabled}")
+        if self.db_enabled:
+            print(f"  Path:               {self.db_path}")
+            print(f"  Step interval:      {self.db_step_interval}")
+        print()
+        if self.checkpoint_file:
+            print(f"Checkpointing:        {self.checkpoint_file} (every {self.checkpoint_interval} batch)")
+        print("=" * 70)
+
+
+    def climb(self) -> np.ndarray:
         """Run replica exchange optimization.
         
         Returns:
-            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) where:
-                - best_data: Best configuration found across all replicas
-                - steps_df: DataFrame with optimization history from best replica
+            np.ndarray: Best configuration found across all replicas.
+                If database is enabled, use the dashboard to view optimization history.
         """
+
+        # Calculate absolute step_spread from current bounds
+        # Done here so users can modify bounds after initialization
+        data_range = self.bounds[1] - self.bounds[0]
+        self.step_spread_absolute = self.initial_step_spread * data_range
 
         if self.verbose:
             print(f"Starting replica exchange with {self.n_replicas} replicas...")
@@ -257,14 +312,14 @@ class HillClimber:
         return self._climb_parallel(scheduler)
 
     
-    def _climb_parallel(self, scheduler: ExchangeScheduler) -> Tuple[np.ndarray, pd.DataFrame]:
+    def _climb_parallel(self, scheduler: ExchangeScheduler) -> np.ndarray:
         """Run optimization with parallel workers.
         
         Args:
             scheduler (ExchangeScheduler): Scheduler for replica exchange.
             
         Returns:
-            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) from best replica.
+            np.ndarray: Best configuration from best replica.
         """
 
         start_time = time.time()
@@ -276,7 +331,7 @@ class HillClimber:
                 batch_start = time.time()
                 
                 # Run batch of steps in parallel
-                self._parallel_step_batch(pool, self.exchange_interval)
+                self._parallel_step_batch(pool, self.exchange_interval, start_time)
                 
                 # Attempt exchanges if we are optimizing multiple replicas
                 if self.n_replicas > 1:
@@ -300,12 +355,13 @@ class HillClimber:
         return self._finalize_results()
     
 
-    def _parallel_step_batch(self, pool: PoolType, n_steps: int):
+    def _parallel_step_batch(self, pool: PoolType, n_steps: int, start_time: float):
         """Execute n_steps for all replicas in parallel.
         
         Args:
             pool (PoolType): Multiprocessing pool for parallel execution.
             n_steps (int): Number of optimization steps to execute per replica.
+            start_time (float): Start time of the optimization run for time-based step cooling.
         """
 
         # Serialize current replica states
@@ -329,49 +385,125 @@ class HillClimber:
             n_steps=n_steps,
             mode=self.mode,
             target_value=self.target_value,
-            db_config=db_config
+            db_config=db_config,
+            start_time=start_time
         )
         
         # Execute in parallel
         updated_states = pool.map(worker_func, state_dicts)
         
-        # Collect database buffers and update replicas
-        all_db_buffers = []
+        # Collect database buffers from all replicas
+        all_perturbations = []
+        all_accepted = []
+        all_step_metrics = []
+        all_improvements = []
+        all_improvement_metrics = []
 
         for i, state_dict in enumerate(updated_states):
 
-            # Extract and collect database buffer if present
-            if 'db_buffer' in state_dict:
-                all_db_buffers.extend(state_dict.pop('db_buffer'))
+            # Extract and collect database buffers if present
+            if 'db_buffers' in state_dict:
+                buffers = state_dict.pop('db_buffers')
+                all_perturbations.extend(buffers.get('perturbations', []))
+                all_accepted.extend(buffers.get('accepted', []))
+                all_step_metrics.extend(buffers.get('step_metrics', []))
+                all_improvements.extend(buffers.get('improvements', []))
+                all_improvement_metrics.extend(buffers.get('improvement_metrics', []))
             
             # Preserve temperature_history before updating
             temp_history = self.replicas[i]['temperature_history']
             self.replicas[i] = state_dict
             self.replicas[i]['temperature_history'] = temp_history
         
-        # Flush all collected database buffers to database
-        if self.db_enabled and all_db_buffers:
-            self.db_writer.insert_metrics_batch(all_db_buffers)
-        
-        # Update replica status in database
+        # Flush all collected database buffers to database (single source of truth)
         if self.db_enabled:
+            self.db_writer.insert_perturbations_batch(all_perturbations)
+            self.db_writer.insert_accepted_steps_batch(all_accepted)
+            self.db_writer.insert_step_metrics_batch(all_step_metrics)
+            self.db_writer.insert_improvements_batch(all_improvements)
+            self.db_writer.insert_improvement_metrics_batch(all_improvement_metrics)
+            
+            # Update replica status snapshot
             for replica in self.replicas:
                 self.db_writer.update_replica_status(
                     replica_id=replica['replica_id'],
-                    step=replica['step'],
-                    total_iterations=replica['total_iterations'],
+                    current_perturbation_num=replica['perturbation_num'],
+                    num_accepted=replica['num_accepted'],
+                    num_improvements=replica['num_improvements'],
                     temperature=replica['temperature'],
                     best_objective=replica['best_objective'],
                     current_objective=replica['current_objective']
                 )
     
 
-    def _finalize_results(self) -> Tuple[np.ndarray, pd.DataFrame]:
+    def _finalize_results(self) -> np.ndarray:
         """Complete optimization and return results.
         
+        Writes final database snapshots and returns best solution found.
+        
         Returns:
-            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) from best replica.
+            np.ndarray: Best configuration from best replica.
         """
+
+        # Write final state to database to ensure dashboard shows final values
+        if self.db_enabled:
+            import time
+            timestamp = time.time()
+            
+            final_perturbations = []
+            final_improvements = []
+            final_improvement_metrics = []
+            
+            for replica in self.replicas:
+                # Write final perturbation snapshot
+                final_perturbations.append((
+                    replica['replica_id'],
+                    replica['perturbation_num'],
+                    replica['current_objective'],
+                    False,  # not newly accepted (just a snapshot)
+                    False,  # not a new improvement (just a snapshot)
+                    replica['temperature'],
+                    timestamp
+                ))
+                
+                # Write final best as improvement
+                final_improvements.append((
+                    replica['replica_id'],
+                    replica['perturbation_num'],
+                    replica['best_objective'],
+                    replica['temperature'],
+                    timestamp
+                ))
+                
+                # Write final best metrics
+                if 'best_metrics' in replica:
+                    for metric_name, metric_value in replica['best_metrics'].items():
+                        final_improvement_metrics.append((
+                            replica['replica_id'],
+                            replica['perturbation_num'],
+                            metric_name,
+                            metric_value
+                        ))
+            
+            # Flush final snapshots to database
+            self.db_writer.insert_perturbations_batch(final_perturbations)
+            self.db_writer.insert_improvements_batch(final_improvements)
+            self.db_writer.insert_improvement_metrics_batch(final_improvement_metrics)
+            
+            # Update final replica status
+            for replica in self.replicas:
+                self.db_writer.update_replica_status(
+                    replica_id=replica['replica_id'],
+                    current_perturbation_num=replica['perturbation_num'],
+                    num_accepted=replica['num_accepted'],
+                    num_improvements=replica['num_improvements'],
+                    temperature=replica['temperature'],
+                    best_objective=replica['best_objective'],
+                    current_objective=replica['current_objective']
+                )
+            
+            # Mark run as complete
+            self.db_writer.set_run_end_time()
 
         # Final checkpoint
         if self.checkpoint_file:
@@ -393,7 +525,28 @@ class HillClimber:
         else:
             best_data_output = best_replica['best_data']
         
-        return best_data_output, get_history_dataframe(best_replica)
+        return best_data_output
+    
+
+    def get_replicas(self) -> tuple:
+        """Get best data from all replicas.
+        
+        Returns:
+            tuple: Tuple of DataFrames (or numpy arrays if input was numpy), one for each replica,
+                containing the best data found by that replica. Ordered by replica_id.
+        """
+        if not self.replicas:
+            raise RuntimeError("No replicas available. Run climb() first.")
+        
+        replica_results = []
+        for replica in sorted(self.replicas, key=lambda r: r['replica_id']):
+            if self.is_dataframe:
+                replica_df = pd.DataFrame(replica['best_data'], columns=self.column_names)
+                replica_results.append(replica_df)
+            else:
+                replica_results.append(replica['best_data'])
+        
+        return tuple(replica_results)
     
 
     def _initialize_database(self):
@@ -423,7 +576,8 @@ class HillClimber:
             'cooling_rate': self.cooling_rate,
             'mode': self.mode,
             'target_value': self.target_value,
-            'step_spread': self.step_spread,
+            'initial_step_spread': self.initial_step_spread,
+            'final_step_spread': self.final_step_spread,
             'T_min': self.T_min,
             'T_max': self.T_max,
             'temperature_scheme': self.temperature_scheme,
@@ -458,7 +612,10 @@ class HillClimber:
             'cooling_rate': self.cooling_rate,
             'mode': self.mode,
             'target_value': self.target_value,
-            'step_spread': self.step_spread
+            'initial_step_spread': self.initial_step_spread,
+            'final_step_spread': self.final_step_spread,
+            'step_spread_absolute_initial': self.step_spread_absolute.copy(),
+            'step_spread_absolute_final': self.final_step_spread * (self.bounds[1] - self.bounds[0]) if self.final_step_spread is not None else None
         }
         
         # Evaluate initial objective
@@ -480,11 +637,10 @@ class HillClimber:
                 hyperparameters=hyperparams.copy()
             )
 
-            # Record initial metrics (including objective value)
-            initial_metrics = metrics.copy()
-            initial_metrics['Objective value'] = objective
-            state['metrics_history'].append(initial_metrics)
-            state['step'] += 1
+            # Initialize new state counters
+            state['perturbation_num'] = 0
+            state['num_accepted'] = 0
+            state['num_improvements'] = 0
             
             # Initialize best_metrics (excluding 'Objective' entries)
             state['best_metrics'] = {k: v for k, v in metrics.items() if 'Objective' not in k}
@@ -581,15 +737,15 @@ class HillClimber:
                 old_temp_i = replica_i['temperature']
                 old_temp_j = replica_j['temperature']
                 
-                # Record temperature changes with current step number
-                current_step = replica_i['step']  # Use step from replica i
-                record_temperature_change(replica_i, old_temp_j, current_step)
-                record_temperature_change(replica_j, old_temp_i, replica_j['step'])
+                # Record temperature changes with current perturbation number
+                current_pnum = replica_i['perturbation_num']  # Use perturbation_num from replica i
+                record_temperature_change(replica_i, old_temp_j, current_pnum)
+                record_temperature_change(replica_j, old_temp_i, replica_j['perturbation_num'])
                 
                 # Collect for database logging
                 if self.db_enabled:
-                    db_exchanges.append((current_step, i, old_temp_j))
-                    db_exchanges.append((replica_j['step'], j, old_temp_i))
+                    db_exchanges.append((current_pnum, i, old_temp_j))
+                    db_exchanges.append((replica_j['perturbation_num'], j, old_temp_i))
             
             # Record statistics
             record_exchange(replica_i, j, accepted)
@@ -680,7 +836,9 @@ class HillClimber:
             cooling_rate=hyperparams['cooling_rate'],
             mode=hyperparams['mode'],
             target_value=hyperparams.get('target_value'),
-            step_spread=hyperparams['step_spread'],
+            # Handle both old (step_spread) and new (initial_step_spread) names for backward compatibility
+            initial_step_spread=hyperparams.get('initial_step_spread', hyperparams.get('step_spread', 0.25)),
+            final_step_spread=hyperparams.get('final_step_spread'),
             n_replicas=len(checkpoint['replicas']),
             verbose=checkpoint.get('verbose', False),
             n_workers=checkpoint.get('n_workers')

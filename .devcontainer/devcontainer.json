@@ -68,14 +68,14 @@
 	// 1. Creates the 'data' directory for storing hill climbing results and checkpoints
 	// 2. Builds documentation and starts the server (same as postAttachCommand)
 	// Using mkdir -p ensures no error if directory already exists
-	"postCreateCommand": "mkdir -p data && bash .devcontainer/build-and-serve-docs.sh",
+	"postCreateCommand": "mkdir -p data && bash .devcontainer/build-and-serve-docs.sh && pip install -e '.[dashboard]'",
 
 	// Use 'postAttachCommand' to run commands each time a user connects to the container
 	// This runs every time VS Code attaches/reconnects to the container
 	// Executes a script that rebuilds documentation and starts a local web server
 	// The script is separated for maintainability and better error handling
 	// See .devcontainer/build-and-serve-docs.sh for implementation details
-	"postAttachCommand": "bash .devcontainer/build-and-serve-docs.sh",
+	"postAttachCommand": "bash .devcontainer/build-and-serve-docs.sh && hill-climber-dashboard",
 
 	// Configure port forwarding for the documentation server
 	// Port 8000 is used to serve the built Sphinx documentation locally

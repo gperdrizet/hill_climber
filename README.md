@@ -2,23 +2,22 @@
 
 [![PyPI Package](https://github.com/gperdrizet/hill_climber/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/publish-to-pypi.yml) [![Documentation](https://github.com/gperdrizet/hill_climber/actions/workflows/docs.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/docs.yml) [![PR Validation](https://github.com/gperdrizet/hill_climber/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/pr-validation.yml)
 
-A Python package for hill climbing optimization of user-supplied objective functions with simulated annealing. Designed for flexible multi-objective optimization with support for multi-column datasets.
+A Python package for hill climbing optimization of user-supplied objective functions with [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing). Designed for flexible multi-objective optimization with support for multi-column datasets.
 
 ## 1. Documentation
 
-**<a href="https://gperdrizet.github.io/hill_climber" target="_blank">View Full Documentation on GitHub Pages</a>**
+**<a href="https://gperdrizet.github.io/hill_climber" target="_blank">Documentation on GitHub Pages</a>**
 
 ## 2. Features
 
-- **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
-- **Real-Time Monitoring Dashboard**: Streamlit-based modular dashboard for live progress visualization with SQLite backend
-- **Simulated Annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
-- **Flexible Objectives**: Support for any objective function with multiple metrics
-- **Multi-Column Support**: Optimize datasets with any number of features/columns
-- **Checkpoint/Resume**: Save and resume long-running optimizations with configurable checkpoint intervals
-- **JIT Compilation**: Numba-optimized core functions for performance
+- **Replica exchange (parallel tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization (`multiprocessing.Pool`)
+- **Real-time monitoring dashboard**: Live progress plots and run info. with SQLite backend
+- **Simulated annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
+- **Flexible objectives**: Support for user supplied objective functions with custom multiple metrics
+- **Checkpoint/resume**: Save and resume long-running optimizations with configurable checkpoint intervals
+- **JIT compilation**: Numba-optimized core functions for performance
 
-## 3. Quick Start
+## 3. Quick start
 
 ### 3.1. Installation
 
@@ -56,78 +55,54 @@ def my_objective(x, y):
 climber = HillClimber(
     data=data,
     objective_func=my_objective,
-    max_time=1,  # minutes
+    max_time=1,
     mode='maximize',
-    n_replicas=4  # Use 4 replicas for parallel tempering
+    n_replicas=4
 )
 
 # Run optimization
-best_data, history_df = climber.climb()
+best_data = climber.climb()
 ```
 
-### 3.3. Real-Time Monitoring Dashboard
+Best data contains the winning solution from all replicates at the end of the run. Individual replicate results can be accessed with the climber object's `.get_replicas()` method after the run is complete.
 
-Monitor optimization progress in real-time with the Streamlit dashboard:
+### 3.3. Real-time monitoring dashboard
 
-```python
-from hill_climber import HillClimber
-
-# Enable database logging
-climber = HillClimber(
-    data=data,
-    objective_func=my_objective,
-    max_time=30,
-    n_replicas=8,
-    db_enabled=True,  # Enable real-time monitoring
-    db_path='optimization.db',
-    checkpoint_interval=10  # Checkpoint every 10 batches
-)
-
-# Run optimization
-best_data, history = climber.climb()
-```
-
-Launch the dashboard in a separate terminal:
+You can monitor real-time optimization with the built-in Streamlit dashboard. To use the dashboard, install hill climber with the dashboard extras and then launch the dashboard.
 
 ```bash
-pip install "parallel-hill-climber[dashboard]"
+pip install parallel-hill-climber[dashboard]
 hill-climber-dashboard
 ```
 
+Then open the provided url in a web browser. Note: the dashboard is only avalible on the same machine (or same LAN) running hill climber.
+
+![Dashboard Screenshot](docs/source/dashboard.png)
+
 The dashboard provides:
-- Replica leaderboard showing top performers
-- Exploration rate (total perturbations/sec) and progress rate (accepted steps/sec)
-- Interactive time series plots for all metrics across replicas
-- Temperature exchange event markers
-- Plot normalization and layout options
-- Run information including objective function name, dataset size, and hyperparameters
+- Replica leaderboard showing current best from each replica
+- Three views of optimization progress:
+  - **All Perturbations**: Sampled overview (every db_step_interval)
+  - **Accepted Steps**: Complete SA exploration path
+  - **Improvements**: Monotonic progress toward best solution
+- Acceptance rate tracking
+- Interactive time series plots for all metrics
+- Temperature exchange visualization
+- Run metadata including hyperparameters and configuration
 
-See [DASHBOARD_README.md](DASHBOARD_README.md) for complete dashboard documentation.
-
-### 3.4. Example Notebooks
-
-The `notebooks/` directory contains demonstration of key concepts and complete worked examples demonstrating various use cases:
-
-1. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/01-simulated_annealing.ipynb" target="_blank">Simulated Annealing</a>**: Introduction to simulated annealing algorithm
-2. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/02-pearson_spearman.ipynb" target="_blank">Pearson & Spearman</a>**: Optimizing for different correlation measures
-3. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/03-mean_std.ipynb" target="_blank">Mean & Std</a>**: Creating distributions with matching statistics but diverse structures
-4. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/04-entropy_pearson.ipynb" target="_blank">Entropy & Correlation</a>**: Low correlation with internal structure
-5. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/05-feature_interactions.ipynb" target="_blank">Feature Interactions</a>**: Machine learning feature engineering demonstrations
-6. **<a href="https://github.com/gperdrizet/hill_climber/blob/main/notebooks/06-checkpoint_example.ipynb" target="_blank">Checkpointing</a>**: Long-running optimization with save/resume
-
-
-## 4. Development Environment Setup
+## 4. Development environment setup
 
 To explore the examples, modify the code, or contribute:
 
-### 4.1. Setup Option 1: GitHub Codespaces (No local setup required)
+### 4.1. Setup option 1: GitHub Codespaces (No local setup required)
 
 1. Fork this repository
 2. Open in GitHub Codespaces
 3. The development environment will be configured automatically
 4. Documentation will be built and served at http://localhost:8000 automatically
+5. The monitoring dashboard will start and be served at http://localhost:8501 automatically
 
-### 4.2. Setup Option 2: Local Development
+### 4.2. Setup option 2: Local development
 
 1. Clone or fork the repository:
    ```bash
@@ -146,7 +121,7 @@ To explore the examples, modify the code, or contribute:
    pip install -r requirements.txt
    ```
 
-### 4.3. Building Documentation
+### 4.3. Building documentation
 
 You can build and view a local copy of the documentation as follows:
 
@@ -157,7 +132,7 @@ make html
 # Or serve locally with: python -m http.server 8000 --directory build/html
 ```
 
-### 4.4. Running Tests
+### 4.4. Running tests
 
 To run the test suite:
 

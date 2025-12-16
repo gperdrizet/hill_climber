@@ -1,19 +1,19 @@
-Example Notebooks
+Example notebooks
 =================
 
 The following Jupyter notebooks demonstrate various applications of Hill Climber.
 
-Notebook Descriptions
+Notebook descriptions
 ---------------------
 
-1. Simulated Annealing Introduction
+1. Simulated annealing introduction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Introduction to simulated annealing concepts and the hill climbing algorithm.
 
 View: :download:`01-simulated_annealing.ipynb <../../notebooks/01-simulated_annealing.ipynb>`
 
-2. Pearson & Spearman Correlation
+2. Pearson & Spearman correlation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Generate datasets with:
@@ -23,7 +23,7 @@ Generate datasets with:
 
 View: :download:`02-pearson_spearman.ipynb <../../notebooks/02-pearson_spearman.ipynb>`
 
-3. Mean & Standard Deviation with Diverse Structures
+3. Mean & standard deviation with diverse structures
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Create families of distributions with:
@@ -34,7 +34,7 @@ Create families of distributions with:
 
 View: :download:`03-mean_std.ipynb <../../notebooks/03-mean_std.ipynb>`
 
-4. Low Pearson Correlation & Low Entropy
+4. Low Pearson correlation & low entropy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Generate 2D point distributions with:
@@ -44,7 +44,7 @@ Generate 2D point distributions with:
 
 View: :download:`04-entropy_pearson.ipynb <../../notebooks/04-entropy_pearson.ipynb>`
 
-5. Feature Interactions
+5. Feature interactions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Create datasets where:
@@ -55,7 +55,7 @@ Create datasets where:
 
 View: :download:`05-feature_interactions.ipynb <../../notebooks/05-feature_interactions.ipynb>`
 
-6. Checkpointing Example
+6. Checkpointing example
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Demonstrates checkpoint and resume functionality for long-running optimizations.

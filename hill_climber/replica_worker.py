@@ -1,5 +1,6 @@
 """Worker process for parallel replica optimization."""
 
+import time
 import numpy as np
 from typing import Dict, Any, Tuple, Callable
 
@@ -13,7 +14,8 @@ def run_replica_steps(
     n_steps: int,
     mode: str,
     target_value: float = None,
-    db_config: Dict[str, Any] = None
+    db_config: Dict[str, Any] = None,
+    start_time: float = None
 ) -> Dict[str, Any]:
     """Run n optimization steps for a single replica.
     
@@ -37,6 +39,8 @@ def run_replica_steps(
             - path (str): Path to database file.
             - step_interval (int): Collect every Nth step.
             Default is None.
+        start_time (float, optional): Start time of optimization run for calculating
+            time-based step spread cooling. Default is None.
     
     Returns:
         Dict[str, Any]: Updated state dictionary with new current/best states and history.
@@ -47,9 +51,20 @@ def run_replica_steps(
     
     # Pre-extract frequently accessed variables to avoid repeated dict lookups
     perturb_fraction = state['hyperparameters']['perturb_fraction']
-    step_spread = state['hyperparameters'].get('step_spread', 1.0)
+    step_spread_initial = state['hyperparameters']['step_spread_absolute_initial']
+    step_spread_final = state['hyperparameters'].get('step_spread_absolute_final', None)
+    max_time = state['hyperparameters']['max_time']
     cooling_rate = state['hyperparameters']['cooling_rate']
     replica_id = state['replica_id']
+    
+    # Calculate time-based step spread cooling (applies to all features proportionally)
+    if start_time is not None and step_spread_final is not None:
+        elapsed_time = time.time() - start_time
+        progress = min(elapsed_time / (max_time * 60.0), 1.0)  # max_time is in minutes
+        # Linear interpolation from initial to final
+        step_spread = step_spread_initial + (step_spread_final - step_spread_initial) * progress
+    else:
+        step_spread = step_spread_initial
     
     # Pre-compute mode integer for faster comparison (avoid string comparisons)
     MODE_MAXIMIZE = 0
@@ -57,9 +72,13 @@ def run_replica_steps(
     MODE_TARGET = 2
     mode_int = {'maximize': MODE_MAXIMIZE, 'minimize': MODE_MINIMIZE, 'target': MODE_TARGET}[mode]
     
-    # Initialize database buffer if enabled (worker only collects, doesn't write)
-    db_buffer = []
+    # Initialize database buffers if enabled
     db_enabled = db_config and db_config.get('enabled', False)
+    perturbations_buffer = []
+    accepted_buffer = []
+    step_metrics_buffer = []
+    improvements_buffer = []
+    improvement_metrics_buffer = []
     
     if db_enabled:
         db_step_interval = db_config['step_interval']
@@ -67,8 +86,9 @@ def run_replica_steps(
     # Run n steps
     for iteration in range(n_steps):
         
-        # Increment total iterations counter (counts all perturbations, not just accepted)
-        state['total_iterations'] += 1
+        # Get current perturbation number and increment
+        perturbation_num = state['perturbation_num']
+        state['perturbation_num'] += 1
         
         # Perturb data (using pre-extracted variables)
         perturbed = perturb_vectors(
@@ -83,87 +103,85 @@ def run_replica_steps(
             perturbed, objective_func
         )
         
-        # Track metrics for potential DB write (always use most recent evaluation)
-        last_metrics = metrics
-        last_objective = objective
-        
         # Acceptance criterion (simulated annealing)
         accept = _should_accept(
             objective, state['current_objective'], state['temperature'],
             mode, target_value
         )
         
-        # Note: We only record accepted steps to avoid misleading history
-        # where rejected steps would show the old objective with a new step number
+        # Check if this is an improvement
+        is_better = False
+        if mode_int == MODE_MAXIMIZE:
+            is_better = objective > state['best_objective']
+        elif mode_int == MODE_MINIMIZE:
+            is_better = objective < state['best_objective']
+        else:  # target mode
+            current_dist = abs(state['best_objective'] - target_value)
+            new_dist = abs(objective - target_value)
+            is_better = new_dist < current_dist
+        
+        # Record ALL perturbations at db_step_interval (sampled view)
+        if db_enabled and (perturbation_num % db_step_interval == 0):
+            timestamp = time.time()
+            perturbations_buffer.append((
+                replica_id, perturbation_num, objective,
+                accept, is_better, state['temperature'], timestamp
+            ))
+        
+        # If accepted, update current state and record
         if accept:
-
             # Update current state
             state['current_data'] = perturbed
             state['current_objective'] = objective
+            state['num_accepted'] += 1
             
-            # Update best state if this is better
-            # Use mode-aware comparison (with integer mode for speed)
-            is_better = False
-            if mode_int == MODE_MAXIMIZE:
-                is_better = objective > state['best_objective']
-            elif mode_int == MODE_MINIMIZE:
-                is_better = objective < state['best_objective']
-            else:  # target mode
-                current_dist = abs(state['best_objective'] - target_value)
-                new_dist = abs(objective - target_value)
-                is_better = new_dist < current_dist
+            # Record accepted step with full metrics
+            if db_enabled:
+                timestamp = time.time()
+                accepted_buffer.append((
+                    replica_id, perturbation_num, objective,
+                    state['temperature'], timestamp
+                ))
+                
+                # Record all user-defined metrics for this accepted step
+                for metric_name, metric_value in metrics.items():
+                    step_metrics_buffer.append((
+                        replica_id, perturbation_num, metric_name, metric_value
+                    ))
             
-            if is_better:
-                state['best_data'] = perturbed.copy()
-                state['best_objective'] = objective
-                # Store best metrics (excluding 'Objective' entries that will be handled separately)
-                state['best_metrics'] = {k: v for k, v in metrics.items() 
-                                        if 'Objective' not in k}
-            
-            state['step'] += 1
-            
-            # CRITICAL FIX: Record BEST objective in history, not current
-            # This ensures history shows monotonic improvement
-            # Add current objective as separate metric for SA analysis
-            metrics['Objective value'] = state['best_objective']  # Best so far
-            metrics['Current Objective'] = objective  # This step's value (may be worse due to SA)
-            state['metrics_history'].append(metrics.copy())
-        
             # Cool temperature (using pre-extracted cooling_rate)
             state['temperature'] *= (1 - cooling_rate)
         
-        # Collect metrics for database at regular intervals (regardless of acceptance)
-        # Use metrics from most recent evaluation (avoids redundant objective calls)
-        if db_enabled and (iteration > 0) and (iteration % db_step_interval == 0):
-            # Create a combined metrics dictionary with proper prefixes
-            all_metrics = {}
+        # If improvement, update best state and record
+        if is_better:
+            state['best_data'] = perturbed.copy()
+            state['best_objective'] = objective
+            state['best_metrics'] = metrics.copy()
+            state['num_improvements'] += 1
             
-            # Add BEST metrics with "Best " prefix (from state's best_metrics)
-            all_metrics['Best Objective'] = state['best_objective']
-            # Use stored best_metrics for other metrics
-            if 'best_metrics' in state:
-                for metric_name, metric_value in state['best_metrics'].items():
-                    # Skip metrics that already have Best/Current prefix to avoid double-prefixing
-                    if not (metric_name.startswith('Best ') or metric_name.startswith('Current ') or 
-                            'Objective' in metric_name):
-                        all_metrics[f'Best {metric_name}'] = metric_value
-            
-            # Add CURRENT metrics with "Current " prefix (from most recent evaluation)
-            all_metrics['Current Objective'] = state['current_objective']
-            for metric_name, metric_value in last_metrics.items():
-                # Skip metrics that already have Best/Current prefix to avoid double-prefixing
-                if not (metric_name.startswith('Best ') or metric_name.startswith('Current ') or 
-                        'Objective' in metric_name):
-                    all_metrics[f'Current {metric_name}'] = metric_value
-            
-            # Buffer all metrics for this step (using pre-extracted replica_id)
-            current_step = state['step']
-            for metric_name, metric_value in all_metrics.items():
-                db_buffer.append((replica_id, current_step, metric_name, metric_value))
+            # Record improvement
+            if db_enabled:
+                timestamp = time.time()
+                improvements_buffer.append((
+                    replica_id, perturbation_num, objective,
+                    state['temperature'], timestamp
+                ))
+                
+                # Record all metrics at improvement point
+                for metric_name, metric_value in metrics.items():
+                    improvement_metrics_buffer.append((
+                        replica_id, perturbation_num, metric_name, metric_value
+                    ))
     
-    # Return DB buffer to main process for centralized writing
-    if db_enabled and db_buffer:
-        state['db_buffer'] = db_buffer
+    # Return all buffers to main process for centralized writing
+    if db_enabled:
+        state['db_buffers'] = {
+            'perturbations': perturbations_buffer,
+            'accepted': accepted_buffer,
+            'step_metrics': step_metrics_buffer,
+            'improvements': improvements_buffer,
+            'improvement_metrics': improvement_metrics_buffer
+        }
     
     # Return state (already in dict format)
     return state

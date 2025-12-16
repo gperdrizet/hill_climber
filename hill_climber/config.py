@@ -14,29 +14,30 @@ from typing import Optional, Callable
 # =============================================================================
 
 # Temperature parameters
-DEFAULT_T_MIN = 0.1  # Default minimum temperature for coldest replica
+DEFAULT_T_MIN = 0.0001  # Default minimum temperature for coldest replica
 DEFAULT_T_MAX_MULTIPLIER = 100  # T_max = T_min * this multiplier when not specified
-DEFAULT_COOLING_RATE = 1e-8  # Default temperature decay rate per step
+DEFAULT_COOLING_RATE = 1e-10  # Default temperature decay rate per step
 
 # Perturbation parameters
-DEFAULT_STEP_SPREAD = 0.01  # Default perturbation spread (1% of data range)
+DEFAULT_INITIAL_STEP_SPREAD = 0.25  # Default perturbation spread (25% of data range)
 DEFAULT_PERTURB_FRACTION = 0.001  # Default fraction of points to perturb (0.1%)
+DEFAULT_FINAL_STEP_SPREAD = None  # Default final step spread (None = no cooling)
 
 # Replica exchange parameters
 DEFAULT_N_REPLICAS = 4  # Default number of replicas for parallel tempering
-DEFAULT_EXCHANGE_INTERVAL = 10000  # Default steps between exchange attempts
+DEFAULT_EXCHANGE_INTERVAL = 100  # Default steps between exchange attempts
 DEFAULT_TEMPERATURE_SCHEME = 'geometric'  # Default temperature ladder spacing
 DEFAULT_EXCHANGE_STRATEGY = 'even_odd'  # Default replica pairing strategy
 
 # Runtime parameters
-DEFAULT_MAX_TIME = 30.0  # Default maximum runtime in minutes
+DEFAULT_MAX_TIME = 10.0  # Default maximum runtime in minutes
 DEFAULT_MODE = 'maximize'  # Default optimization mode
 
 # Checkpointing parameters
 DEFAULT_CHECKPOINT_INTERVAL = 1  # Default batches between checkpoint saves
 
 # Database parameters
-DEFAULT_DB_PATH = 'data/hill_climber_progress.db'  # Default database file path
+DEFAULT_DB_PATH = '../data/hill_climb.db'  # Default database file path
 DB_STEP_INTERVAL_DIVISOR = 10  # Divisor for calculating default db_step_interval (every 10th step)
 
 # =============================================================================
@@ -69,7 +70,8 @@ class OptimizerConfig:
         mode: Optimization mode - 'maximize', 'minimize', or 'target'
         target_value: Target value (only used if mode='target')
         max_time: Maximum runtime in minutes
-        step_spread: Perturbation spread as fraction of input range (default: 0.01 = 1%)
+        initial_step_spread: Initial perturbation spread as fraction of input range (default: 0.25 = 25%)
+        final_step_spread: Final perturbation spread at end of run (default: None = no cooling)
         perturb_fraction: Fraction of data points to perturb each step
         n_replicas: Number of replicas for parallel tempering (default: 4)
         T_min: Base temperature (will be used as T_min for ladder)
@@ -80,8 +82,8 @@ class OptimizerConfig:
         exchange_strategy: 'even_odd', 'random', or 'all_neighbors'
         checkpoint_file: Path to save checkpoints (default: None, no checkpointing)
         checkpoint_interval: Batches between checkpoint saves (default: 1)
-        db_enabled: Enable database logging for dashboard (default: False)
-        db_path: Path to SQLite database file (default: 'data/hill_climber_progress.db')
+        db_enabled: Enable database logging for dashboard (default: True)
+        db_path: Path to SQLite database file (default: '../data/hill_climb.db')
         db_step_interval: Collect metrics every Nth step (default: exchange_interval // 10, or 1 if exchange_interval <= 10)
         verbose: Print progress messages (default: False)
         n_workers: Number of worker processes (default: n_replicas)
@@ -91,7 +93,8 @@ class OptimizerConfig:
     mode: str = DEFAULT_MODE
     target_value: Optional[float] = None
     max_time: float = DEFAULT_MAX_TIME
-    step_spread: float = DEFAULT_STEP_SPREAD
+    initial_step_spread: float = DEFAULT_INITIAL_STEP_SPREAD
+    final_step_spread: Optional[float] = DEFAULT_FINAL_STEP_SPREAD
     perturb_fraction: float = DEFAULT_PERTURB_FRACTION
     n_replicas: int = DEFAULT_N_REPLICAS
     T_min: float = DEFAULT_T_MIN
@@ -102,7 +105,7 @@ class OptimizerConfig:
     exchange_strategy: str = DEFAULT_EXCHANGE_STRATEGY
     checkpoint_file: Optional[str] = None
     checkpoint_interval: int = DEFAULT_CHECKPOINT_INTERVAL
-    db_enabled: bool = False
+    db_enabled: bool = True
     db_path: Optional[str] = None
     db_step_interval: Optional[int] = None
     verbose: bool = False
@@ -146,8 +149,16 @@ class OptimizerConfig:
                 f"perturb_fraction must be in (0, 1], got {self.perturb_fraction}"
             )
         
-        if self.step_spread <= 0:
-            raise ValueError(f"step_spread must be positive, got {self.step_spread}")
+        if self.initial_step_spread <= 0:
+            raise ValueError(f"initial_step_spread must be positive, got {self.initial_step_spread}")
+        
+        if self.final_step_spread is not None:
+            if self.final_step_spread < 0:
+                raise ValueError(f"final_step_spread must be non-negative, got {self.final_step_spread}")
+            if self.final_step_spread > self.initial_step_spread:
+                raise ValueError(
+                    f"final_step_spread must be <= initial_step_spread, got final={self.final_step_spread}, initial={self.initial_step_spread}"
+                )
         
         if not 0 < self.cooling_rate < 1:
             raise ValueError(
@@ -168,7 +179,7 @@ class OptimizerConfig:
         
         # Set default T_max if not provided
         if self.T_max is None:
-            self.T_max = self.T_min * DEFAULT_T_MAX_MULTIPLIER
+            self.T_max = 0.01  # Default T_max = 0.01
         
         # Set default db_path if db enabled but path not provided
         if self.db_enabled and self.db_path is None:

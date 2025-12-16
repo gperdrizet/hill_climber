@@ -626,9 +626,10 @@ def plot_optimization_results(
 ) -> None:
     """Plot optimization results from a HillClimber instance or checkpoint file.
     
-    This is a convenience function that extracts results data from either a completed
-    HillClimber optimization run or a saved checkpoint file, then visualizes the results
-    using the plot_results function.
+    DEPRECATED: This function is deprecated. Use plot_results() directly with climb() return values.
+    
+    History data is now stored in the database, not in memory. The refactored architecture
+    uses a database as the single source of truth for all history.
     
     Args:
         source (Union[str, Any]): Either a HillClimber instance (after climb() has been 
@@ -643,126 +644,20 @@ def plot_optimization_results(
             improving). Default is False.
     
     Raises:
-        ValueError: If source is neither a HillClimber instance nor a valid checkpoint path.
-        ValueError: If plot_type is not 'scatter' or 'histogram'.
+        NotImplementedError: This function is deprecated.
     
     Examples:
-        >>> # From a HillClimber instance
-        >>> from hill_climber import HillClimber, plot_optimization_results
+        >>> # NEW USAGE - Use plot_results() directly
+        >>> from hill_climber import HillClimber, plot_results
         >>> climber = HillClimber(data, objective_func)
-        >>> best_data, steps_df = climber.climb()
-        >>> plot_optimization_results(climber, plot_type='scatter')
-        
-        >>> # From a checkpoint file
-        >>> plot_optimization_results('checkpoints/run_001.pkl', all_replicas=True)
-        
-        >>> # Plot specific metrics only
-        >>> plot_optimization_results(climber, metrics=['Pearson', 'Spearman'])
-        
-        >>> # Show current objective to see SA exploration
-        >>> plot_optimization_results(climber, show_current=True)
+        >>> best_data, history_df = climber.climb()
+        >>> plot_results((best_data, history_df), plot_type='scatter')
     """
-    # Import here to avoid circular dependency
-    from .optimizer_state import get_history_dataframe
-    
-    if plot_type not in ['scatter', 'histogram']:
-        raise ValueError(f"plot_type must be 'scatter' or 'histogram', got '{plot_type}'")
-    
-    # Handle checkpoint file path
-    if isinstance(source, str):
-        if not os.path.exists(source):
-            raise ValueError(f"Checkpoint file not found: {source}")
-        
-        with open(source, 'rb') as f:
-            checkpoint = pickle.load(f)
-        
-        # Extract data from checkpoint
-        replicas = checkpoint['replicas']
-        is_dataframe = checkpoint.get('is_dataframe', False)
-        column_names = checkpoint.get('column_names', [])
-        # Get exchange_interval from first replica's hyperparameters if available
-        exchange_interval = None
-        if replicas and 'hyperparameters' in replicas[0]:
-            # Note: exchange_interval is stored at the optimizer level, not in hyperparameters
-            # For checkpoints, we need to get it from the checkpoint metadata if available
-            exchange_interval = checkpoint.get('exchange_interval')
-        
-        # Build results list
-        if all_replicas:
-            results_list = []
-            for replica in replicas:
-                if replica['metrics_history']:
-                    if is_dataframe:
-                        replica_data = pd.DataFrame(replica['best_data'], columns=column_names)
-                    else:
-                        replica_data = replica['best_data']
-                    results_list.append((
-                        replica['temperature_history'],
-                        replica_data,
-                        get_history_dataframe(replica)
-                    ))
-        else:
-            # Get best replica
-            mode = replicas[0]['hyperparameters']['mode']
-            target_value = replicas[0]['hyperparameters'].get('target_value')
-            
-            if mode == 'maximize':
-                best_replica = max(replicas, key=lambda r: r['best_objective'])
-            elif mode == 'minimize':
-                best_replica = min(replicas, key=lambda r: r['best_objective'])
-            else:  # target mode
-                best_replica = min(replicas, key=lambda r: abs(r['best_objective'] - target_value))
-            
-            if is_dataframe:
-                best_data = pd.DataFrame(best_replica['best_data'], columns=column_names)
-            else:
-                best_data = best_replica['best_data']
-            
-            results_list = [(
-                best_replica['temperature_history'],
-                best_data,
-                get_history_dataframe(best_replica)
-            )]
-    
-    # Handle HillClimber instance
-    else:
-        # Check if it's a HillClimber instance by checking for required attributes
-        if not (hasattr(source, 'replicas') and hasattr(source, 'exchange_interval')):
-            raise ValueError(
-                "source must be either a HillClimber instance or a path to a checkpoint file"
-            )
-        
-        if not source.replicas:
-            raise ValueError("HillClimber instance has not been run yet. Call climb() first.")
-        
-        exchange_interval = source.exchange_interval
-        
-        if all_replicas:
-            results_list = []
-            for replica in source.replicas:
-                if replica['metrics_history']:
-                    if source.is_dataframe:
-                        replica_data = pd.DataFrame(replica['best_data'], columns=source.column_names)
-                    else:
-                        replica_data = replica['best_data']
-                    results_list.append((
-                        replica['temperature_history'],
-                        replica_data,
-                        get_history_dataframe(replica)
-                    ))
-        else:
-            best_replica = source._get_best_replica()
-            if source.is_dataframe:
-                best_data = pd.DataFrame(best_replica['best_data'], columns=source.column_names)
-            else:
-                best_data = best_replica['best_data']
-            
-            results_list = [(
-                best_replica['temperature_history'],
-                best_data,
-                get_history_dataframe(best_replica)
-            )]
-    
-    # Call the plotting function
-    plot_results(results_list, plot_type, metrics, exchange_interval, show_current)
+    raise NotImplementedError(
+        "plot_optimization_results() is deprecated. "
+        "History data is now stored in the database, not in memory. "
+        "Use plot_results() directly with climb() return values:\\n\\n"
+        "best_data, history_df = climber.climb()\\n"
+        "plot_results((best_data, history_df), plot_type=plot_type, metrics=metrics)"
+    )
 
