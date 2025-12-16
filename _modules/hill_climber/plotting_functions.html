@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hill_climber.plotting_functions &mdash; Hill Climber 2.1.5 documentation</title>
+  <title>hill_climber.plotting_functions &mdash; Hill Climber 3.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=786ba454"></script>
+      <script src="../../_static/documentation_options.js?v=acc74ff5"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -43,12 +43,12 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../dashboard.html">Real-Time Monitoring Dashboard</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example Notebooks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dashboard.html">Real-time monitoring dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced topics</a></li>
 </ul>
 
         </div>
@@ -712,9 +712,10 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot optimization results from a HillClimber instance or checkpoint file.</span>
 <span class="sd">    </span>
-<span class="sd">    This is a convenience function that extracts results data from either a completed</span>
-<span class="sd">    HillClimber optimization run or a saved checkpoint file, then visualizes the results</span>
-<span class="sd">    using the plot_results function.</span>
+<span class="sd">    DEPRECATED: This function is deprecated. Use plot_results() directly with climb() return values.</span>
+<span class="sd">    </span>
+<span class="sd">    History data is now stored in the database, not in memory. The refactored architecture</span>
+<span class="sd">    uses a database as the single source of truth for all history.</span>
 <span class="sd">    </span>
 <span class="sd">    Args:</span>
 <span class="sd">        source (Union[str, Any]): Either a HillClimber instance (after climb() has been </span>
@@ -729,128 +730,22 @@
 <span class="sd">            improving). Default is False.</span>
 <span class="sd">    </span>
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If source is neither a HillClimber instance nor a valid checkpoint path.</span>
-<span class="sd">        ValueError: If plot_type is not &#39;scatter&#39; or &#39;histogram&#39;.</span>
+<span class="sd">        NotImplementedError: This function is deprecated.</span>
 <span class="sd">    </span>
 <span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; # From a HillClimber instance</span>
-<span class="sd">        &gt;&gt;&gt; from hill_climber import HillClimber, plot_optimization_results</span>
+<span class="sd">        &gt;&gt;&gt; # NEW USAGE - Use plot_results() directly</span>
+<span class="sd">        &gt;&gt;&gt; from hill_climber import HillClimber, plot_results</span>
 <span class="sd">        &gt;&gt;&gt; climber = HillClimber(data, objective_func)</span>
-<span class="sd">        &gt;&gt;&gt; best_data, steps_df = climber.climb()</span>
-<span class="sd">        &gt;&gt;&gt; plot_optimization_results(climber, plot_type=&#39;scatter&#39;)</span>
-<span class="sd">        </span>
-<span class="sd">        &gt;&gt;&gt; # From a checkpoint file</span>
-<span class="sd">        &gt;&gt;&gt; plot_optimization_results(&#39;checkpoints/run_001.pkl&#39;, all_replicas=True)</span>
-<span class="sd">        </span>
-<span class="sd">        &gt;&gt;&gt; # Plot specific metrics only</span>
-<span class="sd">        &gt;&gt;&gt; plot_optimization_results(climber, metrics=[&#39;Pearson&#39;, &#39;Spearman&#39;])</span>
-<span class="sd">        </span>
-<span class="sd">        &gt;&gt;&gt; # Show current objective to see SA exploration</span>
-<span class="sd">        &gt;&gt;&gt; plot_optimization_results(climber, show_current=True)</span>
+<span class="sd">        &gt;&gt;&gt; best_data, history_df = climber.climb()</span>
+<span class="sd">        &gt;&gt;&gt; plot_results((best_data, history_df), plot_type=&#39;scatter&#39;)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Import here to avoid circular dependency</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">.optimizer_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_history_dataframe</span>
-    
-    <span class="k">if</span> <span class="n">plot_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;scatter&#39;</span><span class="p">,</span> <span class="s1">&#39;histogram&#39;</span><span class="p">]:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;plot_type must be &#39;scatter&#39; or &#39;histogram&#39;, got &#39;</span><span class="si">{</span><span class="n">plot_type</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
-    
-    <span class="c1"># Handle checkpoint file path</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpoint file not found: </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-        
-        <span class="c1"># Extract data from checkpoint</span>
-        <span class="n">replicas</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;replicas&#39;</span><span class="p">]</span>
-        <span class="n">is_dataframe</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;is_dataframe&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-        <span class="n">column_names</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;column_names&#39;</span><span class="p">,</span> <span class="p">[])</span>
-        <span class="c1"># Get exchange_interval from first replica&#39;s hyperparameters if available</span>
-        <span class="n">exchange_interval</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">replicas</span> <span class="ow">and</span> <span class="s1">&#39;hyperparameters&#39;</span> <span class="ow">in</span> <span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="c1"># Note: exchange_interval is stored at the optimizer level, not in hyperparameters</span>
-            <span class="c1"># For checkpoints, we need to get it from the checkpoint metadata if available</span>
-            <span class="n">exchange_interval</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exchange_interval&#39;</span><span class="p">)</span>
-        
-        <span class="c1"># Build results list</span>
-        <span class="k">if</span> <span class="n">all_replicas</span><span class="p">:</span>
-            <span class="n">results_list</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="n">replicas</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">]:</span>
-                    <span class="k">if</span> <span class="n">is_dataframe</span><span class="p">:</span>
-                        <span class="n">replica_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="n">column_names</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">replica_data</span> <span class="o">=</span> <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">]</span>
-                    <span class="n">results_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
-                        <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">],</span>
-                        <span class="n">replica_data</span><span class="p">,</span>
-                        <span class="n">get_history_dataframe</span><span class="p">(</span><span class="n">replica</span><span class="p">)</span>
-                    <span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Get best replica</span>
-            <span class="n">mode</span> <span class="o">=</span> <span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;hyperparameters&#39;</span><span class="p">][</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span>
-            <span class="n">target_value</span> <span class="o">=</span> <span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;hyperparameters&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;target_value&#39;</span><span class="p">)</span>
-            
-            <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;maximize&#39;</span><span class="p">:</span>
-                <span class="n">best_replica</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">replicas</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">])</span>
-            <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;minimize&#39;</span><span class="p">:</span>
-                <span class="n">best_replica</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">replicas</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">])</span>
-            <span class="k">else</span><span class="p">:</span>  <span class="c1"># target mode</span>
-                <span class="n">best_replica</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">replicas</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">target_value</span><span class="p">))</span>
-            
-            <span class="k">if</span> <span class="n">is_dataframe</span><span class="p">:</span>
-                <span class="n">best_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="n">column_names</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">best_data</span> <span class="o">=</span> <span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">]</span>
-            
-            <span class="n">results_list</span> <span class="o">=</span> <span class="p">[(</span>
-                <span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">],</span>
-                <span class="n">best_data</span><span class="p">,</span>
-                <span class="n">get_history_dataframe</span><span class="p">(</span><span class="n">best_replica</span><span class="p">)</span>
-            <span class="p">)]</span>
-    
-    <span class="c1"># Handle HillClimber instance</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Check if it&#39;s a HillClimber instance by checking for required attributes</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s1">&#39;replicas&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s1">&#39;exchange_interval&#39;</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;source must be either a HillClimber instance or a path to a checkpoint file&quot;</span>
-            <span class="p">)</span>
-        
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">source</span><span class="o">.</span><span class="n">replicas</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;HillClimber instance has not been run yet. Call climb() first.&quot;</span><span class="p">)</span>
-        
-        <span class="n">exchange_interval</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">exchange_interval</span>
-        
-        <span class="k">if</span> <span class="n">all_replicas</span><span class="p">:</span>
-            <span class="n">results_list</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">replicas</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">]:</span>
-                    <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">:</span>
-                        <span class="n">replica_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">replica_data</span> <span class="o">=</span> <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">]</span>
-                    <span class="n">results_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
-                        <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">],</span>
-                        <span class="n">replica_data</span><span class="p">,</span>
-                        <span class="n">get_history_dataframe</span><span class="p">(</span><span class="n">replica</span><span class="p">)</span>
-                    <span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">best_replica</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">_get_best_replica</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">:</span>
-                <span class="n">best_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">best_data</span> <span class="o">=</span> <span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">]</span>
-            
-            <span class="n">results_list</span> <span class="o">=</span> <span class="p">[(</span>
-                <span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">],</span>
-                <span class="n">best_data</span><span class="p">,</span>
-                <span class="n">get_history_dataframe</span><span class="p">(</span><span class="n">best_replica</span><span class="p">)</span>
-            <span class="p">)]</span>
-    
-    <span class="c1"># Call the plotting function</span>
-    <span class="n">plot_results</span><span class="p">(</span><span class="n">results_list</span><span class="p">,</span> <span class="n">plot_type</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">exchange_interval</span><span class="p">,</span> <span class="n">show_current</span><span class="p">)</span></div>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+        <span class="s2">&quot;plot_optimization_results() is deprecated. &quot;</span>
+        <span class="s2">&quot;History data is now stored in the database, not in memory. &quot;</span>
+        <span class="s2">&quot;Use plot_results() directly with climb() return values:</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n&quot;</span>
+        <span class="s2">&quot;best_data, history_df = climber.climb()</span><span class="se">\\</span><span class="s2">n&quot;</span>
+        <span class="s2">&quot;plot_results((best_data, history_df), plot_type=plot_type, metrics=metrics)&quot;</span>
+    <span class="p">)</span></div>
 
 
 </pre></div>

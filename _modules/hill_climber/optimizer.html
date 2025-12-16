@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hill_climber.optimizer &mdash; Hill Climber 2.1.5 documentation</title>
+  <title>hill_climber.optimizer &mdash; Hill Climber 3.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=786ba454"></script>
+      <script src="../../_static/documentation_options.js?v=acc74ff5"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -43,12 +43,12 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../dashboard.html">Real-Time Monitoring Dashboard</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example Notebooks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dashboard.html">Real-time monitoring dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced topics</a></li>
 </ul>
 
         </div>
@@ -89,7 +89,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pool</span><span class="p">,</span> <span class="n">cpu_count</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pool</span> <span class="k">as</span> <span class="n">PoolType</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.optimizer_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_replica_state</span><span class="p">,</span> <span class="n">record_temperature_change</span><span class="p">,</span> <span class="n">record_exchange</span><span class="p">,</span> <span class="n">get_history_dataframe</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.optimizer_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_replica_state</span><span class="p">,</span> <span class="n">record_temperature_change</span><span class="p">,</span> <span class="n">record_exchange</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.climber_functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">perturb_vectors</span><span class="p">,</span> <span class="n">evaluate_objective</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.replica_exchange</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">TemperatureLadder</span><span class="p">,</span> <span class="n">ExchangeScheduler</span><span class="p">,</span> <span class="n">should_exchange</span>
@@ -100,7 +100,8 @@
     <span class="n">DEFAULT_T_MIN</span><span class="p">,</span>
     <span class="n">DEFAULT_T_MAX_MULTIPLIER</span><span class="p">,</span>
     <span class="n">DEFAULT_COOLING_RATE</span><span class="p">,</span>
-    <span class="n">DEFAULT_STEP_SPREAD</span><span class="p">,</span>
+    <span class="n">DEFAULT_INITIAL_STEP_SPREAD</span><span class="p">,</span>
+    <span class="n">DEFAULT_FINAL_STEP_SPREAD</span><span class="p">,</span>
     <span class="n">DEFAULT_PERTURB_FRACTION</span><span class="p">,</span>
     <span class="n">DEFAULT_N_REPLICAS</span><span class="p">,</span>
     <span class="n">DEFAULT_EXCHANGE_INTERVAL</span><span class="p">,</span>
@@ -131,9 +132,14 @@
 <span class="sd">        mode: &#39;maximize&#39;, &#39;minimize&#39;, or &#39;target&#39;</span>
 <span class="sd">        target_value: Target value (only used if mode=&#39;target&#39;)</span>
 <span class="sd">        max_time: Maximum runtime in minutes</span>
-<span class="sd">        step_spread: Perturbation spread as fraction of input range (default: 0.01 = 1%). Step </span>
-<span class="sd">            values are sampled from a gaussian distribution with mean 0 and standard deviation = </span>
-<span class="sd">            input range * step_spread</span>
+<span class="sd">        initial_step_spread: Initial perturbation spread as fraction of input range (default: 0.25 = 25%).</span>
+<span class="sd">            Step values are sampled from a gaussian distribution with mean 0 and standard deviation</span>
+<span class="sd">            calculated per-feature as: feature_range * initial_step_spread. Each feature uses its own</span>
+<span class="sd">            range for more appropriate perturbations across different scales.</span>
+<span class="sd">        final_step_spread: Final perturbation spread as fraction of input range (default: None). If</span>
+<span class="sd">            specified, step spread linearly decreases from initial_step_spread to final_step_spread</span>
+<span class="sd">            over the course of max_time, enabling time-based cooling for more refined optimization</span>
+<span class="sd">            near the end of the run.</span>
 <span class="sd">        perturb_fraction: Fraction of data points to perturb each step</span>
 <span class="sd">        n_replicas: Number of replicas for parallel tempering (default: 4), setting to 1 runs</span>
 <span class="sd">            simulated annealing without replica exchange</span>
@@ -161,7 +167,8 @@
         <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_MODE</span><span class="p">,</span>
         <span class="n">target_value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_MAX_TIME</span><span class="p">,</span>
-        <span class="n">step_spread</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_STEP_SPREAD</span><span class="p">,</span>
+        <span class="n">initial_step_spread</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_INITIAL_STEP_SPREAD</span><span class="p">,</span>
+        <span class="n">final_step_spread</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_FINAL_STEP_SPREAD</span><span class="p">,</span>
         <span class="n">perturb_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_PERTURB_FRACTION</span><span class="p">,</span>
         <span class="n">n_replicas</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_N_REPLICAS</span><span class="p">,</span>
         <span class="n">T_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_T_MIN</span><span class="p">,</span>
@@ -172,7 +179,7 @@
         <span class="n">exchange_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_EXCHANGE_STRATEGY</span><span class="p">,</span>
         <span class="n">checkpoint_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">checkpoint_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_CHECKPOINT_INTERVAL</span><span class="p">,</span>
-        <span class="n">db_enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">db_enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">db_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">db_step_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -187,7 +194,8 @@
             <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
             <span class="n">target_value</span><span class="o">=</span><span class="n">target_value</span><span class="p">,</span>
             <span class="n">max_time</span><span class="o">=</span><span class="n">max_time</span><span class="p">,</span>
-            <span class="n">step_spread</span><span class="o">=</span><span class="n">step_spread</span><span class="p">,</span>
+            <span class="n">initial_step_spread</span><span class="o">=</span><span class="n">initial_step_spread</span><span class="p">,</span>
+            <span class="n">final_step_spread</span><span class="o">=</span><span class="n">final_step_spread</span><span class="p">,</span>
             <span class="n">perturb_fraction</span><span class="o">=</span><span class="n">perturb_fraction</span><span class="p">,</span>
             <span class="n">n_replicas</span><span class="o">=</span><span class="n">n_replicas</span><span class="p">,</span>
             <span class="n">T_min</span><span class="o">=</span><span class="n">T_min</span><span class="p">,</span>
@@ -224,7 +232,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">mode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">target_value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_time</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">max_time</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">step_spread</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_step_spread</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">initial_step_spread</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">final_step_spread</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">final_step_spread</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">perturb_fraction</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">T_min</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">cooling_rate</span>
@@ -258,9 +267,9 @@
         <span class="c1"># Bounds for boundary reflection</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
         
-        <span class="c1"># Absolute step_spread from fraction of data range</span>
-        <span class="n">data_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">step_spread_absolute</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">step_spread</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data_range</span><span class="p">)</span>
+        <span class="c1"># step_spread_absolute will be calculated in climb() using current bounds</span>
+        <span class="c1"># This allows users to modify bounds after initialization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_spread_absolute</span> <span class="o">=</span> <span class="kc">None</span>
         
         <span class="c1"># Database settings (already validated and defaults set in config)</span>
         <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">db_enabled</span><span class="p">:</span>
@@ -293,20 +302,66 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">n_replicas</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Normal case: use the specified n_workers</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">n_workers</span>        </div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">n_workers</span>
+        
+        <span class="c1"># Print configuration summary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_print_settings</span><span class="p">()</span></div>
 
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_print_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Print optimizer configuration settings.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;HillClimber Configuration&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Data shape:           </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimization mode:    </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot; (target=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="si">}</span><span class="s2">)&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;target&#39;</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Max runtime:          </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_time</span><span class="si">}</span><span class="s2"> minutes&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Temperature settings:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  T_min:              </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T_min</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  T_max:              </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T_max</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Cooling rate:       </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Temperature scheme: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature_scheme</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Replica exchange:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Number of replicas: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Exchange interval:  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span><span class="si">}</span><span class="s2"> steps&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Exchange strategy:  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">exchange_strategy</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Worker processes:   </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_workers</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Perturbation settings:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Initial step spread: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_step_spread</span><span class="si">}</span><span class="s2"> (fraction of range)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_step_spread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Final step spread:   </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">final_step_spread</span><span class="si">}</span><span class="s2"> (fraction at end of run)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Perturb fraction:    </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">perturb_fraction</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Database settings:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Enabled:            </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">db_enabled</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_enabled</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Path:               </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">db_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Step interval:      </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">db_step_interval</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Checkpointing:        </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2"> (every </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_interval</span><span class="si">}</span><span class="s2"> batch)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">70</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="HillClimber.climb">
 <a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.climb">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">climb</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">climb</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run replica exchange optimization.</span>
 <span class="sd">        </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) where:</span>
-<span class="sd">                - best_data: Best configuration found across all replicas</span>
-<span class="sd">                - steps_df: DataFrame with optimization history from best replica</span>
+<span class="sd">            np.ndarray: Best configuration found across all replicas.</span>
+<span class="sd">                If database is enabled, use the dashboard to view optimization history.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Calculate absolute step_spread from current bounds</span>
+        <span class="c1"># Done here so users can modify bounds after initialization</span>
+        <span class="n">data_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_spread_absolute</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_step_spread</span> <span class="o">*</span> <span class="n">data_range</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting replica exchange with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span><span class="si">}</span><span class="s2"> replicas...&quot;</span><span class="p">)</span>
@@ -343,14 +398,14 @@
 
 
     
-    <span class="k">def</span><span class="w"> </span><span class="nf">_climb_parallel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">:</span> <span class="n">ExchangeScheduler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_climb_parallel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">:</span> <span class="n">ExchangeScheduler</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run optimization with parallel workers.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
 <span class="sd">            scheduler (ExchangeScheduler): Scheduler for replica exchange.</span>
 <span class="sd">            </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) from best replica.</span>
+<span class="sd">            np.ndarray: Best configuration from best replica.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
@@ -362,7 +417,7 @@
                 <span class="n">batch_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
                 
                 <span class="c1"># Run batch of steps in parallel</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_step_batch</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_step_batch</span><span class="p">(</span><span class="n">pool</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_interval</span><span class="p">,</span> <span class="n">start_time</span><span class="p">)</span>
                 
                 <span class="c1"># Attempt exchanges if we are optimizing multiple replicas</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_replicas</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -386,12 +441,13 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finalize_results</span><span class="p">()</span>
     
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_parallel_step_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pool</span><span class="p">:</span> <span class="n">PoolType</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parallel_step_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pool</span><span class="p">:</span> <span class="n">PoolType</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">start_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute n_steps for all replicas in parallel.</span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
 <span class="sd">            pool (PoolType): Multiprocessing pool for parallel execution.</span>
 <span class="sd">            n_steps (int): Number of optimization steps to execute per replica.</span>
+<span class="sd">            start_time (float): Start time of the optimization run for time-based step cooling.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># Serialize current replica states</span>
@@ -415,49 +471,125 @@
             <span class="n">n_steps</span><span class="o">=</span><span class="n">n_steps</span><span class="p">,</span>
             <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
             <span class="n">target_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">,</span>
-            <span class="n">db_config</span><span class="o">=</span><span class="n">db_config</span>
+            <span class="n">db_config</span><span class="o">=</span><span class="n">db_config</span><span class="p">,</span>
+            <span class="n">start_time</span><span class="o">=</span><span class="n">start_time</span>
         <span class="p">)</span>
         
         <span class="c1"># Execute in parallel</span>
         <span class="n">updated_states</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">worker_func</span><span class="p">,</span> <span class="n">state_dicts</span><span class="p">)</span>
         
-        <span class="c1"># Collect database buffers and update replicas</span>
-        <span class="n">all_db_buffers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Collect database buffers from all replicas</span>
+        <span class="n">all_perturbations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_accepted</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_step_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_improvements</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_improvement_metrics</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">state_dict</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">updated_states</span><span class="p">):</span>
 
-            <span class="c1"># Extract and collect database buffer if present</span>
-            <span class="k">if</span> <span class="s1">&#39;db_buffer&#39;</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
-                <span class="n">all_db_buffers</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;db_buffer&#39;</span><span class="p">))</span>
+            <span class="c1"># Extract and collect database buffers if present</span>
+            <span class="k">if</span> <span class="s1">&#39;db_buffers&#39;</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
+                <span class="n">buffers</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;db_buffers&#39;</span><span class="p">)</span>
+                <span class="n">all_perturbations</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">buffers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;perturbations&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+                <span class="n">all_accepted</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">buffers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;accepted&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+                <span class="n">all_step_metrics</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">buffers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;step_metrics&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+                <span class="n">all_improvements</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">buffers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;improvements&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+                <span class="n">all_improvement_metrics</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">buffers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;improvement_metrics&#39;</span><span class="p">,</span> <span class="p">[]))</span>
             
             <span class="c1"># Preserve temperature_history before updating</span>
             <span class="n">temp_history</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp_history</span>
         
-        <span class="c1"># Flush all collected database buffers to database</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_enabled</span> <span class="ow">and</span> <span class="n">all_db_buffers</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">insert_metrics_batch</span><span class="p">(</span><span class="n">all_db_buffers</span><span class="p">)</span>
-        
-        <span class="c1"># Update replica status in database</span>
+        <span class="c1"># Flush all collected database buffers to database (single source of truth)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_enabled</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">insert_perturbations_batch</span><span class="p">(</span><span class="n">all_perturbations</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">insert_accepted_steps_batch</span><span class="p">(</span><span class="n">all_accepted</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">insert_step_metrics_batch</span><span class="p">(</span><span class="n">all_step_metrics</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">insert_improvements_batch</span><span class="p">(</span><span class="n">all_improvements</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">insert_improvement_metrics_batch</span><span class="p">(</span><span class="n">all_improvement_metrics</span><span class="p">)</span>
+            
+            <span class="c1"># Update replica status snapshot</span>
             <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">update_replica_status</span><span class="p">(</span>
                     <span class="n">replica_id</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;replica_id&#39;</span><span class="p">],</span>
-                    <span class="n">step</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span>
-                    <span class="n">total_iterations</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;total_iterations&#39;</span><span class="p">],</span>
+                    <span class="n">current_perturbation_num</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">],</span>
+                    <span class="n">num_accepted</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;num_accepted&#39;</span><span class="p">],</span>
+                    <span class="n">num_improvements</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;num_improvements&#39;</span><span class="p">],</span>
                     <span class="n">temperature</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">],</span>
                     <span class="n">best_objective</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">],</span>
                     <span class="n">current_objective</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;current_objective&#39;</span><span class="p">]</span>
                 <span class="p">)</span>
     
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_finalize_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_finalize_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Complete optimization and return results.</span>
 <span class="sd">        </span>
+<span class="sd">        Writes final database snapshots and returns best solution found.</span>
+<span class="sd">        </span>
 <span class="sd">        Returns:</span>
-<span class="sd">            Tuple[np.ndarray, pd.DataFrame]: Tuple of (best_data, steps_df) from best replica.</span>
+<span class="sd">            np.ndarray: Best configuration from best replica.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Write final state to database to ensure dashboard shows final values</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_enabled</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            
+            <span class="n">final_perturbations</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">final_improvements</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">final_improvement_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">:</span>
+                <span class="c1"># Write final perturbation snapshot</span>
+                <span class="n">final_perturbations</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+                    <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;replica_id&#39;</span><span class="p">],</span>
+                    <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">],</span>
+                    <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;current_objective&#39;</span><span class="p">],</span>
+                    <span class="kc">False</span><span class="p">,</span>  <span class="c1"># not newly accepted (just a snapshot)</span>
+                    <span class="kc">False</span><span class="p">,</span>  <span class="c1"># not a new improvement (just a snapshot)</span>
+                    <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">],</span>
+                    <span class="n">timestamp</span>
+                <span class="p">))</span>
+                
+                <span class="c1"># Write final best as improvement</span>
+                <span class="n">final_improvements</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+                    <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;replica_id&#39;</span><span class="p">],</span>
+                    <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">],</span>
+                    <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">],</span>
+                    <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">],</span>
+                    <span class="n">timestamp</span>
+                <span class="p">))</span>
+                
+                <span class="c1"># Write final best metrics</span>
+                <span class="k">if</span> <span class="s1">&#39;best_metrics&#39;</span> <span class="ow">in</span> <span class="n">replica</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">metric_name</span><span class="p">,</span> <span class="n">metric_value</span> <span class="ow">in</span> <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_metrics&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">final_improvement_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+                            <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;replica_id&#39;</span><span class="p">],</span>
+                            <span class="n">replica</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">],</span>
+                            <span class="n">metric_name</span><span class="p">,</span>
+                            <span class="n">metric_value</span>
+                        <span class="p">))</span>
+            
+            <span class="c1"># Flush final snapshots to database</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">insert_perturbations_batch</span><span class="p">(</span><span class="n">final_perturbations</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">insert_improvements_batch</span><span class="p">(</span><span class="n">final_improvements</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">insert_improvement_metrics_batch</span><span class="p">(</span><span class="n">final_improvement_metrics</span><span class="p">)</span>
+            
+            <span class="c1"># Update final replica status</span>
+            <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">update_replica_status</span><span class="p">(</span>
+                    <span class="n">replica_id</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;replica_id&#39;</span><span class="p">],</span>
+                    <span class="n">current_perturbation_num</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">],</span>
+                    <span class="n">num_accepted</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;num_accepted&#39;</span><span class="p">],</span>
+                    <span class="n">num_improvements</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;num_improvements&#39;</span><span class="p">],</span>
+                    <span class="n">temperature</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">],</span>
+                    <span class="n">best_objective</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">],</span>
+                    <span class="n">current_objective</span><span class="o">=</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;current_objective&#39;</span><span class="p">]</span>
+                <span class="p">)</span>
+            
+            <span class="c1"># Mark run as complete</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">set_run_end_time</span><span class="p">()</span>
 
         <span class="c1"># Final checkpoint</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">:</span>
@@ -479,7 +611,31 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">best_data_output</span> <span class="o">=</span> <span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">]</span>
         
-        <span class="k">return</span> <span class="n">best_data_output</span><span class="p">,</span> <span class="n">get_history_dataframe</span><span class="p">(</span><span class="n">best_replica</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">best_data_output</span>
+    
+
+<div class="viewcode-block" id="HillClimber.get_replicas">
+<a class="viewcode-back" href="../../api.html#hill_climber.HillClimber.get_replicas">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_replicas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get best data from all replicas.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Tuple of DataFrames (or numpy arrays if input was numpy), one for each replica,</span>
+<span class="sd">                containing the best data found by that replica. Ordered by replica_id.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No replicas available. Run climb() first.&quot;</span><span class="p">)</span>
+        
+        <span class="n">replica_results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">replicas</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;replica_id&#39;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_dataframe</span><span class="p">:</span>
+                <span class="n">replica_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
+                <span class="n">replica_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">replica_df</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">replica_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">replica</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">replica_results</span><span class="p">)</span></div>
+
     
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_initialize_database</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -509,7 +665,8 @@
             <span class="s1">&#39;cooling_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span><span class="p">,</span>
             <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
             <span class="s1">&#39;target_value&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">,</span>
-            <span class="s1">&#39;step_spread&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span><span class="p">,</span>
+            <span class="s1">&#39;initial_step_spread&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_step_spread</span><span class="p">,</span>
+            <span class="s1">&#39;final_step_spread&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_step_spread</span><span class="p">,</span>
             <span class="s1">&#39;T_min&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_min</span><span class="p">,</span>
             <span class="s1">&#39;T_max&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_max</span><span class="p">,</span>
             <span class="s1">&#39;temperature_scheme&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_scheme</span><span class="p">,</span>
@@ -544,7 +701,10 @@
             <span class="s1">&#39;cooling_rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_rate</span><span class="p">,</span>
             <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
             <span class="s1">&#39;target_value&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">,</span>
-            <span class="s1">&#39;step_spread&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_spread</span>
+            <span class="s1">&#39;initial_step_spread&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_step_spread</span><span class="p">,</span>
+            <span class="s1">&#39;final_step_spread&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_step_spread</span><span class="p">,</span>
+            <span class="s1">&#39;step_spread_absolute_initial&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_spread_absolute</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="s1">&#39;step_spread_absolute_final&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_step_spread</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_step_spread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="p">}</span>
         
         <span class="c1"># Evaluate initial objective</span>
@@ -566,11 +726,10 @@
                 <span class="n">hyperparameters</span><span class="o">=</span><span class="n">hyperparams</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="p">)</span>
 
-            <span class="c1"># Record initial metrics (including objective value)</span>
-            <span class="n">initial_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">initial_metrics</span><span class="p">[</span><span class="s1">&#39;Objective value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">objective</span>
-            <span class="n">state</span><span class="p">[</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">initial_metrics</span><span class="p">)</span>
-            <span class="n">state</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># Initialize new state counters</span>
+            <span class="n">state</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">state</span><span class="p">[</span><span class="s1">&#39;num_accepted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">state</span><span class="p">[</span><span class="s1">&#39;num_improvements&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
             
             <span class="c1"># Initialize best_metrics (excluding &#39;Objective&#39; entries)</span>
             <span class="n">state</span><span class="p">[</span><span class="s1">&#39;best_metrics&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="s1">&#39;Objective&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">k</span><span class="p">}</span>
@@ -667,15 +826,15 @@
                 <span class="n">old_temp_i</span> <span class="o">=</span> <span class="n">replica_i</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">]</span>
                 <span class="n">old_temp_j</span> <span class="o">=</span> <span class="n">replica_j</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">]</span>
                 
-                <span class="c1"># Record temperature changes with current step number</span>
-                <span class="n">current_step</span> <span class="o">=</span> <span class="n">replica_i</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">]</span>  <span class="c1"># Use step from replica i</span>
-                <span class="n">record_temperature_change</span><span class="p">(</span><span class="n">replica_i</span><span class="p">,</span> <span class="n">old_temp_j</span><span class="p">,</span> <span class="n">current_step</span><span class="p">)</span>
-                <span class="n">record_temperature_change</span><span class="p">(</span><span class="n">replica_j</span><span class="p">,</span> <span class="n">old_temp_i</span><span class="p">,</span> <span class="n">replica_j</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">])</span>
+                <span class="c1"># Record temperature changes with current perturbation number</span>
+                <span class="n">current_pnum</span> <span class="o">=</span> <span class="n">replica_i</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">]</span>  <span class="c1"># Use perturbation_num from replica i</span>
+                <span class="n">record_temperature_change</span><span class="p">(</span><span class="n">replica_i</span><span class="p">,</span> <span class="n">old_temp_j</span><span class="p">,</span> <span class="n">current_pnum</span><span class="p">)</span>
+                <span class="n">record_temperature_change</span><span class="p">(</span><span class="n">replica_j</span><span class="p">,</span> <span class="n">old_temp_i</span><span class="p">,</span> <span class="n">replica_j</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">])</span>
                 
                 <span class="c1"># Collect for database logging</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_enabled</span><span class="p">:</span>
-                    <span class="n">db_exchanges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">current_step</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">old_temp_j</span><span class="p">))</span>
-                    <span class="n">db_exchanges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">replica_j</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">],</span> <span class="n">j</span><span class="p">,</span> <span class="n">old_temp_i</span><span class="p">))</span>
+                    <span class="n">db_exchanges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">current_pnum</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">old_temp_j</span><span class="p">))</span>
+                    <span class="n">db_exchanges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">replica_j</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">],</span> <span class="n">j</span><span class="p">,</span> <span class="n">old_temp_i</span><span class="p">))</span>
             
             <span class="c1"># Record statistics</span>
             <span class="n">record_exchange</span><span class="p">(</span><span class="n">replica_i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">accepted</span><span class="p">)</span>
@@ -771,7 +930,9 @@
             <span class="n">cooling_rate</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;cooling_rate&#39;</span><span class="p">],</span>
             <span class="n">mode</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">],</span>
             <span class="n">target_value</span><span class="o">=</span><span class="n">hyperparams</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;target_value&#39;</span><span class="p">),</span>
-            <span class="n">step_spread</span><span class="o">=</span><span class="n">hyperparams</span><span class="p">[</span><span class="s1">&#39;step_spread&#39;</span><span class="p">],</span>
+            <span class="c1"># Handle both old (step_spread) and new (initial_step_spread) names for backward compatibility</span>
+            <span class="n">initial_step_spread</span><span class="o">=</span><span class="n">hyperparams</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;initial_step_spread&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;step_spread&#39;</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)),</span>
+            <span class="n">final_step_spread</span><span class="o">=</span><span class="n">hyperparams</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;final_step_spread&#39;</span><span class="p">),</span>
             <span class="n">n_replicas</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;replicas&#39;</span><span class="p">]),</span>
             <span class="n">verbose</span><span class="o">=</span><span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
             <span class="n">n_workers</span><span class="o">=</span><span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;n_workers&#39;</span><span class="p">)</span>

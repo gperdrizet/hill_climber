@@ -1,4 +1,4 @@
-Hill Climber Documentation
+Hill climber documentation
 ==========================
 
 A flexible simulated annealing optimizer for generating synthetic datasets with specific statistical properties.
@@ -40,18 +40,18 @@ See :doc:`installation` for more options including development setup.
 Features
 --------
 
-- **Replica Exchange (Parallel Tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
-- **Real-Time Monitoring Dashboard**: Streamlit-based modular dashboard for live progress visualization with SQLite backend
-- **Type-Safe Configuration**: Dataclass-based configuration with automatic validation
+- **Replica exchange (parallel tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization
+- **Real-time monitoring dashboard**: Streamlit-based modular dashboard for live progress visualization with SQLite backend
+- **Type-safe configuration**: Dataclass-based configuration with automatic validation
 - **Flexible objective functions**: Define custom objectives for any statistical property
 - **Simulated annealing**: Escape local optima and find global solutions
 - **Multi-column data**: Optimize datasets with any number of features
 - **Structured state management**: ReplicaState dataclass with type hints for clarity and IDE support
 - **Checkpointing**: Save and resume long-running optimizations with configurable checkpoint intervals
 - **Rich visualization**: Built-in plotting functions for results analysis
-- **JIT Compilation**: Numba-optimized core functions for performance
+- **JIT compilation**: Numba-optimized core functions for performance
 
-Data Format
+Data format
 -----------
 
 Hill Climber works with tabular data in the following format:
@@ -64,7 +64,7 @@ Hill Climber works with tabular data in the following format:
   - For 3 features: ``objective_func(x, y, z)``
   - For M features: ``objective_func(col1, col2, ..., colM)``
 
-Python Version Support
+Python version support
 ----------------------
 
 - Python 3.10+
@@ -85,7 +85,7 @@ Links
    });
    </script>
 
-Indices and Tables
+Indices and tables
 ==================
 
 * :ref:`genindex`

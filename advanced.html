@@ -6,21 +6,21 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Topics &mdash; Hill Climber 2.1.5 documentation</title>
+  <title>Advanced topics &mdash; Hill Climber 3.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=786ba454"></script>
+      <script src="_static/documentation_options.js?v=acc74ff5"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Example Notebooks" href="notebooks.html" /> 
+    <link rel="prev" title="Example notebooks" href="notebooks.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -45,41 +45,42 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="dashboard.html">Real-Time Monitoring Dashboard</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebooks.html">Example Notebooks</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Advanced Topics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#custom-objective-functions">Custom Objective Functions</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#complex-multi-objective-optimization">Complex Multi-Objective Optimization</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#handling-constraints">Handling Constraints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dashboard.html">Real-time monitoring dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks.html">Example notebooks</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Advanced topics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#custom-objective-functions">Custom objective functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#complex-multi-objective-optimization">Complex multi-objective optimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#handling-constraints">Handling constraints</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#replica-exchange-tuning">Replica Exchange Tuning</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#temperature-ladder-configuration">Temperature Ladder Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#exchange-strategy-selection">Exchange Strategy Selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#choosing-number-of-replicas">Choosing Number of Replicas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#replica-exchange-tuning">Replica exchange tuning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#temperature-ladder-configuration">Temperature ladder configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exchange-strategy-selection">Exchange strategy selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#choosing-number-of-replicas">Choosing number of replicas</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#temperature-reset-on-resume">Temperature Reset on Resume</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#temperature-reset-on-resume">Temperature reset on resume</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#performance-optimization">Performance Optimization</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#perturbation-strategies">Perturbation Strategies</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#better-exploration">Better Exploration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#performance-optimization">Performance optimization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#perturbation-strategies">Perturbation strategies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#faster-convergence">Faster convergence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#better-exploration">Better exploration</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#algorithm-visualization">Algorithm Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#algorithm-visualization">Algorithm visualization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#no-progress-after-many-steps">No Progress After Many Steps</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#converging-to-local-optima">Converging to Local Optima</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#oscillating-objective-values">Oscillating Objective Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#no-progress-after-many-steps">No progress after many steps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#converging-to-local-optima">Converging to local optima</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#oscillating-objective-values">Oscillating objective values</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#package-information">Package Information</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#version-information">Version Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#package-information">Package information</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#version-information">Version information</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#license">License</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#citation">Citation</a></li>
 </ul>
@@ -102,7 +103,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Advanced Topics</li>
+      <li class="breadcrumb-item active">Advanced topics</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/advanced.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -113,11 +114,11 @@
            <div itemprop="articleBody">
              
   <section id="advanced-topics">
-<h1>Advanced Topics<a class="headerlink" href="#advanced-topics" title="Link to this heading"></a></h1>
+<h1>Advanced topics<a class="headerlink" href="#advanced-topics" title="Link to this heading"></a></h1>
 <section id="custom-objective-functions">
-<h2>Custom Objective Functions<a class="headerlink" href="#custom-objective-functions" title="Link to this heading"></a></h2>
+<h2>Custom objective functions<a class="headerlink" href="#custom-objective-functions" title="Link to this heading"></a></h2>
 <section id="complex-multi-objective-optimization">
-<h3>Complex Multi-Objective Optimization<a class="headerlink" href="#complex-multi-objective-optimization" title="Link to this heading"></a></h3>
+<h3>Complex multi-objective optimization<a class="headerlink" href="#complex-multi-objective-optimization" title="Link to this heading"></a></h3>
 <p>Hill Climber supports multi-column data. Your objective function should accept
 as many arguments as you have columns. Combine multiple objectives with different weights:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">multi_objective</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
@@ -146,7 +147,7 @@ as many arguments as you have columns. Combine multiple objectives with differen
 </div>
 </section>
 <section id="handling-constraints">
-<h3>Handling Constraints<a class="headerlink" href="#handling-constraints" title="Link to this heading"></a></h3>
+<h3>Handling constraints<a class="headerlink" href="#handling-constraints" title="Link to this heading"></a></h3>
 <p>Implement hard constraints through penalties:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">constrained_objective</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Optimize with constraints.&quot;&quot;&quot;</span>
@@ -175,9 +176,9 @@ as many arguments as you have columns. Combine multiple objectives with differen
 </section>
 </section>
 <section id="replica-exchange-tuning">
-<h2>Replica Exchange Tuning<a class="headerlink" href="#replica-exchange-tuning" title="Link to this heading"></a></h2>
+<h2>Replica exchange tuning<a class="headerlink" href="#replica-exchange-tuning" title="Link to this heading"></a></h2>
 <section id="temperature-ladder-configuration">
-<h3>Temperature Ladder Configuration<a class="headerlink" href="#temperature-ladder-configuration" title="Link to this heading"></a></h3>
+<h3>Temperature ladder configuration<a class="headerlink" href="#temperature-ladder-configuration" title="Link to this heading"></a></h3>
 <p>Choose the appropriate temperature range and spacing:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Wide temperature range for difficult landscapes</span>
 <span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
@@ -202,7 +203,7 @@ as many arguments as you have columns. Combine multiple objectives with differen
 </div>
 </section>
 <section id="exchange-strategy-selection">
-<h3>Exchange Strategy Selection<a class="headerlink" href="#exchange-strategy-selection" title="Link to this heading"></a></h3>
+<h3>Exchange strategy selection<a class="headerlink" href="#exchange-strategy-selection" title="Link to this heading"></a></h3>
 <p>Different strategies for replica pairing:</p>
 <ul class="simple">
 <li><p><strong>even_odd</strong> (default): Alternates between even and odd pairs (0-1, 2-3, then 1-2, 3-4). Good balance of mixing and efficiency.</p></li>
@@ -219,7 +220,7 @@ as many arguments as you have columns. Combine multiple objectives with differen
 </div>
 </section>
 <section id="choosing-number-of-replicas">
-<h3>Choosing Number of Replicas<a class="headerlink" href="#choosing-number-of-replicas" title="Link to this heading"></a></h3>
+<h3>Choosing number of replicas<a class="headerlink" href="#choosing-number-of-replicas" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>4 replicas</strong>: Good default for most problems</p></li>
 <li><p><strong>8-12 replicas</strong>: Better exploration of complex landscapes</p></li>
@@ -259,11 +260,11 @@ as many arguments as you have columns. Combine multiple objectives with differen
 <span class="p">)</span>
 
 <span class="c1"># Continue from where it left off</span>
-<span class="n">best_data</span><span class="p">,</span> <span class="n">history_df</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+<span class="n">best_data</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
 <section id="temperature-reset-on-resume">
-<h3>Temperature Reset on Resume<a class="headerlink" href="#temperature-reset-on-resume" title="Link to this heading"></a></h3>
+<h3>Temperature reset on resume<a class="headerlink" href="#temperature-reset-on-resume" title="Link to this heading"></a></h3>
 <p>By default, <code class="docutils literal notranslate"><span class="pre">load_checkpoint</span></code> preserves the cooled temperatures from the saved state,
 allowing the optimization to continue its cooling schedule. However, you can reset
 temperatures to their original ladder values:</p>
@@ -275,13 +276,13 @@ temperatures to their original ladder values:</p>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>When to reset temperatures:</strong></p>
+<p><strong>When to reset temperatures</strong></p>
 <ul class="simple">
 <li><p><strong>Escaped local minimum</strong>: If the optimization found a good solution but you want to explore more aggressively</p></li>
 <li><p><strong>Multiple restart strategy</strong>: Run multiple sessions with fresh temperatures for better exploration</p></li>
 <li><p><strong>Stuck optimization</strong>: Replicas have cooled too much and accept very few moves</p></li>
 </ul>
-<p><strong>When to keep saved temperatures (default):</strong></p>
+<p><strong>When to keep saved temperatures (default)</strong></p>
 <ul class="simple">
 <li><p><strong>Continuing long optimization</strong>: Natural continuation of the cooling schedule</p></li>
 <li><p><strong>Refining solution</strong>: Cooler temperatures help fine-tune the current best solution</p></li>
@@ -292,40 +293,52 @@ state including current configurations, best solutions, and optimization history
 </section>
 </section>
 <section id="performance-optimization">
-<h2>Performance Optimization<a class="headerlink" href="#performance-optimization" title="Link to this heading"></a></h2>
+<h2>Performance optimization<a class="headerlink" href="#performance-optimization" title="Link to this heading"></a></h2>
 <section id="perturbation-strategies">
-<h3>Perturbation Strategies<a class="headerlink" href="#perturbation-strategies" title="Link to this heading"></a></h3>
-<p><strong>Perturbation distribution</strong>:</p>
+<h3>Perturbation strategies<a class="headerlink" href="#perturbation-strategies" title="Link to this heading"></a></h3>
+<p><strong>Perturbation distribution</strong></p>
 <p>Perturbations are sampled from a normal distribution N(0, σ) where σ is calculated
-as <code class="docutils literal notranslate"><span class="pre">step_spread</span> <span class="pre">*</span> <span class="pre">mean(data_range)</span></code>:</p>
+per-feature as <code class="docutils literal notranslate"><span class="pre">initial_step_spread</span> <span class="pre">*</span> <span class="pre">feature_range</span></code>:</p>
 <ul class="simple">
 <li><p>Mean is always 0 (symmetric perturbations around current values)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">step_spread</span></code>: Fraction of data range (default: 0.01 = 1%)</p></li>
-<li><p>Actual standard deviation scales with your data automatically</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initial_step_spread</span></code>: Fraction of each feature’s range (default: 0.25 = 25%)</p></li>
+<li><p>Each feature uses its own range for appropriate perturbations across different scales</p></li>
+<li><p>Actual standard deviation scales automatically with your data</p></li>
+</ul>
+<p><strong>Time-based cooling</strong></p>
+<p>Optionally specify <code class="docutils literal notranslate"><span class="pre">final_step_spread</span></code> to linearly decrease perturbation size over time:</p>
+<ul class="simple">
+<li><p>Step spread interpolates from <code class="docutils literal notranslate"><span class="pre">initial_step_spread</span></code> to <code class="docutils literal notranslate"><span class="pre">final_step_spread</span></code></p></li>
+<li><p>Cooling is time-based (over <code class="docutils literal notranslate"><span class="pre">max_time</span></code>), not iteration-based</p></li>
+<li><p>Enables refined optimization near the end of long runs</p></li>
 </ul>
 <p>Example:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">my_objective</span><span class="p">,</span>
-    <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>  <span class="c1"># perturb 0.1% of elements (default)</span>
-    <span class="n">step_spread</span><span class="o">=</span><span class="mf">0.02</span>         <span class="c1"># 2% of data range</span>
-<span class="p">)</span><span class="n">Faster</span> <span class="n">Convergence</span>
+    <span class="n">perturb_fraction</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>      <span class="c1"># perturb 0.1% of elements (default)</span>
+    <span class="n">initial_step_spread</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>    <span class="c1"># Start at 25% of each feature&#39;s range</span>
+    <span class="n">final_step_spread</span><span class="o">=</span><span class="mf">0.01</span>       <span class="c1"># End at 1% for refined optimization</span>
+<span class="p">)</span>
 </pre></div>
 </div>
-<hr class="docutils" />
+</section>
+<section id="faster-convergence">
+<h3>Faster convergence<a class="headerlink" href="#faster-convergence" title="Link to this heading"></a></h3>
 <p>For quick convergence, use aggressive parameters:</p>
 <ul class="simple">
-<li><p><strong>Large step_spread</strong> (0.05-0.10): Allow bigger perturbations (5-10% of range)</p></li>
+<li><p><strong>Large initial_step_spread</strong> (0.5-1.0): Allow bigger perturbations (50-100% of range)</p></li>
 <li><p><strong>High perturb_fraction</strong> (0.01-0.1): Modify more points</p></li>
 <li><p><strong>Low T_min</strong> (0.01-0.1): More greedy optimization</p></li>
 <li><p><strong>Higher cooling_rate</strong> (1e-6): Faster temperature reduction</p></li>
 </ul>
 </section>
 <section id="better-exploration">
-<h3>Better Exploration<a class="headerlink" href="#better-exploration" title="Link to this heading"></a></h3>
+<h3>Better exploration<a class="headerlink" href="#better-exploration" title="Link to this heading"></a></h3>
 <p>For thorough exploration of solution space:</p>
 <ul class="simple">
-<li><p><strong>Small step_spread</strong> (0.001-0.005): Precise adjustments (0.1-0.5% of range)</p></li>
+<li><p><strong>Small initial_step_spread</strong> (0.05-0.1): Precise adjustments (5-10% of range)</p></li>
+<li><p><strong>Small final_step_spread</strong> (0.001-0.01): Very refined final optimization (0.1-1% of range)</p></li>
 <li><p><strong>Low perturb_fraction</strong> (0.0001-0.001): Subtle changes</p></li>
 <li><p><strong>High T_min</strong> (1.0-10.0): Accept more suboptimal moves</p></li>
 <li><p><strong>Lower cooling_rate</strong> (1e-9 to 1e-10): Gradual convergence</p></li>
@@ -333,33 +346,34 @@ as <code class="docutils literal notranslate"><span class="pre">step_spread</spa
 </section>
 </section>
 <section id="algorithm-visualization">
-<h2>Algorithm Visualization<a class="headerlink" href="#algorithm-visualization" title="Link to this heading"></a></h2>
+<h2>Algorithm visualization<a class="headerlink" href="#algorithm-visualization" title="Link to this heading"></a></h2>
 <p>The hill climbing process can be visualized as searching a fitness landscape.
 The algorithm:</p>
 <ol class="arabic simple">
 <li><p>Starts from initial data</p></li>
-<li><p>Makes random perturbations sampled from N(0, <code class="docutils literal notranslate"><span class="pre">step_spread</span> <span class="pre">*</span> <span class="pre">mean(data_range)</span></code>)</p></li>
+<li><p>Makes random perturbations sampled from N(0, σ) where σ = <code class="docutils literal notranslate"><span class="pre">initial_step_spread</span> <span class="pre">*</span> <span class="pre">feature_range</span></code> for each feature</p></li>
 <li><p>Evaluates fitness via objective function</p></li>
 <li><p>Accepts improvements (always) or worsening moves (with probability based on temperature)</p></li>
 <li><p>Gradually reduces temperature to focus on local optimization</p></li>
+<li><p>Optionally reduces step spread over time for refined final optimization</p></li>
 <li><p>Returns the best solution found</p></li>
 </ol>
 </section>
 <section id="troubleshooting">
 <h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
 <section id="no-progress-after-many-steps">
-<h3>No Progress After Many Steps<a class="headerlink" href="#no-progress-after-many-steps" title="Link to this heading"></a></h3>
+<h3>No progress after many steps<a class="headerlink" href="#no-progress-after-many-steps" title="Link to this heading"></a></h3>
 <p><strong>Symptoms</strong>: Objective value not improving, same metrics every iteration</p>
 <p><strong>Solutions</strong>:</p>
 <ul class="simple">
-<li><p>Increase <code class="docutils literal notranslate"><span class="pre">step_spread</span></code> for larger perturbations (try 0.05-0.10)</p></li>
+<li><p>Increase <code class="docutils literal notranslate"><span class="pre">initial_step_spread</span></code> for larger perturbations (try 0.5-1.0)</p></li>
 <li><p>Increase <code class="docutils literal notranslate"><span class="pre">perturb_fraction</span></code> to modify more points</p></li>
 <li><p>Decrease <code class="docutils literal notranslate"><span class="pre">T_min</span></code> for more greedy optimization</p></li>
 <li><p>Check if objective function has bugs or is too constrained</p></li>
 </ul>
 </section>
 <section id="converging-to-local-optima">
-<h3>Converging to Local Optima<a class="headerlink" href="#converging-to-local-optima" title="Link to this heading"></a></h3>
+<h3>Converging to local optima<a class="headerlink" href="#converging-to-local-optima" title="Link to this heading"></a></h3>
 <p><strong>Symptoms</strong>: Different runs find similar suboptimal solutions, exchange acceptance rate is very low</p>
 <p><strong>Solutions</strong>:</p>
 <ul class="simple">
@@ -371,21 +385,22 @@ The algorithm:</p>
 </ul>
 </section>
 <section id="oscillating-objective-values">
-<h3>Oscillating Objective Values<a class="headerlink" href="#oscillating-objective-values" title="Link to this heading"></a></h3>
+<h3>Oscillating objective values<a class="headerlink" href="#oscillating-objective-values" title="Link to this heading"></a></h3>
 <p><strong>Symptoms</strong>: Objective improves then worsens repeatedly</p>
 <p><strong>Solutions</strong>:</p>
 <ul class="simple">
-<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">step_spread</span></code> for finer control (try 0.005-0.01)</p></li>
-<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">temperature</span></code> to be more selective</p></li>
+<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">initial_step_spread</span></code> for finer control (try 0.05-0.1)</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">final_step_spread</span></code> to gradually reduce perturbation size (try 0.001-0.01)</p></li>
+<li><p>Decrease <code class="docutils literal notranslate"><span class="pre">T_min</span></code> to be more selective</p></li>
 <li><p>Check for bugs in objective function</p></li>
 <li><p>Ensure objective weights are balanced</p></li>
 </ul>
 </section>
 </section>
 <section id="package-information">
-<h2>Package Information<a class="headerlink" href="#package-information" title="Link to this heading"></a></h2>
+<h2>Package information<a class="headerlink" href="#package-information" title="Link to this heading"></a></h2>
 <section id="version-information">
-<h3>Version Information<a class="headerlink" href="#version-information" title="Link to this heading"></a></h3>
+<h3>Version information<a class="headerlink" href="#version-information" title="Link to this heading"></a></h3>
 <p>To check the installed version:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hill_climber</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">hill_climber</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
@@ -417,7 +432,7 @@ document.querySelectorAll('a[href="https://github.com/gperdrizet/hill_climber"]'
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="notebooks.html" class="btn btn-neutral float-left" title="Example Notebooks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="notebooks.html" class="btn btn-neutral float-left" title="Example notebooks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

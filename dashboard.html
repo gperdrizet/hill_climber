@@ -6,22 +6,22 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Real-Time Monitoring Dashboard &mdash; Hill Climber 2.1.5 documentation</title>
+  <title>Real-time monitoring dashboard &mdash; Hill Climber 3.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=786ba454"></script>
+      <script src="_static/documentation_options.js?v=acc74ff5"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API Reference" href="api.html" />
-    <link rel="prev" title="User Guide" href="user_guide.html" /> 
+    <link rel="next" title="API reference" href="api.html" />
+    <link rel="prev" title="User guide" href="user_guide.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,33 +46,33 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Real-Time Monitoring Dashboard</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Real-time monitoring dashboard</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#features">Features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#enabling-database-logging">Enabling Database Logging</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#launching-the-dashboard">Launching the Dashboard</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#dashboard-configuration">Dashboard Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enabling-database-logging">Enabling database logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#launching-the-dashboard">Launching the dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dashboard-configuration">Dashboard configuration</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#database-configuration-parameters">Database Configuration Parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#performance-tuning">Performance Tuning</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#default-settings-recommended">Default Settings (Recommended)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#higher-resolution-more-database-load">Higher Resolution (More Database Load)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#lower-resolution-faster-smaller-database">Lower Resolution (Faster, Smaller Database)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-configuration-parameters">Database configuration parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#performance-tuning">Performance tuning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#default-settings-recommended">Default settings (recommended)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#higher-resolution-more-database-load">Higher resolution (more database load)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lower-resolution-faster-smaller-database">Lower resolution (faster, smaller database)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#database-schema">Database Schema</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#database-schema">Database schema</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#run-metadata">run_metadata</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#replica-status">replica_status</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#metrics-history">metrics_history</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#temperature-exchanges">temperature_exchanges</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#checkpoint-independence">Checkpoint Independence</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#complete-example">Complete Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#checkpoint-independence">Checkpoint independence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#complete-example">Complete example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#database-file-not-found">Database file not found</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#no-data-appearing">No data appearing</a></li>
@@ -80,13 +80,13 @@
 <li class="toctree-l3"><a class="reference internal" href="#slow-optimization-performance">Slow optimization performance</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#database-size-estimation">Database Size Estimation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-size-estimation">Database size estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See also</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebooks.html">Example Notebooks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks.html">Example notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced topics</a></li>
 </ul>
 
         </div>
@@ -103,7 +103,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Real-Time Monitoring Dashboard</li>
+      <li class="breadcrumb-item active">Real-time monitoring dashboard</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/dashboard.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -114,26 +114,26 @@
            <div itemprop="articleBody">
              
   <section id="real-time-monitoring-dashboard">
-<h1>Real-Time Monitoring Dashboard<a class="headerlink" href="#real-time-monitoring-dashboard" title="Link to this heading"></a></h1>
+<h1>Real-time monitoring dashboard<a class="headerlink" href="#real-time-monitoring-dashboard" title="Link to this heading"></a></h1>
 <p>The Hill Climber package includes a real-time monitoring dashboard built with Streamlit and SQLite for visualizing optimization progress as it runs. The dashboard uses a modular architecture separating data loading, UI components, and plot generation.</p>
 <section id="features">
 <h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
 <p>The dashboard provides:</p>
 <ul class="simple">
-<li><p><strong>Replica Leaderboard</strong>: Top-performing replicas with current objectives, steps, and temperatures</p></li>
-<li><p><strong>Progress Statistics</strong>:
+<li><p><strong>Replica leaderboard</strong>: Top-performing replicas with current objectives, steps, and temperatures</p></li>
+<li><p><strong>Progress statistics</strong>:
 - Exploration rate (total perturbations per second across all replicas)
 - Progress rate (accepted steps per second)
 - Acceptance rate percentage</p></li>
-<li><p><strong>Interactive Time Series Plots</strong>: Plotly charts for metrics over time with zoom and pan</p></li>
-<li><p><strong>Temperature Exchange Markers</strong>: Optional visualization of replica exchange events</p></li>
-<li><p><strong>Configurable Refresh Rate</strong>: Adjust polling frequency (0.5-5 minutes)</p></li>
-<li><p><strong>Plot Options</strong>:
+<li><p><strong>Interactive time series plots</strong>: Plotly charts for metrics over time with zoom and pan</p></li>
+<li><p><strong>Temperature exchange markers</strong>: Optional visualization of replica exchange events</p></li>
+<li><p><strong>Configurable refresh rate</strong>: Adjust polling frequency (0.5-5 minutes)</p></li>
+<li><p><strong>Plot options</strong>:
 - Metric selection (Best vs Current history)
 - Normalization toggle
 - Layout control (1 or 2 columns)
 - Downsampling for performance</p></li>
-<li><p><strong>Run Information</strong>: Objective function name, dataset size, hyperparameters, and initial temperatures</p></li>
+<li><p><strong>Run information</strong>: Objective function name, dataset size, hyperparameters, and initial temperatures</p></li>
 </ul>
 </section>
 <section id="installation">
@@ -151,7 +151,7 @@
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
 <section id="enabling-database-logging">
-<h3>Enabling Database Logging<a class="headerlink" href="#enabling-database-logging" title="Link to this heading"></a></h3>
+<h3>Enabling database logging<a class="headerlink" href="#enabling-database-logging" title="Link to this heading"></a></h3>
 <p>To use the dashboard, enable database logging in your HillClimber instance:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">HillClimber</span>
 
@@ -165,12 +165,12 @@
     <span class="c1"># ... other parameters</span>
 <span class="p">)</span>
 
-<span class="n">best_data</span><span class="p">,</span> <span class="n">history</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+<span class="n">best_data</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
 </section>
 <section id="launching-the-dashboard">
-<h3>Launching the Dashboard<a class="headerlink" href="#launching-the-dashboard" title="Link to this heading"></a></h3>
+<h3>Launching the dashboard<a class="headerlink" href="#launching-the-dashboard" title="Link to this heading"></a></h3>
 <p>While your optimization is running (or after it completes), launch the dashboard:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>hill-climber-dashboard
 </pre></div>
@@ -178,22 +178,22 @@
 <p>Then navigate to <a class="reference external" href="http://localhost:8501">http://localhost:8501</a> in your browser. The dashboard will automatically discover databases in common locations, or you can select a specific database file using the sidebar controls.</p>
 </section>
 <section id="dashboard-configuration">
-<h3>Dashboard Configuration<a class="headerlink" href="#dashboard-configuration" title="Link to this heading"></a></h3>
+<h3>Dashboard configuration<a class="headerlink" href="#dashboard-configuration" title="Link to this heading"></a></h3>
 <p>Configure the dashboard using the sidebar:</p>
 <ul class="simple">
-<li><p><strong>Database Selection</strong>: Choose directory and database file from dropdowns</p></li>
+<li><p><strong>Database selection</strong>: Choose directory and database file from dropdowns</p></li>
 <li><p><strong>Auto-refresh</strong>: Enable/disable automatic updates</p></li>
-<li><p><strong>Refresh Interval</strong>: Set polling frequency (0.5-5 minutes)</p></li>
-<li><p><strong>History Type</strong>: Select Best (monotonic improvement) or Current (includes exploration)</p></li>
-<li><p><strong>Additional Metrics</strong>: Select extra metrics beyond the objective to plot</p></li>
+<li><p><strong>Refresh interval</strong>: Set polling frequency (0.5-5 minutes)</p></li>
+<li><p><strong>History type</strong>: Select Best (monotonic improvement) or Current (includes exploration)</p></li>
+<li><p><strong>Additional metrics</strong>: Select extra metrics beyond the objective to plot</p></li>
 <li><p><strong>Normalize</strong>: Toggle metric normalization to [0, 1]</p></li>
-<li><p><strong>Exchange Markers</strong>: Show vertical lines at temperature exchange events</p></li>
-<li><p><strong>Plot Layout</strong>: Choose 1 or 2 column display</p></li>
+<li><p><strong>Exchange markers</strong>: Show vertical lines at temperature exchange events</p></li>
+<li><p><strong>Plot layout</strong>: Choose 1 or 2 column display</p></li>
 </ul>
 </section>
 </section>
 <section id="database-configuration-parameters">
-<h2>Database Configuration Parameters<a class="headerlink" href="#database-configuration-parameters" title="Link to this heading"></a></h2>
+<h2>Database configuration parameters<a class="headerlink" href="#database-configuration-parameters" title="Link to this heading"></a></h2>
 <p>The database logging system uses an efficient collection and write strategy:</p>
 <ul class="simple">
 <li><p><strong>Worker processes</strong> collect metrics at regular intervals during optimization</p></li>
@@ -216,9 +216,9 @@ real-time monitoring</p>
 </dl>
 </section>
 <section id="performance-tuning">
-<h2>Performance Tuning<a class="headerlink" href="#performance-tuning" title="Link to this heading"></a></h2>
+<h2>Performance tuning<a class="headerlink" href="#performance-tuning" title="Link to this heading"></a></h2>
 <section id="default-settings-recommended">
-<h3>Default Settings (Recommended)<a class="headerlink" href="#default-settings-recommended" title="Link to this heading"></a></h3>
+<h3>Default settings (recommended)<a class="headerlink" href="#default-settings-recommended" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
@@ -236,7 +236,7 @@ real-time monitoring</p>
 </ul>
 </section>
 <section id="higher-resolution-more-database-load">
-<h3>Higher Resolution (More Database Load)<a class="headerlink" href="#higher-resolution-more-database-load" title="Link to this heading"></a></h3>
+<h3>Higher resolution (more database load)<a class="headerlink" href="#higher-resolution-more-database-load" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
@@ -249,7 +249,7 @@ real-time monitoring</p>
 <p>Collects 2000 steps per replica per batch (twice the default resolution).</p>
 </section>
 <section id="lower-resolution-faster-smaller-database">
-<h3>Lower Resolution (Faster, Smaller Database)<a class="headerlink" href="#lower-resolution-faster-smaller-database" title="Link to this heading"></a></h3>
+<h3>Lower resolution (faster, smaller database)<a class="headerlink" href="#lower-resolution-faster-smaller-database" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span>
     <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span>
@@ -263,7 +263,7 @@ real-time monitoring</p>
 </section>
 </section>
 <section id="database-schema">
-<h2>Database Schema<a class="headerlink" href="#database-schema" title="Link to this heading"></a></h2>
+<h2>Database schema<a class="headerlink" href="#database-schema" title="Link to this heading"></a></h2>
 <p>The database contains four tables:</p>
 <section id="run-metadata">
 <h3>run_metadata<a class="headerlink" href="#run-metadata" title="Link to this heading"></a></h3>
@@ -312,7 +312,7 @@ real-time monitoring</p>
 </section>
 </section>
 <section id="checkpoint-independence">
-<h2>Checkpoint Independence<a class="headerlink" href="#checkpoint-independence" title="Link to this heading"></a></h2>
+<h2>Checkpoint independence<a class="headerlink" href="#checkpoint-independence" title="Link to this heading"></a></h2>
 <p>Database logging and checkpointing are decoupled for flexibility:</p>
 <ul class="simple">
 <li><p><strong>Database</strong>: Provides real-time progress monitoring with configurable granularity</p></li>
@@ -337,7 +337,7 @@ real-time monitoring</p>
 </div>
 </section>
 <section id="complete-example">
-<h2>Complete Example<a class="headerlink" href="#complete-example" title="Link to this heading"></a></h2>
+<h2>Complete example<a class="headerlink" href="#complete-example" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">HillClimber</span>
@@ -368,14 +368,14 @@ real-time monitoring</p>
 <span class="p">)</span>
 
 <span class="c1"># Run optimization</span>
-<span class="n">best_data</span><span class="p">,</span> <span class="n">history</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+<span class="n">best_data</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Then in a separate terminal:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>streamlit<span class="w"> </span>run<span class="w"> </span>progress_dashboard.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>hill-climber-dashboard
 </pre></div>
 </div>
-<p>Set the database path to <code class="docutils literal notranslate"><span class="pre">correlation_opt.db</span></code> in the dashboard sidebar.</p>
+<p>The dashboard will automatically discover the <code class="docutils literal notranslate"><span class="pre">correlation_opt.db</span></code> database file, or you can select it using the sidebar controls.</p>
 </section>
 <section id="troubleshooting">
 <h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
@@ -413,7 +413,7 @@ real-time monitoring</p>
 </section>
 </section>
 <section id="database-size-estimation">
-<h2>Database Size Estimation<a class="headerlink" href="#database-size-estimation" title="Link to this heading"></a></h2>
+<h2>Database size estimation<a class="headerlink" href="#database-size-estimation" title="Link to this heading"></a></h2>
 <p>With default settings:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">exchange_interval=10000</span></code></p></li>
@@ -434,11 +434,11 @@ real-time monitoring</p>
 </div>
 </section>
 <section id="see-also">
-<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<h2>See also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><a class="reference internal" href="user_guide.html"><span class="doc">User Guide</span></a>: Core optimization concepts</p></li>
-<li><p><a class="reference internal" href="api.html"><span class="doc">API Reference</span></a>: Complete API reference</p></li>
-<li><p><a class="reference internal" href="advanced.html"><span class="doc">Advanced Topics</span></a>: Advanced features and customization</p></li>
+<li><p><a class="reference internal" href="user_guide.html"><span class="doc">User guide</span></a>: Core optimization concepts</p></li>
+<li><p><a class="reference internal" href="api.html"><span class="doc">API reference</span></a>: Complete API reference</p></li>
+<li><p><a class="reference internal" href="advanced.html"><span class="doc">Advanced topics</span></a>: Advanced features and customization</p></li>
 </ul>
 </section>
 </section>
@@ -447,8 +447,8 @@ real-time monitoring</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="user_guide.html" class="btn btn-neutral float-left" title="User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="user_guide.html" class="btn btn-neutral float-left" title="User guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api.html" class="btn btn-neutral float-right" title="API reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

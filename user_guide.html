@@ -6,22 +6,22 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Guide &mdash; Hill Climber 2.1.5 documentation</title>
+  <title>User guide &mdash; Hill Climber 3.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=786ba454"></script>
+      <script src="_static/documentation_options.js?v=acc74ff5"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Real-Time Monitoring Dashboard" href="dashboard.html" />
-    <link rel="prev" title="Quick Start" href="quickstart.html" /> 
+    <link rel="next" title="Real-time monitoring dashboard" href="dashboard.html" />
+    <link rel="prev" title="Quick start" href="quickstart.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,24 +46,26 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">User Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#data-format-and-terminology">Data Format and Terminology</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#optimization-modes">Optimization Modes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#objective-functions">Objective Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data-format-and-terminology">Data format and terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optimization-modes">Optimization modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#objective-functions">Objective functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hyperparameters">Hyperparameters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#checkpoints">Checkpoints</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#boundary-handling">Boundary Handling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#replica-exchange-parallel-tempering">Replica Exchange (Parallel Tempering)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#boundary-handling">Boundary handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#replica-exchange-parallel-tempering">Replica exchange (parallel tempering)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#results-structure">Results Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#results-structure">Results structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#state-tracking">State tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-schema">Database schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#internal-architecture">Internal Architecture</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="dashboard.html">Real-Time Monitoring Dashboard</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebooks.html">Example Notebooks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dashboard.html">Real-time monitoring dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks.html">Example notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced topics</a></li>
 </ul>
 
         </div>
@@ -80,7 +82,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">User Guide</li>
+      <li class="breadcrumb-item active">User guide</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/user_guide.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -91,10 +93,10 @@
            <div itemprop="articleBody">
              
   <section id="user-guide">
-<h1>User Guide<a class="headerlink" href="#user-guide" title="Link to this heading"></a></h1>
+<h1>User guide<a class="headerlink" href="#user-guide" title="Link to this heading"></a></h1>
 <p>This guide explains the key concepts and parameters of Hill Climber.</p>
 <section id="data-format-and-terminology">
-<h2>Data Format and Terminology<a class="headerlink" href="#data-format-and-terminology" title="Link to this heading"></a></h2>
+<h2>Data format and terminology<a class="headerlink" href="#data-format-and-terminology" title="Link to this heading"></a></h2>
 <p>Hill Climber works with tabular data:</p>
 <dl class="simple">
 <dt><strong>Data Shape</strong></dt><dd><p>Input data has shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">M)</span></code> where:</p>
@@ -103,12 +105,12 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">M</span></code> = number of features (columns)</p></li>
 </ul>
 </dd>
-<dt><strong>Accepted Formats</strong></dt><dd><ul class="simple">
+<dt><strong>Accepted formats</strong></dt><dd><ul class="simple">
 <li><p>NumPy arrays: <code class="docutils literal notranslate"><span class="pre">np.ndarray</span></code> with shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">M)</span></code></p></li>
 <li><p>Pandas DataFrames: <code class="docutils literal notranslate"><span class="pre">pd.DataFrame</span></code> with M columns</p></li>
 </ul>
 </dd>
-<dt><strong>Objective Function Signature</strong></dt><dd><p>Your objective function receives M separate 1D arrays (one per column):</p>
+<dt><strong>Objective function signature</strong></dt><dd><p>Your objective function receives M separate 1D arrays (one per column):</p>
 <ul class="simple">
 <li><p>For M=2: <code class="docutils literal notranslate"><span class="pre">objective_func(x,</span> <span class="pre">y)</span></code></p></li>
 <li><p>For M=3: <code class="docutils literal notranslate"><span class="pre">objective_func(x,</span> <span class="pre">y,</span> <span class="pre">z)</span></code></p></li>
@@ -124,23 +126,23 @@ shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <s
 </div>
 </section>
 <section id="optimization-modes">
-<h2>Optimization Modes<a class="headerlink" href="#optimization-modes" title="Link to this heading"></a></h2>
+<h2>Optimization modes<a class="headerlink" href="#optimization-modes" title="Link to this heading"></a></h2>
 <p>Hill Climber supports three modes:</p>
 <dl class="simple">
-<dt><strong>Maximize Mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='maximize'</span></code>)</dt><dd><p>Searches for solutions that maximize the objective function value.
+<dt><strong>Maximize mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='maximize'</span></code>)</dt><dd><p>Searches for solutions that maximize the objective function value.
 Use this when higher objective values are better.</p>
 </dd>
-<dt><strong>Minimize Mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='minimize'</span></code>)</dt><dd><p>Searches for solutions that minimize the objective function value.
+<dt><strong>Minimize mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='minimize'</span></code>)</dt><dd><p>Searches for solutions that minimize the objective function value.
 Use this when lower objective values are better.</p>
 </dd>
-<dt><strong>Target Mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='target'</span></code>)</dt><dd><p>Searches for solutions that approach a specific target value.
+<dt><strong>Target mode</strong> (<code class="docutils literal notranslate"><span class="pre">mode='target'</span></code>)</dt><dd><p>Searches for solutions that approach a specific target value.
 Requires setting <code class="docutils literal notranslate"><span class="pre">target_value</span></code> parameter. The objective function
 should return the distance from the target (minimized internally).</p>
 </dd>
 </dl>
 </section>
 <section id="objective-functions">
-<h2>Objective Functions<a class="headerlink" href="#objective-functions" title="Link to this heading"></a></h2>
+<h2>Objective functions<a class="headerlink" href="#objective-functions" title="Link to this heading"></a></h2>
 <p>An objective function takes the data columns as arguments and returns:</p>
 <ol class="arabic simple">
 <li><p>A dictionary of metrics to track</p></li>
@@ -183,7 +185,7 @@ in your input data.</p>
 </section>
 <section id="hyperparameters">
 <h2>Hyperparameters<a class="headerlink" href="#hyperparameters" title="Link to this heading"></a></h2>
-<dl class="simple">
+<dl>
 <dt><strong>n_replicas</strong> (default: 4)</dt><dd><p>Number of replicas for parallel tempering (replica exchange). More replicas
 provide better exploration but use more memory. Each replica runs at a different
 temperature from the temperature ladder. Set to 1 for simulated annealing without
@@ -210,11 +212,17 @@ attempt exchanges more frequently but increase overhead.</p>
 <li><p>‘all_neighbors’: All neighboring pairs</p></li>
 </ul>
 </dd>
-<dt><strong>step_spread</strong> (default: 0.01)</dt><dd><p>Perturbation spread as a fraction of the input data range (0.01 = 1% of range).
+<dt><strong>initial_step_spread</strong> (default: 0.25)</dt><dd><p>Initial perturbation spread as a fraction of each feature’s data range (0.25 = 25% of range).
 Controls the magnitude of changes relative to your data scale. The actual perturbation
-standard deviation is calculated as <code class="docutils literal notranslate"><span class="pre">step_spread</span> <span class="pre">*</span> <span class="pre">mean(data_range)</span></code>, making it
-automatically scale-appropriate for your data. Larger values create more dramatic
-perturbations, smaller values make more subtle adjustments.</p>
+standard deviation is calculated per-feature as <code class="docutils literal notranslate"><span class="pre">initial_step_spread</span> <span class="pre">*</span> <span class="pre">feature_range</span></code>,
+where each feature uses its own range for more appropriate perturbations across different
+scales. Larger values create more dramatic perturbations, smaller values make more subtle
+adjustments.</p>
+</dd>
+<dt><strong>final_step_spread</strong> (default: None)</dt><dd><p>Final perturbation spread as a fraction of each feature’s data range. If specified,
+step spread linearly decreases from initial_step_spread to final_step_spread over
+the course of max_time, enabling time-based cooling for more refined optimization
+near the end of the run. Leave as None to maintain constant step spread throughout.</p>
 </dd>
 <dt><strong>perturb_fraction</strong> (default: 0.001)</dt><dd><p>Fraction of data points to modify in each iteration (0.0 to 1.0).
 Higher values create more dramatic changes per step.</p>
@@ -236,9 +244,14 @@ with dashboard extras.</p>
 </dd>
 <dt><strong>db_path</strong> (default: ‘data/hill_climber_progress.db’)</dt><dd><p>Path to SQLite database file for dashboard data.</p>
 </dd>
-<dt><strong>db_step_interval</strong> (default: exchange_interval // 10)</dt><dd><p>Collect metrics every Nth step for database logging. Defaults to 10% sampling
-(every 10th step). For small exchange intervals (≤10), defaults to 1 (every step).
-Must be less than exchange_interval.</p>
+<dt><strong>db_step_interval</strong> (default: exchange_interval // 10)</dt><dd><p>Sample perturbations every Nth evaluation for database logging. Defaults to 10% sampling
+(every 1000th perturbation if exchange_interval=10000). This creates a sampled view
+of all perturbations in the database while keeping database size manageable.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All accepted steps and improvements are recorded regardless of this setting.
+Only the sampled perturbation records are affected by db_step_interval.</p>
+</div>
 </dd>
 <dt><strong>verbose</strong> (default: False)</dt><dd><p>Print progress messages during optimization.</p>
 </dd>
@@ -257,7 +270,7 @@ after the run ends.</p>
 best solutions, temperatures, and history. This allows seamless resumption.</p>
 </div>
 <dl class="simple">
-<dt><strong>Batch Size</strong></dt><dd><p>The batch size is determined by <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> (default: 10000 steps).
+<dt><strong>Batch size</strong></dt><dd><p>The batch size is determined by <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> (default: 10000 steps).
 After each batch, the optimizer:</p>
 <ul class="simple">
 <li><p>Attempts replica exchanges</p></li>
@@ -265,14 +278,14 @@ After each batch, the optimizer:</p>
 <li><p>Updates the progress dashboard database (if <code class="docutils literal notranslate"><span class="pre">db_enabled</span></code> is True)</p></li>
 </ul>
 </dd>
-<dt><strong>Checkpoint Frequency</strong></dt><dd><p>The actual frequency of checkpoints is controlled by <code class="docutils literal notranslate"><span class="pre">checkpoint_interval</span></code>. By default,
+<dt><strong>Checkpoint frequency</strong></dt><dd><p>The actual frequency of checkpoints is controlled by <code class="docutils literal notranslate"><span class="pre">checkpoint_interval</span></code>. By default,
 a checkpoint is saved after every batch (i.e., every <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> steps). You can
 save checkpoints less frequently by setting <code class="docutils literal notranslate"><span class="pre">checkpoint_interval</span></code> to a higher value to reduce I/O.</p>
 </dd>
 </dl>
 </section>
 <section id="boundary-handling">
-<h2>Boundary Handling<a class="headerlink" href="#boundary-handling" title="Link to this heading"></a></h2>
+<h2>Boundary handling<a class="headerlink" href="#boundary-handling" title="Link to this heading"></a></h2>
 <p>Hill Climber uses <strong>reflection</strong> to keep perturbed values within the original
 data bounds:</p>
 <ul class="simple">
@@ -284,10 +297,10 @@ back into the valid range</p></li>
 <p>Example: If minimum is 5 and a perturbation creates 4.5, it reflects to 5.5.</p>
 </section>
 <section id="replica-exchange-parallel-tempering">
-<h2>Replica Exchange (Parallel Tempering)<a class="headerlink" href="#replica-exchange-parallel-tempering" title="Link to this heading"></a></h2>
+<h2>Replica exchange (parallel tempering)<a class="headerlink" href="#replica-exchange-parallel-tempering" title="Link to this heading"></a></h2>
 <p>Hill Climber 2.0 uses replica exchange to improve global optimization. Multiple
 replicas run simultaneously at different temperatures:</p>
-<p><strong>How it works:</strong></p>
+<p><strong>How it works</strong></p>
 <ol class="arabic simple">
 <li><p>Each replica has its own temperature from a ladder (e.g., 1000, 2154, 4641, 10000)</p></li>
 <li><p>All replicas perform optimization steps independently</p></li>
@@ -295,7 +308,7 @@ replicas run simultaneously at different temperatures:</p>
 <li><p>Exchanges use Metropolis criterion: better solutions move to cooler temperatures</p></li>
 <li><p>The coldest replica typically finds the best solution</p></li>
 </ol>
-<p><strong>Temperature Ladder:</strong></p>
+<p><strong>Temperature ladder</strong></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemperatureLadder</span>
 
 <span class="c1"># Geometric spacing (default, recommended)</span>
@@ -307,7 +320,7 @@ replicas run simultaneously at different temperatures:</p>
 <span class="nb">print</span><span class="p">(</span><span class="n">ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="p">)</span>  <span class="c1"># [1000, 4000, 7000, 10000]</span>
 </pre></div>
 </div>
-<p><strong>Benefits:</strong></p>
+<p><strong>Benefits</strong></p>
 <ul class="simple">
 <li><p>Better global optimization compared to single-temperature annealing</p></li>
 <li><p>Hotter replicas explore broadly, cooler replicas exploit locally</p></li>
@@ -343,7 +356,7 @@ replicas run simultaneously at different temperatures:</p>
 <span class="p">)</span>
 
 <span class="c1"># Continue optimizing</span>
-<span class="n">best_data</span><span class="p">,</span> <span class="n">history_df</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+<span class="n">best_data</span> <span class="o">=</span> <span class="n">resumed</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
 <div class="admonition note">
@@ -353,34 +366,107 @@ replicas run simultaneously at different temperatures:</p>
 </div>
 </section>
 <section id="results-structure">
-<h2>Results Structure<a class="headerlink" href="#results-structure" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">climb()</span></code> method returns a tuple:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_data</span><span class="p">,</span> <span class="n">steps_df</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
+<h2>Results structure<a class="headerlink" href="#results-structure" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">climb()</span></code> method returns the best data found:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_data</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Where:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">best_data</span></code>: Optimized data (DataFrame or numpy array, same format as input)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">steps_df</span></code>: DataFrame tracking optimization progress with columns:</p>
-<ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">Step</span></code>: Step number when improvement was accepted</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Objective</span> <span class="pre">value</span></code>: Objective value at that step</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Best_data</span></code>: Snapshot of best data at that step</p></li>
-<li><p>Additional metric columns (defined by your objective function)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">best_data</span></code>: Optimized data (DataFrame or numpy array, same format as input) from the best-performing replica</p></li>
 </ul>
-</li>
+<p>After optimization, you can access replica state:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get best replica</span>
+<span class="n">best_replica</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">])</span>
+
+<span class="c1"># Access state</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Perturbation number: </span><span class="si">{</span><span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Accepted steps: </span><span class="si">{</span><span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;num_accepted&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Improvements found: </span><span class="si">{</span><span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;num_improvements&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best objective: </span><span class="si">{</span><span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best metrics: </span><span class="si">{</span><span class="n">best_replica</span><span class="p">[</span><span class="s1">&#39;best_metrics&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="state-tracking">
+<h2>State tracking<a class="headerlink" href="#state-tracking" title="Link to this heading"></a></h2>
+<p>Hill Climber tracks three types of events:</p>
+<dl class="simple">
+<dt><strong>Perturbations</strong> (all evaluations)</dt><dd><p>Every perturbation is evaluated. A sampled view is recorded to the database
+every <code class="docutils literal notranslate"><span class="pre">db_step_interval</span></code> evaluations for monitoring without overwhelming storage.</p>
+</dd>
+<dt><strong>Accepted steps</strong> (SA acceptances)</dt><dd><p>When simulated annealing accepts a move (even if worse), it’s recorded with
+full user-defined metrics. This shows the complete SA exploration path.</p>
+</dd>
+<dt><strong>Improvements</strong> (new best found)</dt><dd><p>When a new best solution is found, it’s recorded with full metrics. This
+provides a monotonic view of progress toward the optimal solution.</p>
+</dd>
+</dl>
+<p>All events are indexed by <code class="docutils literal notranslate"><span class="pre">perturbation_num</span></code>, a monotonically increasing counter
+that never resets. This provides:</p>
+<ul class="simple">
+<li><p><strong>Single source of truth</strong>: Database contains complete history</p></li>
+<li><p><strong>Clear semantics</strong>: No confusion between different counters</p></li>
+<li><p><strong>Three views</strong>: Sample, complete SA path, improvements only</p></li>
+<li><p><strong>Easy analysis</strong>: Query any view independently</p></li>
 </ul>
-<p>The best result is automatically selected from the replica with the best objective value.</p>
+</section>
+<section id="database-schema">
+<h2>Database schema<a class="headerlink" href="#database-schema" title="Link to this heading"></a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">db_enabled=True</span></code>, Hill Climber creates:</p>
+<dl class="simple">
+<dt><strong>perturbations</strong> table</dt><dd><p>Sampled view of all evaluations (every db_step_interval)</p>
+<ul class="simple">
+<li><p>perturbation_num, objective, is_accepted, is_improvement, temperature</p></li>
+</ul>
+</dd>
+<dt><strong>accepted_steps</strong> table</dt><dd><p>Complete record of all SA-accepted moves</p>
+<ul class="simple">
+<li><p>perturbation_num, objective, temperature</p></li>
+</ul>
+</dd>
+<dt><strong>step_metrics</strong> table</dt><dd><p>User-defined metrics for each accepted step</p>
+<ul class="simple">
+<li><p>perturbation_num, metric_name, value</p></li>
+</ul>
+</dd>
+<dt><strong>improvements</strong> table</dt><dd><p>Complete record of all improvements found</p>
+<ul class="simple">
+<li><p>perturbation_num, best_objective, temperature</p></li>
+</ul>
+</dd>
+<dt><strong>improvement_metrics</strong> table</dt><dd><p>User-defined metrics at each improvement</p>
+<ul class="simple">
+<li><p>perturbation_num, metric_name, value</p></li>
+</ul>
+</dd>
+<dt><strong>replica_status</strong> table</dt><dd><p>Current snapshot of each replica (updated after each batch)</p>
+<ul class="simple">
+<li><p>current_perturbation_num, num_accepted, num_improvements, best_objective</p></li>
+</ul>
+</dd>
+</dl>
 </section>
 <section id="internal-architecture">
 <h2>Internal Architecture<a class="headerlink" href="#internal-architecture" title="Link to this heading"></a></h2>
 <p>Hill Climber uses a <code class="docutils literal notranslate"><span class="pre">ReplicaState</span></code> dataclass to manage the state of each replica
-during optimization. This provides:</p>
+during optimization. Key state attributes:</p>
 <ul class="simple">
-<li><p><strong>Clean separation</strong>: Hyperparameters stay in <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code>, runtime state in <code class="docutils literal notranslate"><span class="pre">ReplicaState</span></code></p></li>
-<li><p><strong>Easy checkpointing</strong>: State can be serialized/deserialized as a unit</p></li>
-<li><p><strong>Better organization</strong>: All tracking data (current/best solutions, metrics, history, timing) in one place</p></li>
-<li><p><strong>Type safety</strong>: Dataclass provides clear typing for all state attributes</p></li>
+<li><p><strong>perturbation_num</strong>: Global counter (increments with every evaluation)</p></li>
+<li><p><strong>num_accepted</strong>: Count of SA-accepted moves</p></li>
+<li><p><strong>num_improvements</strong>: Count of improvements found</p></li>
+<li><p><strong>current_data</strong>: Current solution being explored</p></li>
+<li><p><strong>best_data</strong>: Best solution found so far</p></li>
+<li><p><strong>best_objective</strong>: Best objective value found</p></li>
+<li><p><strong>best_metrics</strong>: User-defined metrics at best solution</p></li>
+<li><p><strong>temperature</strong>: Current temperature</p></li>
+</ul>
+<p>This provides:</p>
+<ul class="simple">
+<li><p><strong>Clean separation</strong>: Hyperparameters in <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code>, runtime state in <code class="docutils literal notranslate"><span class="pre">ReplicaState</span></code></p></li>
+<li><p><strong>Easy checkpointing</strong>: State serializes as a unit</p></li>
+<li><p><strong>Single counter</strong>: No confusion between different metrics</p></li>
+<li><p><strong>Type safety</strong>: Dataclass provides clear typing</p></li>
 </ul>
 <p>You don’t need to interact with <code class="docutils literal notranslate"><span class="pre">ReplicaState</span></code> directly - it’s used internally
 by the <code class="docutils literal notranslate"><span class="pre">HillClimber</span></code> class to manage each replica’s optimization state.</p>
@@ -391,8 +477,8 @@ by the <code class="docutils literal notranslate"><span class="pre">HillClimber<
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="dashboard.html" class="btn btn-neutral float-right" title="Real-Time Monitoring Dashboard" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quick start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dashboard.html" class="btn btn-neutral float-right" title="Real-time monitoring dashboard" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

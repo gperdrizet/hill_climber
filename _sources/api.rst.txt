@@ -1,4 +1,4 @@
-API Reference
+API reference
 =============
 
 HillClimber
@@ -20,7 +20,7 @@ OptimizerConfig
    :undoc-members:
    :show-inheritance:
 
-State Management
+State management
 ----------------
 
 ReplicaState
@@ -30,9 +30,21 @@ ReplicaState
    :members: to_dict, from_dict
    :show-inheritance:
 
+   Key attributes
+   
+   - **perturbation_num** (int): Global perturbation counter (monotonically increasing)
+   - **num_accepted** (int): Number of SA-accepted steps
+   - **num_improvements** (int): Number of improvements found
+   - **best_data** (np.ndarray): Best solution found
+   - **best_objective** (float): Best objective value
+   - **best_metrics** (Dict): User-defined metrics at best solution
+   - **current_data** (np.ndarray): Current solution being explored
+   - **current_objective** (float): Current objective value
+   - **temperature** (float): Current temperature
+
 .. autofunction:: hill_climber.create_replica_state
 
-Replica Exchange Components
+Replica exchange components
 ----------------------------
 
 TemperatureLadder
@@ -50,14 +62,14 @@ ExchangeScheduler
    :undoc-members:
    :show-inheritance:
 
-Core Functions
+Core functions
 --------------
 
 .. automodule:: hill_climber.climber_functions
    :members:
    :undoc-members:
 
-Plotting Functions
+Plotting functions
 ------------------
 
 .. automodule:: hill_climber.plotting_functions

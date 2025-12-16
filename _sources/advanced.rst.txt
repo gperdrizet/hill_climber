@@ -1,10 +1,10 @@
-Advanced Topics
+Advanced topics
 ===============
 
-Custom Objective Functions
+Custom objective functions
 ---------------------------
 
-Complex Multi-Objective Optimization
+Complex multi-objective optimization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hill Climber supports multi-column data. Your objective function should accept
@@ -35,7 +35,7 @@ as many arguments as you have columns. Combine multiple objectives with differen
        
        return metrics, objective
 
-Handling Constraints
+Handling constraints
 ~~~~~~~~~~~~~~~~~~~~
 
 Implement hard constraints through penalties:
@@ -65,10 +65,10 @@ Implement hard constraints through penalties:
        
        return {'Correlation': correlation, 'Penalty': penalty}, objective
 
-Replica Exchange Tuning
+Replica exchange tuning
 ------------------------
 
-Temperature Ladder Configuration
+Temperature ladder configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Choose the appropriate temperature range and spacing:
@@ -95,7 +95,7 @@ Choose the appropriate temperature range and spacing:
        temperature_scheme='linear'
    )
 
-Exchange Strategy Selection
+Exchange strategy selection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Different strategies for replica pairing:
@@ -113,7 +113,7 @@ Different strategies for replica pairing:
        exchange_interval=10000  # Exchange attempts every 10000 steps
    )
 
-Choosing Number of Replicas
+Choosing number of replicas
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **4 replicas**: Good default for most problems
@@ -159,9 +159,9 @@ Resume from a checkpoint:
    )
    
    # Continue from where it left off
-   best_data, history_df = resumed.climb()
+   best_data = resumed.climb()
 
-Temperature Reset on Resume
+Temperature reset on resume
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, ``load_checkpoint`` preserves the cooled temperatures from the saved state,
@@ -177,13 +177,13 @@ temperatures to their original ladder values:
        reset_temperatures=True
    )
 
-**When to reset temperatures:**
+**When to reset temperatures**
 
 - **Escaped local minimum**: If the optimization found a good solution but you want to explore more aggressively
 - **Multiple restart strategy**: Run multiple sessions with fresh temperatures for better exploration
 - **Stuck optimization**: Replicas have cooled too much and accept very few moves
 
-**When to keep saved temperatures (default):**
+**When to keep saved temperatures (default)**
 
 - **Continuing long optimization**: Natural continuation of the cooling schedule
 - **Refining solution**: Cooler temperatures help fine-tune the current best solution
@@ -192,20 +192,29 @@ temperatures to their original ladder values:
 Note that resetting temperatures restarts the cooling schedule but preserves all other
 state including current configurations, best solutions, and optimization history.
 
-Performance Optimization
+Performance optimization
 ------------------------
 
-Perturbation Strategies
+Perturbation strategies
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-**Perturbation distribution**:
+**Perturbation distribution**
 
 Perturbations are sampled from a normal distribution N(0, σ) where σ is calculated
-as ``step_spread * mean(data_range)``:  
+per-feature as ``initial_step_spread * feature_range``:
 
 - Mean is always 0 (symmetric perturbations around current values)
-- ``step_spread``: Fraction of data range (default: 0.01 = 1%)
-- Actual standard deviation scales with your data automatically
+- ``initial_step_spread``: Fraction of each feature's range (default: 0.25 = 25%)
+- Each feature uses its own range for appropriate perturbations across different scales
+- Actual standard deviation scales automatically with your data
+
+**Time-based cooling**
+
+Optionally specify ``final_step_spread`` to linearly decrease perturbation size over time:
+
+- Step spread interpolates from ``initial_step_spread`` to ``final_step_spread``
+- Cooling is time-based (over ``max_time``), not iteration-based
+- Enables refined optimization near the end of long runs
 
 Example:
 
@@ -214,57 +223,62 @@ Example:
    climber = HillClimber(
        data=data,
        objective_func=my_objective,
-       perturb_fraction=0.001,  # perturb 0.1% of elements (default)
-       step_spread=0.02         # 2% of data range
-   )Faster Convergence
+       perturb_fraction=0.001,      # perturb 0.1% of elements (default)
+       initial_step_spread=0.25,    # Start at 25% of each feature's range
+       final_step_spread=0.01       # End at 1% for refined optimization
+   )
+
+Faster convergence
 ~~~~~~~~~~~~~~~~~~
 
 For quick convergence, use aggressive parameters:
 
-- **Large step_spread** (0.05-0.10): Allow bigger perturbations (5-10% of range)
+- **Large initial_step_spread** (0.5-1.0): Allow bigger perturbations (50-100% of range)
 - **High perturb_fraction** (0.01-0.1): Modify more points
 - **Low T_min** (0.01-0.1): More greedy optimization
 - **Higher cooling_rate** (1e-6): Faster temperature reduction
 
-Better Exploration
+Better exploration
 ~~~~~~~~~~~~~~~~~~
 
 For thorough exploration of solution space:
 
-- **Small step_spread** (0.001-0.005): Precise adjustments (0.1-0.5% of range)
+- **Small initial_step_spread** (0.05-0.1): Precise adjustments (5-10% of range)
+- **Small final_step_spread** (0.001-0.01): Very refined final optimization (0.1-1% of range)
 - **Low perturb_fraction** (0.0001-0.001): Subtle changes
 - **High T_min** (1.0-10.0): Accept more suboptimal moves
 - **Lower cooling_rate** (1e-9 to 1e-10): Gradual convergence
 
-Algorithm Visualization
+Algorithm visualization
 -----------------------
 
 The hill climbing process can be visualized as searching a fitness landscape.
 The algorithm:
 
 1. Starts from initial data
-2. Makes random perturbations sampled from N(0, ``step_spread * mean(data_range)``)
+2. Makes random perturbations sampled from N(0, σ) where σ = ``initial_step_spread * feature_range`` for each feature
 3. Evaluates fitness via objective function
 4. Accepts improvements (always) or worsening moves (with probability based on temperature)
 5. Gradually reduces temperature to focus on local optimization
-6. Returns the best solution found
+6. Optionally reduces step spread over time for refined final optimization
+7. Returns the best solution found
 
 Troubleshooting
 ---------------
 
-No Progress After Many Steps
+No progress after many steps
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**: Objective value not improving, same metrics every iteration
 
 **Solutions**:
 
-- Increase ``step_spread`` for larger perturbations (try 0.05-0.10)
+- Increase ``initial_step_spread`` for larger perturbations (try 0.5-1.0)
 - Increase ``perturb_fraction`` to modify more points
 - Decrease ``T_min`` for more greedy optimization
 - Check if objective function has bugs or is too constrained
 
-Converging to Local Optima
+Converging to local optima
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**: Different runs find similar suboptimal solutions, exchange acceptance rate is very low
@@ -277,22 +291,23 @@ Converging to Local Optima
 - Adjust ``exchange_interval`` (try smaller values for more frequent exchanges)
 - Check temperature ladder - ensure good spacing between replicas
 
-Oscillating Objective Values
+Oscillating objective values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**: Objective improves then worsens repeatedly
 
 **Solutions**:
 
-- Decrease ``step_spread`` for finer control (try 0.005-0.01)
-- Decrease ``temperature`` to be more selective
+- Decrease ``initial_step_spread`` for finer control (try 0.05-0.1)
+- Use ``final_step_spread`` to gradually reduce perturbation size (try 0.001-0.01)
+- Decrease ``T_min`` to be more selective
 - Check for bugs in objective function
 - Ensure objective weights are balanced
 
-Package Information
+Package information
 -------------------
 
-Version Information
+Version information
 ~~~~~~~~~~~~~~~~~~~
 
 To check the installed version:

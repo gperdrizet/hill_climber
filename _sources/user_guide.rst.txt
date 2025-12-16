@@ -1,9 +1,9 @@
-User Guide
+User guide
 ==========
 
 This guide explains the key concepts and parameters of Hill Climber.
 
-Data Format and Terminology
+Data format and terminology
 ----------------------------
 
 Hill Climber works with tabular data:
@@ -14,11 +14,11 @@ Hill Climber works with tabular data:
    - ``N`` = number of samples (rows/data points)
    - ``M`` = number of features (columns)
 
-**Accepted Formats**
+**Accepted formats**
    - NumPy arrays: ``np.ndarray`` with shape ``(N, M)``
    - Pandas DataFrames: ``pd.DataFrame`` with M columns
 
-**Objective Function Signature**
+**Objective function signature**
    Your objective function receives M separate 1D arrays (one per column):
    
    - For M=2: ``objective_func(x, y)``
@@ -30,25 +30,25 @@ Hill Climber works with tabular data:
    not the numpy array dimensionality. All input data are 2D numpy arrays with
    shape ``(N, M)``.
 
-Optimization Modes
+Optimization modes
 ------------------
 
 Hill Climber supports three modes:
 
-**Maximize Mode** (``mode='maximize'``)
+**Maximize mode** (``mode='maximize'``)
    Searches for solutions that maximize the objective function value.
    Use this when higher objective values are better.
 
-**Minimize Mode** (``mode='minimize'``)
+**Minimize mode** (``mode='minimize'``)
    Searches for solutions that minimize the objective function value.
    Use this when lower objective values are better.
 
-**Target Mode** (``mode='target'``)
+**Target mode** (``mode='target'``)
    Searches for solutions that approach a specific target value.
    Requires setting ``target_value`` parameter. The objective function
    should return the distance from the target (minimized internally).
 
-Objective Functions
+Objective functions
 -------------------
 
 An objective function takes the data columns as arguments and returns:
@@ -127,12 +127,19 @@ Hyperparameters
    - 'random': Random pair selection
    - 'all_neighbors': All neighboring pairs
 
-**step_spread** (default: 0.01)
-   Perturbation spread as a fraction of the input data range (0.01 = 1% of range).
+**initial_step_spread** (default: 0.25)
+   Initial perturbation spread as a fraction of each feature's data range (0.25 = 25% of range).
    Controls the magnitude of changes relative to your data scale. The actual perturbation
-   standard deviation is calculated as ``step_spread * mean(data_range)``, making it
-   automatically scale-appropriate for your data. Larger values create more dramatic
-   perturbations, smaller values make more subtle adjustments.
+   standard deviation is calculated per-feature as ``initial_step_spread * feature_range``,
+   where each feature uses its own range for more appropriate perturbations across different
+   scales. Larger values create more dramatic perturbations, smaller values make more subtle
+   adjustments.
+
+**final_step_spread** (default: None)
+   Final perturbation spread as a fraction of each feature's data range. If specified,
+   step spread linearly decreases from initial_step_spread to final_step_spread over
+   the course of max_time, enabling time-based cooling for more refined optimization
+   near the end of the run. Leave as None to maintain constant step spread throughout.
 
 **perturb_fraction** (default: 0.001)
    Fraction of data points to modify in each iteration (0.0 to 1.0). 
@@ -162,9 +169,13 @@ Hyperparameters
    Path to SQLite database file for dashboard data.
 
 **db_step_interval** (default: exchange_interval // 10)
-   Collect metrics every Nth step for database logging. Defaults to 10% sampling
-   (every 10th step). For small exchange intervals (≤10), defaults to 1 (every step).
-   Must be less than exchange_interval.
+   Sample perturbations every Nth evaluation for database logging. Defaults to 10% sampling
+   (every 1000th perturbation if exchange_interval=10000). This creates a sampled view
+   of all perturbations in the database while keeping database size manageable.
+   
+   .. note::
+      All accepted steps and improvements are recorded regardless of this setting.
+      Only the sampled perturbation records are affected by db_step_interval.
 
 **verbose** (default: False)
    Print progress messages during optimization.
@@ -183,7 +194,7 @@ after the run ends.
    Checkpoints store the entire optimizer state, including current solutions,
    best solutions, temperatures, and history. This allows seamless resumption.
 
-**Batch Size**
+**Batch size**
    The batch size is determined by ``exchange_interval`` (default: 10000 steps).
    After each batch, the optimizer:
    
@@ -191,12 +202,12 @@ after the run ends.
    - Saves a checkpoint (if ``checkpoint_file`` is specified and checkpoint_interval condition is met)
    - Updates the progress dashboard database (if ``db_enabled`` is True)
 
-**Checkpoint Frequency**
+**Checkpoint frequency**
    The actual frequency of checkpoints is controlled by ``checkpoint_interval``. By default,
    a checkpoint is saved after every batch (i.e., every ``exchange_interval`` steps). You can
    save checkpoints less frequently by setting ``checkpoint_interval`` to a higher value to reduce I/O.
 
-Boundary Handling
+Boundary handling
 -----------------
 
 Hill Climber uses **reflection** to keep perturbed values within the original
@@ -209,13 +220,13 @@ data bounds:
 
 Example: If minimum is 5 and a perturbation creates 4.5, it reflects to 5.5.
 
-Replica Exchange (Parallel Tempering)
+Replica exchange (parallel tempering)
 -------------------------------------
 
 Hill Climber 2.0 uses replica exchange to improve global optimization. Multiple
 replicas run simultaneously at different temperatures:
 
-**How it works:**
+**How it works**
 
 1. Each replica has its own temperature from a ladder (e.g., 1000, 2154, 4641, 10000)
 2. All replicas perform optimization steps independently
@@ -223,7 +234,7 @@ replicas run simultaneously at different temperatures:
 4. Exchanges use Metropolis criterion: better solutions move to cooler temperatures
 5. The coldest replica typically finds the best solution
 
-**Temperature Ladder:**
+**Temperature ladder**
 
 .. code-block:: python
 
@@ -237,7 +248,7 @@ replicas run simultaneously at different temperatures:
    ladder = TemperatureLadder.linear(n_replicas=4, T_min=1000, T_max=10000)
    print(ladder.temperatures)  # [1000, 4000, 7000, 10000]
 
-**Benefits:**
+**Benefits**
 
 - Better global optimization compared to single-temperature annealing
 - Hotter replicas explore broadly, cooler replicas exploit locally
@@ -278,43 +289,120 @@ Resume from a checkpoint:
    )
    
    # Continue optimizing
-   best_data, history_df = resumed.climb()
+   best_data = resumed.climb()
 
 .. note::
    It is also possible to resume a run while it is still in memory by simply calling
    ``climb()`` again on the existing ``HillClimber`` instance.
 
-Results Structure
+Results structure
 -----------------
 
-The ``climb()`` method returns a tuple:
+The ``climb()`` method returns the best data found:
 
 .. code-block:: python
 
-   best_data, steps_df = climber.climb()
+   best_data = climber.climb()
 
 Where:
 
-- ``best_data``: Optimized data (DataFrame or numpy array, same format as input)
-- ``steps_df``: DataFrame tracking optimization progress with columns:
-  
-  - ``Step``: Step number when improvement was accepted
-  - ``Objective value``: Objective value at that step
-  - ``Best_data``: Snapshot of best data at that step
-  - Additional metric columns (defined by your objective function)
+- ``best_data``: Optimized data (DataFrame or numpy array, same format as input) from the best-performing replica
 
-The best result is automatically selected from the replica with the best objective value.
+After optimization, you can access replica state:
+
+.. code-block:: python
+
+   # Get best replica
+   best_replica = max(climber.replicas, key=lambda r: r['best_objective'])
+   
+   # Access state
+   print(f"Perturbation number: {best_replica['perturbation_num']}")
+   print(f"Accepted steps: {best_replica['num_accepted']}")
+   print(f"Improvements found: {best_replica['num_improvements']}")
+   print(f"Best objective: {best_replica['best_objective']}")
+   print(f"Best metrics: {best_replica['best_metrics']}")
+
+State tracking
+--------------
+
+Hill Climber tracks three types of events:
+
+**Perturbations** (all evaluations)
+   Every perturbation is evaluated. A sampled view is recorded to the database
+   every ``db_step_interval`` evaluations for monitoring without overwhelming storage.
+
+**Accepted steps** (SA acceptances)
+   When simulated annealing accepts a move (even if worse), it's recorded with
+   full user-defined metrics. This shows the complete SA exploration path.
+
+**Improvements** (new best found)
+   When a new best solution is found, it's recorded with full metrics. This
+   provides a monotonic view of progress toward the optimal solution.
+
+All events are indexed by ``perturbation_num``, a monotonically increasing counter
+that never resets. This provides:
+
+- **Single source of truth**: Database contains complete history
+- **Clear semantics**: No confusion between different counters
+- **Three views**: Sample, complete SA path, improvements only
+- **Easy analysis**: Query any view independently
+
+Database schema
+---------------
+
+When ``db_enabled=True``, Hill Climber creates:
+
+**perturbations** table
+   Sampled view of all evaluations (every db_step_interval)
+   
+   - perturbation_num, objective, is_accepted, is_improvement, temperature
+
+**accepted_steps** table
+   Complete record of all SA-accepted moves
+   
+   - perturbation_num, objective, temperature
+
+**step_metrics** table
+   User-defined metrics for each accepted step
+   
+   - perturbation_num, metric_name, value
+
+**improvements** table
+   Complete record of all improvements found
+   
+   - perturbation_num, best_objective, temperature
+
+**improvement_metrics** table
+   User-defined metrics at each improvement
+   
+   - perturbation_num, metric_name, value
+
+**replica_status** table
+   Current snapshot of each replica (updated after each batch)
+   
+   - current_perturbation_num, num_accepted, num_improvements, best_objective
 
 Internal Architecture
 ---------------------
 
 Hill Climber uses a ``ReplicaState`` dataclass to manage the state of each replica
-during optimization. This provides:
+during optimization. Key state attributes:
 
-- **Clean separation**: Hyperparameters stay in ``HillClimber``, runtime state in ``ReplicaState``
-- **Easy checkpointing**: State can be serialized/deserialized as a unit
-- **Better organization**: All tracking data (current/best solutions, metrics, history, timing) in one place
-- **Type safety**: Dataclass provides clear typing for all state attributes
+- **perturbation_num**: Global counter (increments with every evaluation)
+- **num_accepted**: Count of SA-accepted moves  
+- **num_improvements**: Count of improvements found
+- **current_data**: Current solution being explored
+- **best_data**: Best solution found so far
+- **best_objective**: Best objective value found
+- **best_metrics**: User-defined metrics at best solution
+- **temperature**: Current temperature
+
+This provides:
+
+- **Clean separation**: Hyperparameters in ``HillClimber``, runtime state in ``ReplicaState``
+- **Easy checkpointing**: State serializes as a unit
+- **Single counter**: No confusion between different metrics
+- **Type safety**: Dataclass provides clear typing
 
 You don't need to interact with ``ReplicaState`` directly - it's used internally
 by the ``HillClimber`` class to manage each replica's optimization state.

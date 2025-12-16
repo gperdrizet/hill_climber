@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hill_climber.optimizer_state &mdash; Hill Climber 2.1.5 documentation</title>
+  <title>hill_climber.optimizer_state &mdash; Hill Climber 3.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=786ba454"></script>
+      <script src="../../_static/documentation_options.js?v=acc74ff5"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -43,12 +43,12 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../dashboard.html">Real-Time Monitoring Dashboard</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api.html">API Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example Notebooks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dashboard.html">Real-time monitoring dashboard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced topics</a></li>
 </ul>
 
         </div>
@@ -101,9 +101,10 @@
 <span class="sd">        current_objective: Current objective value</span>
 <span class="sd">        best_data: Best data found so far</span>
 <span class="sd">        best_objective: Best objective value found</span>
-<span class="sd">        step: Number of accepted steps</span>
-<span class="sd">        total_iterations: Total number of perturbations attempted</span>
-<span class="sd">        metrics_history: List of metric dictionaries for each accepted step</span>
+<span class="sd">        best_metrics: Best metrics dictionary</span>
+<span class="sd">        perturbation_num: Global perturbation counter (monotonically increasing)</span>
+<span class="sd">        num_accepted: Number of accepted steps</span>
+<span class="sd">        num_improvements: Number of improvements found</span>
 <span class="sd">        temperature_history: List of (step, temperature) tuples for temperature changes</span>
 <span class="sd">        exchange_attempts: Total number of exchange attempts</span>
 <span class="sd">        exchange_acceptances: Number of successful exchanges</span>
@@ -118,9 +119,10 @@
     <span class="n">current_objective</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">best_data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
     <span class="n">best_objective</span><span class="p">:</span> <span class="nb">float</span>
-    <span class="n">step</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">total_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">metrics_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">best_metrics</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">perturbation_num</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_accepted</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_improvements</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">temperature_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
     <span class="n">exchange_attempts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">exchange_acceptances</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
@@ -144,9 +146,10 @@
             <span class="s1">&#39;current_objective&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_objective</span><span class="p">,</span>
             <span class="s1">&#39;best_data&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">best_data</span><span class="p">,</span>
             <span class="s1">&#39;best_objective&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">best_objective</span><span class="p">,</span>
-            <span class="s1">&#39;step&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">,</span>
-            <span class="s1">&#39;total_iterations&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_iterations</span><span class="p">,</span>
-            <span class="s1">&#39;metrics_history&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_history</span><span class="p">,</span>
+            <span class="s1">&#39;best_metrics&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">best_metrics</span><span class="p">,</span>
+            <span class="s1">&#39;perturbation_num&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">perturbation_num</span><span class="p">,</span>
+            <span class="s1">&#39;num_accepted&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_accepted</span><span class="p">,</span>
+            <span class="s1">&#39;num_improvements&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_improvements</span><span class="p">,</span>
             <span class="s1">&#39;temperature_history&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_history</span><span class="p">,</span>
             <span class="s1">&#39;exchange_attempts&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_attempts</span><span class="p">,</span>
             <span class="s1">&#39;exchange_acceptances&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">exchange_acceptances</span><span class="p">,</span>
@@ -177,9 +180,10 @@
             <span class="n">current_objective</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;current_objective&#39;</span><span class="p">],</span>
             <span class="n">best_data</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;best_data&#39;</span><span class="p">],</span>
             <span class="n">best_objective</span><span class="o">=</span><span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;best_objective&#39;</span><span class="p">],</span>
-            <span class="n">step</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">total_iterations</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;total_iterations&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">metrics_history</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">best_metrics</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;best_metrics&#39;</span><span class="p">,</span> <span class="p">{}),</span>
+            <span class="n">perturbation_num</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">num_accepted</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;num_accepted&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">num_improvements</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;num_improvements&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
             <span class="n">temperature_history</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;temperature_history&#39;</span><span class="p">,</span> <span class="p">[]),</span>
             <span class="n">exchange_attempts</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exchange_attempts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
             <span class="n">exchange_acceptances</span><span class="o">=</span><span class="n">state_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exchange_acceptances&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
@@ -263,29 +267,6 @@
     <span class="k">if</span> <span class="n">accepted</span><span class="p">:</span>
         <span class="n">state</span><span class="p">[</span><span class="s1">&#39;exchange_acceptances&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">state</span><span class="p">[</span><span class="s1">&#39;partner_history&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">partner_id</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">get_history_dataframe</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert replica history to DataFrame.</span>
-<span class="sd">    </span>
-<span class="sd">    Args:</span>
-<span class="sd">        state (Dict): Replica state dictionary containing metrics_history.</span>
-<span class="sd">        </span>
-<span class="sd">    Returns:</span>
-<span class="sd">        pd.DataFrame: DataFrame with step and metric columns. Returns empty DataFrame</span>
-<span class="sd">            if no history exists.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">[</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-    
-    <span class="c1"># metrics_history is now a list of metric dicts</span>
-    <span class="c1"># Each dict contains all metrics including &#39;Objective value&#39;</span>
-    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s1">&#39;metrics_history&#39;</span><span class="p">])</span>
-    
-    <span class="c1"># Add step numbers (1-indexed, based on number of accepted steps)</span>
-    <span class="n">df</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Step&#39;</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-    
-    <span class="k">return</span> <span class="n">df</span>
 </pre></div>
 
            </div>
