@@ -12,7 +12,7 @@ from multiprocessing import Pool, cpu_count
 from multiprocessing.pool import Pool as PoolType
 
 from .optimizer_state import create_replica_state, record_temperature_change, record_exchange
-from .climber_functions import perturb_vectors, evaluate_objective
+from .climber_functions import perturb_vectors
 from .replica_exchange import (
     TemperatureLadder, ExchangeScheduler, should_exchange
 )
@@ -428,7 +428,7 @@ class HillClimber:
         """
 
         # Serialize current replica states
-        state_dicts = [self._serialize_state(r) for r in self.replicas]
+        state_dicts = [r for r in self.replicas]
         
         # Prepare database config if enabled
         db_config = None
@@ -682,7 +682,8 @@ class HillClimber:
         }
         
         # Evaluate initial objective
-        metrics, objective = evaluate_objective(
+        from .climber_functions import calculate_objective
+        metrics, objective = calculate_objective(
             self.data, self.objective_func
         )
         
@@ -709,68 +710,6 @@ class HillClimber:
             state['best_metrics'] = {k: v for k, v in metrics.items() if 'Objective' not in k}
             
             self.replicas.append(state)
-    
-
-    def _step_replica(self, replica: Dict):
-        """Perform one optimization step for a replica.
-        
-        Args:
-            replica (Dict): Replica state dictionary.
-        """
-        # Perturb data (already includes boundary reflection)
-        perturbed = perturb_vectors(
-            replica['current_data'],
-            self.perturb_fraction,
-            self.bounds,
-            self.step_spread_absolute
-        )
-        
-        # Evaluate
-        metrics, objective = evaluate_objective(
-            perturbed, self.objective_func
-        )
-        
-        # Acceptance criterion (simulated annealing)
-        accept = self._should_accept(
-            objective, replica['current_objective'], replica['temperature']
-        )
-        
-        if accept:
-            # Update current state
-            replica['current_data'] = perturbed.copy()
-            replica['current_objective'] = objective
-            
-            # Update best if better
-            if self._is_better(objective, replica['best_objective']):
-                replica['best_data'] = perturbed.copy()
-                replica['best_objective'] = objective
-            
-            # Record step
-            replica['metrics_history'].append((replica['step'], metrics, objective, replica['best_data'].copy()))
-            replica['step'] += 1
-        # Note: We only record accepted steps to avoid misleading history
-        # where rejected steps would show the old objective with a new step number
-        
-        # Cool temperature
-        replica['temperature'] *= (1 - self.cooling_rate)
-    
-
-    def _should_accept(self, new_obj: float, current_obj: float, temp: float) -> bool:
-        """Determine if new state should be accepted (simulated annealing)."""
-        if self.mode == 'maximize':
-            delta = new_obj - current_obj
-        elif self.mode == 'minimize':
-            delta = current_obj - new_obj
-        else:  # target mode
-            current_dist = abs(current_obj - self.target_value)
-            new_dist = abs(new_obj - self.target_value)
-            delta = current_dist - new_dist
-        
-        if delta > 0:
-            return True
-        else:
-            prob = np.exp(delta / temp) if temp > 0 else 0
-            return np.random.random() < prob
     
 
     def _exchange_round(self, scheduler: ExchangeScheduler):
@@ -833,7 +772,7 @@ class HillClimber:
     def save_checkpoint(self, filepath: str):
         """Save current state to checkpoint file."""
         checkpoint = {
-            'replicas': [self._serialize_state(r) for r in self.replicas],
+            'replicas': [r for r in self.replicas],
             'temperature_ladder': self.temperature_ladder.temperatures.tolist(),
             'elapsed_time': time.time() - self.replicas[0]['start_time'],
             'hyperparameters': self.replicas[0]['hyperparameters'],
@@ -855,12 +794,6 @@ class HillClimber:
         
         if self.verbose:
             print(f"Checkpoint saved: {filepath}")
-    
-
-    @staticmethod
-    def _serialize_state(state: Dict) -> Dict[str, Any]:
-        """Return state dictionary for pickling (already in dict format)."""
-        return state
     
 
     @classmethod
