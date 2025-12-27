@@ -147,16 +147,25 @@ def render() -> None:
     temp_ladder_df = load_temperature_ladder(conn)
     render_temperature_ladder(temp_ladder_df)
 
-    # Load data based on plot configuration
-    metrics_df = load_metrics_history(
-        conn,
-        metric_names=[plot_config['objective_metric']] + plot_config['additional_metrics'],
-        history_type=plot_config['history_type'],
-        max_points_per_replica=plot_config['max_points']
-    )
-    exchanges_df = load_temperature_exchanges(conn)
-    temp_ladder_history_df = load_temperature_ladder_history(conn)
-    batch_stats_df = load_batch_statistics(conn)
+    # Load data based on plot configuration with progressive loading
+    with st.spinner("Loading metrics data..."):
+        metrics_df = load_metrics_history(
+            conn,
+            metric_names=[plot_config['objective_metric']] + plot_config['additional_metrics'],
+            history_type=plot_config['history_type'],
+            max_points_per_replica=plot_config['max_points']
+        )
+    
+    # Only load temperature exchanges if user wants to see them (performance optimization)
+    if plot_config['show_exchanges']:
+        with st.spinner("Loading temperature exchanges..."):
+            exchanges_df = load_temperature_exchanges(conn)
+    else:
+        exchanges_df = pd.DataFrame()  # Empty DataFrame to skip loading
+    
+    with st.spinner("Loading temperature ladder and batch statistics..."):
+        temp_ladder_history_df = load_temperature_ladder_history(conn)
+        batch_stats_df = load_batch_statistics(conn)
 
     if metrics_df.empty:
         st.info("No metrics found yet. Waiting for data...")
@@ -177,12 +186,14 @@ def render() -> None:
             st.error("No objective metric found in database.")
             st.stop()
 
-    # Main content: Leaderboard
-    leaderboard_df = load_leaderboard(conn, limit=3)
+    # Main content: Leaderboard (show immediately for responsiveness)
+    with st.spinner("Loading leaderboard..."):
+        leaderboard_df = load_leaderboard(conn, limit=3)
     render_leaderboard(leaderboard_df)
 
     # Main content: Progress stats
-    stats = load_progress_stats(conn)
+    with st.spinner("Loading progress statistics..."):
+        stats = load_progress_stats(conn)
     render_progress_stats(stats, metadata)
     
     # Main content: Progress plots
@@ -212,7 +223,7 @@ def render() -> None:
             temp_ladder_history_df=temp_ladder_history_df,
             temp_ladder_df=temp_ladder_df
         )
-        st.plotly_chart(temp_ladder_fig, key=f"plot_temp_ladder_{plot_container_key}", use_container_width=True)
+        st.plotly_chart(temp_ladder_fig, key=f"plot_temp_ladder_{plot_container_key}", width="stretch")
     
     # Create batch statistics plot as second plot in grid
     plot_idx = 1
@@ -222,7 +233,7 @@ def render() -> None:
     col_idx = plot_idx % current_n_cols
     with cols[col_idx]:
         batch_stats_fig = create_batch_statistics_plot(batch_stats_df)
-        st.plotly_chart(batch_stats_fig, key=f"plot_batch_stats_{plot_container_key}", use_container_width=True)
+        st.plotly_chart(batch_stats_fig, key=f"plot_batch_stats_{plot_container_key}", width="stretch")
     
     # Create all replica plots (offset by 2 for temp ladder and batch stats)
     for idx, replica_id in enumerate(replica_ids):
@@ -247,7 +258,7 @@ def render() -> None:
                 normalize_metrics=plot_config['normalize_metrics'],
                 show_exchanges=plot_config['show_exchanges']
             )
-            st.plotly_chart(fig, key=f"plot_{replica_id}_{plot_container_key}", use_container_width=True)
+            st.plotly_chart(fig, key=f"plot_{replica_id}_{plot_container_key}", width="stretch")
     
     # Auto-refresh logic
     if auto_refresh:
@@ -258,7 +269,6 @@ def render() -> None:
         st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
         st.session_state.saved_normalize_metrics = st.session_state.get('normalize_metrics', False)
         st.session_state.saved_show_exchanges = st.session_state.get('show_exchanges', False)
-        st.session_state.saved_max_points = st.session_state.get('max_points', 1000)
         st.session_state.saved_plot_columns = st.session_state.get('plot_columns', 'Two columns')
         time.sleep(refresh_interval)
         st.rerun()

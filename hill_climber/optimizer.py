@@ -20,7 +20,6 @@ from .replica_worker import run_replica_steps
 from .config import (
     OptimizerConfig,
     DEFAULT_T_MIN,
-    #DEFAULT_T_MAX_MULTIPLIER,
     DEFAULT_COOLING_RATE,
     DEFAULT_INITIAL_STEP_SPREAD,
     DEFAULT_FINAL_STEP_SPREAD,
@@ -32,8 +31,6 @@ from .config import (
     DEFAULT_MAX_TIME,
     DEFAULT_MODE,
     DEFAULT_CHECKPOINT_INTERVAL,
-    #DEFAULT_DB_PATH,
-    #DB_STEP_INTERVAL_DIVISOR,
     DEFAULT_COLUMN_PREFIX,
 )
 

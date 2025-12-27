@@ -178,11 +178,11 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
     if st is None:
         return False, 60.0
         
-    auto_refresh = st.sidebar.checkbox("Auto-refresh", key="auto_refresh")
+    auto_refresh = st.sidebar.checkbox("Auto-refresh", value=True, key="auto_refresh")
 
     refresh_interval_minutes = st.sidebar.slider(
         "Refresh interval (minutes)",
-        min_value=0.5, max_value=5.0, step=0.5,
+        min_value=0.5, max_value=5.0, value=1.0, step=0.5,
         key="refresh_interval"
     )
 
@@ -196,7 +196,6 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
         st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
         st.session_state.saved_normalize_metrics = st.session_state.get('normalize_metrics', False)
         st.session_state.saved_show_exchanges = st.session_state.get('show_exchanges', False)
-        st.session_state.saved_max_points = st.session_state.get('max_points', 1000)
         st.session_state.saved_plot_columns = st.session_state.get('plot_columns', 'Two columns')
         st.rerun()
     
@@ -230,20 +229,8 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         st.session_state.normalize_metrics = st.session_state.saved_normalize_metrics
     if 'saved_show_exchanges' in st.session_state and 'show_exchanges' not in st.session_state:
         st.session_state.show_exchanges = st.session_state.saved_show_exchanges
-    if 'saved_max_points' in st.session_state and 'max_points' not in st.session_state:
-        st.session_state.max_points = st.session_state.saved_max_points
     if 'saved_plot_columns' in st.session_state and 'plot_columns' not in st.session_state:
         st.session_state.plot_columns = st.session_state.saved_plot_columns
-    
-    # Set initial defaults for widgets if not in session state
-    if 'max_points' not in st.session_state:
-        st.session_state.max_points = 1000
-    if 'plot_columns' not in st.session_state:
-        st.session_state.plot_columns = 'Two columns'
-    if 'auto_refresh' not in st.session_state:
-        st.session_state.auto_refresh = True
-    if 'refresh_interval' not in st.session_state:
-        st.session_state.refresh_interval = 1.0
     
     # Extract non-objective metrics
     base_metrics = [m for m in available_metrics if "Objective" not in m]
@@ -289,6 +276,7 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     plot_columns = st.sidebar.radio(
         "Plot layout",
         options=["One column", "Two columns"],
+        index=1,  # Default to "Two columns"
         key="plot_columns",
         help="Switch between two-column or single-column plot layout",
         label_visibility="collapsed"
@@ -302,15 +290,15 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         help="Scale all metrics to [0, 1] range for easier comparison when they have different scales"
     )
     show_exchanges = st.sidebar.checkbox(
-        "Show exchanges",
+        "Show exchanges (slow)",
         key="show_exchanges",
-        help="Draw vertical markers at replica exchange events"
+        help="Draw vertical markers at replica exchange events. Warning: Loading exchange data can be slow for long runs."
     )
 
     n_cols = 2 if plot_columns == "Two columns" else 1
     
-    # Set max points to constant value of 1000 (not exposed to user)
-    max_points = 1000
+    # Set max points to constant value of 500 (not exposed to user)
+    max_points = 500
     
     return {
         'history_type': history_key,

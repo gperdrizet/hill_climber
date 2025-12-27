@@ -60,8 +60,8 @@ def _create_connection(db_path_str: str) -> sqlite3.Connection:
     # Performance optimizations for read-only access
     conn.execute("PRAGMA query_only = ON")
     conn.execute("PRAGMA temp_store = MEMORY")
-    conn.execute("PRAGMA cache_size = -64000")  # 64MB cache
-    conn.execute("PRAGMA mmap_size = 268435456")  # 256MB memory-mapped I/O
+    conn.execute("PRAGMA cache_size = -128000")  # 128MB cache (increased for better performance)
+    conn.execute("PRAGMA mmap_size = 536870912")  # 512MB memory-mapped I/O
     return conn
 
 
@@ -103,7 +103,7 @@ def load_metrics_history(
     conn: sqlite3.Connection,
     metric_names: Optional[List[str]] = None,
     history_type: str = 'improvements',
-    max_points_per_replica: int = 1000
+    max_points_per_replica: int = 500
 ) -> pd.DataFrame:
     """Load metrics history with SQL-side downsampling for performance.
     
@@ -121,7 +121,7 @@ def load_metrics_history(
             'Objective value' to load objectives. Default is None.
         history_type (str): Type of history to load - 'improvements', 'accepted', or 
             'perturbations'. Default is 'improvements'.
-        max_points_per_replica (int): Downsample if more points exist. Default is 1000.
+        max_points_per_replica (int): Downsample if more points exist. Default is 500.
         
     Returns:
         pd.DataFrame: DataFrame with columns: replica_id, perturbation_num, metric_name, value.
