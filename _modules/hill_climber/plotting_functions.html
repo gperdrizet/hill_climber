@@ -5,14 +5,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>hill_climber.plotting_functions &mdash; Hill Climber 3.0.0 documentation</title>
+  <title>hill_climber.plotting_functions &mdash; Hill Climber 3.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=d782da62" />
 
   
+    <link rel="shortcut icon" href="../../_static/favicon.svg"/>
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=acc74ff5"></script>
+      <script src="../../_static/documentation_options.js?v=dd1205ac"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -29,8 +31,9 @@
 
           
           
-          <a href="../../index.html" class="icon icon-home">
-            Hill Climber
+          <a href="../../index.html">
+            
+              <img src="../../_static/logo.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -699,54 +702,6 @@
             <span class="p">)</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-
-
-<div class="viewcode-block" id="plot_optimization_results">
-<a class="viewcode-back" href="../../api.html#hill_climber.plotting_functions.plot_optimization_results">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">plot_optimization_results</span><span class="p">(</span>
-    <span class="n">source</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="n">plot_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;scatter&#39;</span><span class="p">,</span>
-    <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">all_replicas</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">show_current</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot optimization results from a HillClimber instance or checkpoint file.</span>
-<span class="sd">    </span>
-<span class="sd">    DEPRECATED: This function is deprecated. Use plot_results() directly with climb() return values.</span>
-<span class="sd">    </span>
-<span class="sd">    History data is now stored in the database, not in memory. The refactored architecture</span>
-<span class="sd">    uses a database as the single source of truth for all history.</span>
-<span class="sd">    </span>
-<span class="sd">    Args:</span>
-<span class="sd">        source (Union[str, Any]): Either a HillClimber instance (after climb() has been </span>
-<span class="sd">            called) or a string path to a checkpoint file.</span>
-<span class="sd">        plot_type (str): Type of plot - &#39;scatter&#39; or &#39;histogram&#39;. Default is &#39;scatter&#39;.</span>
-<span class="sd">        metrics (List[str], optional): List of metric names to plot. If None, all metrics </span>
-<span class="sd">            are plotted. Default is None.</span>
-<span class="sd">        all_replicas (bool): If True, plot all replicas. If False, plot only the best </span>
-<span class="sd">            replica. Default is False.</span>
-<span class="sd">        show_current (bool): If True, plot &#39;Current Objective&#39; (shows SA exploration with </span>
-<span class="sd">            fluctuations). If False, plot &#39;Objective value&#39; (only accepted steps, always </span>
-<span class="sd">            improving). Default is False.</span>
-<span class="sd">    </span>
-<span class="sd">    Raises:</span>
-<span class="sd">        NotImplementedError: This function is deprecated.</span>
-<span class="sd">    </span>
-<span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; # NEW USAGE - Use plot_results() directly</span>
-<span class="sd">        &gt;&gt;&gt; from hill_climber import HillClimber, plot_results</span>
-<span class="sd">        &gt;&gt;&gt; climber = HillClimber(data, objective_func)</span>
-<span class="sd">        &gt;&gt;&gt; best_data, history_df = climber.climb()</span>
-<span class="sd">        &gt;&gt;&gt; plot_results((best_data, history_df), plot_type=&#39;scatter&#39;)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-        <span class="s2">&quot;plot_optimization_results() is deprecated. &quot;</span>
-        <span class="s2">&quot;History data is now stored in the database, not in memory. &quot;</span>
-        <span class="s2">&quot;Use plot_results() directly with climb() return values:</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">n&quot;</span>
-        <span class="s2">&quot;best_data, history_df = climber.climb()</span><span class="se">\\</span><span class="s2">n&quot;</span>
-        <span class="s2">&quot;plot_results((best_data, history_df), plot_type=plot_type, metrics=metrics)&quot;</span>
-    <span class="p">)</span></div>
-
 
 </pre></div>
 

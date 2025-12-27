@@ -50,28 +50,26 @@ Here's a simple example that optimizes a 2-column dataset for high Pearson corre
    print(f"Steps accepted: {climber.replicas[0]['num_accepted']}")
    print(f"Improvements found: {climber.replicas[0]['num_improvements']}")
 
-Visualization
--------------
+Real-time monitoring
+--------------------
 
-Visualize the optimization results using the plotting functions:
+Monitor optimization progress in real-time using the built-in Streamlit dashboard:
 
-.. code-block:: python
+.. code-block:: bash
 
-   from hill_climber import plot_optimization_results
+   # Install with dashboard extras
+   pip install parallel-hill-climber[dashboard]
    
-   # Plot results from the climber object
-   plot_optimization_results(
-       climber,
-       metrics=['Pearson correlation'],
-       plot_type='scatter'  # or 'histogram'
-   )
-   
-   # Or plot from a checkpoint file
-   plot_optimization_results(
-       'checkpoint.pkl',
-       metrics=['Pearson correlation'],
-       all_replicas=True  # Show all replicas, not just best
-   )
+   # Launch dashboard
+   hill-climber-dashboard
+
+The dashboard provides live visualization of:
+
+- Replica leaderboard with current rankings
+- Optimization progress plots (perturbations, accepted steps, improvements)
+- Temperature exchange visualization
+- Interactive metric time series
+- Run metadata and hyperparameters
 
 Next steps
 ----------
