@@ -95,16 +95,21 @@ The database logging system uses an efficient collection and write strategy:
 - **Main process** performs all database writes after each batch, avoiding lock contention
 - No buffering needed - workers return collected metrics to main process
 
-db_enabled : bool, default=False
+db_enabled : bool, default=True
     Enable database logging for dashboard monitoring
 
 db_path : str, optional
-    Path to SQLite database file. Defaults to ``'data/hill_climber_progress.db'``
+    Path to SQLite database file. Defaults to ``'../data/hill_climb.db'``
 
 db_step_interval : int, optional
-    Collect metrics every Nth step. Default: ``exchange_interval // 10`` (10% sampling).
-    For small exchange intervals (≤10), defaults to 1 (every step). Must be less than
-    exchange_interval to ensure at least one collection per batch.
+    Collect metrics every Nth step. Uses tiered sampling based on exchange_interval:
+    
+    - exchange_interval < 10: sample every step (1)
+    - exchange_interval 10-99: sample every 10 steps
+    - exchange_interval 100-999: sample every 100 steps  
+    - exchange_interval >= 1000: sample every 1000 steps
+    
+    Must be less than or equal to exchange_interval to ensure at least one collection per batch.
 
 checkpoint_interval : int, default=1
     Number of batches between checkpoint saves. Default is 1 (checkpoint every batch).
@@ -122,14 +127,14 @@ Default settings (recommended)
    climber = HillClimber(
        data=data,
        objective_func=objective,
-       exchange_interval=10000,
+       exchange_interval=100,
        db_enabled=True,
-       # db_step_interval defaults to 10000 // 10 = 1000 (10% sampling)
+       # db_step_interval defaults to 100 (one sample per batch)
    )
 
 This provides good balance between resolution and performance:
 
-- Collects 1000 steps per replica per batch (10,000 / 10)
+- Collects 100 steps per replica per batch (100 / 1)
 - Main process writes all collected metrics once per batch
 - No worker I/O contention
 
@@ -141,27 +146,12 @@ Higher resolution (more database load)
    climber = HillClimber(
        data=data,
        objective_func=objective,
-       exchange_interval=10000,
+       exchange_interval=1000,
        db_enabled=True,
-       db_step_interval=500  # Collect every 500th step (5% sampling)
+       db_step_interval=100  # Collect every 100th step instead of default 1000
    )
 
-Collects 2000 steps per replica per batch (twice the default resolution).
-
-Lower resolution (faster, smaller database)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: python
-
-   climber = HillClimber(
-       data=data,
-       objective_func=objective,
-       exchange_interval=10000,
-       db_enabled=True,
-       db_step_interval=2000  # Collect every 2000th step (20% sampling)
-   )
-
-Collects 500 steps per replica per batch (half the default, smaller database).
+Collects 10 samples per replica per batch instead of 1 (10x higher resolution).
 
 Database schema
 ---------------
@@ -268,7 +258,7 @@ Complete example
        objective_func=objective,
        max_time=30,
        n_replicas=4,
-       exchange_interval=10000,
+       exchange_interval=100,
        db_enabled=True,
        db_path='correlation_opt.db',
        checkpoint_file='correlation_opt.pkl',
@@ -322,23 +312,24 @@ Database size estimation
 
 With default settings:
 
-- ``exchange_interval=10000``
+- ``exchange_interval=100``
 - ``n_replicas=8``
 - 20 metrics
-- ``db_step_interval=1000`` (default: exchange_interval // 10)
+- ``db_step_interval=100`` (default: one sample per batch)
 
 Results in:
 
-- 1000 steps collected per replica per batch
-- 160,000 metric rows per batch
-- For 30-minute run (~100 batches): ~16M rows → 1-2GB database
+- 100 steps collected per replica per batch
+- 16,000 metric rows per batch
+- For 30-minute run (~1000 batches): ~16M rows → 1-2GB database
 
 To reduce size, increase ``db_step_interval``:
 
 .. code-block:: python
 
-   # Half the database size
-   db_step_interval = 2000  # 20% sampling instead of 10%
+   # For exchange_interval >= 1000, only 1 sample per batch by default
+   exchange_interval = 5000
+   # db_step_interval defaults to 1000 (one sample per 5 batches)
 
 See also
 --------

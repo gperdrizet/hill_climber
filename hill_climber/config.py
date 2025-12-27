@@ -38,7 +38,6 @@ DEFAULT_CHECKPOINT_INTERVAL = 1  # Default batches between checkpoint saves
 
 # Database parameters
 DEFAULT_DB_PATH = '../data/hill_climb.db'  # Default database file path
-DB_STEP_INTERVAL_DIVISOR = 10  # Divisor for calculating default db_step_interval (every 10th step)
 
 # =============================================================================
 # Validation Constants
@@ -189,22 +188,34 @@ class OptimizerConfig:
         # Set default db_step_interval if db enabled but interval not provided
         if self.db_enabled and self.db_step_interval is None:
 
-            # Collect every 10 steps, but if exchange_interval <= 10, collect every step
-            if self.exchange_interval <= 10:
+            # Use tiered sampling based on exchange_interval
+            if self.exchange_interval < 10:
                 self.db_step_interval = 1
-
-            else:
-                self.db_step_interval = max(1, self.exchange_interval // DB_STEP_INTERVAL_DIVISOR)
+            elif self.exchange_interval < 100:
+                self.db_step_interval = 10
+            elif self.exchange_interval < 1000:
+                self.db_step_interval = 100
+            else:  # exchange_interval >= 1000
+                self.db_step_interval = 1000
         
         # Validate db_step_interval against exchange_interval
         if self.db_enabled and self.db_step_interval is not None:
-            if self.db_step_interval >= self.exchange_interval:
+            if self.db_step_interval > self.exchange_interval:
+                # Calculate recommended value using same tiered logic
+                if self.exchange_interval < 10:
+                    recommended = 1
+                elif self.exchange_interval < 100:
+                    recommended = 10
+                elif self.exchange_interval < 1000:
+                    recommended = 100
+                else:
+                    recommended = 1000
+                    
                 raise ValueError(
-                    f"db_step_interval ({self.db_step_interval}) must be less than exchange_interval "
-                    f"({self.exchange_interval}). When db_step_interval >= exchange_interval, no metrics "
+                    f"db_step_interval ({self.db_step_interval}) must be less than or equal to exchange_interval "
+                    f"({self.exchange_interval}). When db_step_interval > exchange_interval, no metrics "
                     f"will be collected for the database. Recommended: set db_step_interval to "
-                    f"{max(1, self.exchange_interval // DB_STEP_INTERVAL_DIVISOR)} or lower to collect "
-                    f"metrics during optimization."
+                    f"{recommended} or lower to collect metrics during optimization."
                 )
         
         # Set default n_workers if not provided

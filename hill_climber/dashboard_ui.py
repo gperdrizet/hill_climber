@@ -28,43 +28,62 @@ def apply_custom_css() -> None:
         
     st.markdown("""
         <style>
-        .main { padding-top: 1.5rem !important; }
-        .main .block-container { padding-top: 1.5rem !important; }
-        .main h2 { font-size: 1.5rem !important; margin-top: 0.5rem !important; }
-        .main h3 { font-size: 1.1rem !important; }
-        .main h2:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }
-        
-        /* Prevent main content from going under header */
-        [data-testid="stAppViewContainer"] > section:first-child {
-            padding-top: 1.5rem !important;
-        }
+        /* Main content spacing */
+        .main, .main .block-container, 
+        [data-testid="stAppViewContainer"] > section:first-child,
         .stMainBlockContainer {
             padding-top: 1.5rem !important;
         }
         
-        /* Widen sidebar to fit logo and give text more space */
-        [data-testid="stSidebar"] {
+        /* Typography */
+        .main h2 { font-size: 1.5rem !important; margin-top: 0.5rem !important; }
+        .main h2:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }
+        .main h3 { font-size: 1.1rem !important; }
+        
+        /* Sidebar width when expanded */
+        section[data-testid="stSidebar"][aria-expanded="true"],
+        section[data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
             width: 275px !important;
             min-width: 275px !important;
-        }
-        [data-testid="stSidebar"] > div:first-child {
-            width: 275px !important;
+            max-width: 275px !important;
         }
         
-        /* Prevent text wrapping in sidebar - use ellipsis instead */
+        /* Sidebar background color - only structural elements */
+        section[data-testid="stSidebar"],
+        section[data-testid="stSidebar"] > div,
+        section[data-testid="stSidebar"] > div > div,
+        section[data-testid="stSidebar"] [data-testid="stSidebarNav"],
+        section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+            background-color: #34383C !important;
+        }
+        
+        /* Refresh button styling */
+        [data-testid="stSidebar"] button[kind="secondary"] {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            border: 1px solid #000000 !important;
+        }
+        [data-testid="stSidebar"] button[kind="secondary"]:hover {
+            background-color: #1a1a1a !important;
+            border-color: #333333 !important;
+        }
+        
+        /* Sidebar collapse button position */
+        [data-testid="stSidebarCollapseButton"] {
+            position: relative !important;
+            top: -0.5rem !important;
+            z-index: 999 !important;
+        }
+        
+        /* Sidebar text - prevent wrapping */
         [data-testid="stSidebar"] p {
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
         }
         
-        /* Consistent horizontal rule spacing in sidebar */
-        [data-testid="stSidebar"] hr {
-            margin-top: 0.5rem !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        /* Consistent horizontal rule spacing in main content */
+        /* Horizontal rules spacing */
+        [data-testid="stSidebar"] hr,
         .main hr {
             margin-top: 0.5rem !important;
             margin-bottom: 1rem !important;
@@ -178,11 +197,11 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
     if st is None:
         return False, 60.0
         
-    auto_refresh = st.sidebar.checkbox("Auto-refresh", key="auto_refresh")
+    auto_refresh = st.sidebar.checkbox("Auto-refresh", value=True, key="auto_refresh")
 
     refresh_interval_minutes = st.sidebar.slider(
         "Refresh interval (minutes)",
-        min_value=0.5, max_value=5.0, step=0.5,
+        min_value=0.5, max_value=5.0, value=1.0, step=0.5,
         key="refresh_interval"
     )
 
@@ -196,7 +215,6 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
         st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
         st.session_state.saved_normalize_metrics = st.session_state.get('normalize_metrics', False)
         st.session_state.saved_show_exchanges = st.session_state.get('show_exchanges', False)
-        st.session_state.saved_max_points = st.session_state.get('max_points', 1000)
         st.session_state.saved_plot_columns = st.session_state.get('plot_columns', 'Two columns')
         st.rerun()
     
@@ -230,20 +248,8 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         st.session_state.normalize_metrics = st.session_state.saved_normalize_metrics
     if 'saved_show_exchanges' in st.session_state and 'show_exchanges' not in st.session_state:
         st.session_state.show_exchanges = st.session_state.saved_show_exchanges
-    if 'saved_max_points' in st.session_state and 'max_points' not in st.session_state:
-        st.session_state.max_points = st.session_state.saved_max_points
     if 'saved_plot_columns' in st.session_state and 'plot_columns' not in st.session_state:
         st.session_state.plot_columns = st.session_state.saved_plot_columns
-    
-    # Set initial defaults for widgets if not in session state
-    if 'max_points' not in st.session_state:
-        st.session_state.max_points = 1000
-    if 'plot_columns' not in st.session_state:
-        st.session_state.plot_columns = 'Two columns'
-    if 'auto_refresh' not in st.session_state:
-        st.session_state.auto_refresh = True
-    if 'refresh_interval' not in st.session_state:
-        st.session_state.refresh_interval = 1.0
     
     # Extract non-objective metrics
     base_metrics = [m for m in available_metrics if "Objective" not in m]
@@ -289,6 +295,7 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     plot_columns = st.sidebar.radio(
         "Plot layout",
         options=["One column", "Two columns"],
+        index=1,  # Default to "Two columns"
         key="plot_columns",
         help="Switch between two-column or single-column plot layout",
         label_visibility="collapsed"
@@ -302,15 +309,15 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         help="Scale all metrics to [0, 1] range for easier comparison when they have different scales"
     )
     show_exchanges = st.sidebar.checkbox(
-        "Show exchanges",
+        "Show exchanges (slow)",
         key="show_exchanges",
-        help="Draw vertical markers at replica exchange events"
+        help="Draw vertical markers at replica exchange events. Warning: Loading exchange data can be slow for long runs."
     )
 
     n_cols = 2 if plot_columns == "Two columns" else 1
     
-    # Set max points to constant value of 1000 (not exposed to user)
-    max_points = 1000
+    # Set max points to constant value of 500 (not exposed to user)
+    max_points = 500
     
     return {
         'history_type': history_key,
