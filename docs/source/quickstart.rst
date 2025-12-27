@@ -88,9 +88,9 @@ global optimization:
        max_time=10,
        mode='maximize',
        n_replicas=8,           # Number of replicas (default: 4)
-       T_min=0.1,              # Minimum temperature (default: 0.1)
+       T_min=0.0001,           # Minimum temperature (default: 0.0001)
        T_max=10.0,             # Maximum temperature (default: 100 * T_min)
-       exchange_interval=10000 # Steps between exchange attempts (default: 10000)
+       exchange_interval=100   # Steps between exchange attempts (default: 100)
    )
 
    best_data = climber.climb()

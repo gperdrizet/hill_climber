@@ -80,7 +80,7 @@ Choose the appropriate temperature range and spacing:
        data=data,
        objective_func=my_objective,
        n_replicas=8,
-       T_min=0.1,            # Coldest replica
+       T_min=0.0001,         # Coldest replica
        T_max=100.0,          # Hottest replica  
        temperature_scheme='geometric'  # Recommended for better mixing
    )
@@ -110,7 +110,7 @@ Different strategies for replica pairing:
        data=data,
        objective_func=my_objective,
        exchange_strategy='random',  # or 'even_odd', 'all_neighbors'
-       exchange_interval=10000  # Exchange attempts every 10000 steps
+       exchange_interval=100  # Exchange attempts every 100 steps
    )
 
 Choosing number of replicas

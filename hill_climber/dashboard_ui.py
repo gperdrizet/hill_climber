@@ -28,43 +28,62 @@ def apply_custom_css() -> None:
         
     st.markdown("""
         <style>
-        .main { padding-top: 1.5rem !important; }
-        .main .block-container { padding-top: 1.5rem !important; }
-        .main h2 { font-size: 1.5rem !important; margin-top: 0.5rem !important; }
-        .main h3 { font-size: 1.1rem !important; }
-        .main h2:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }
-        
-        /* Prevent main content from going under header */
-        [data-testid="stAppViewContainer"] > section:first-child {
-            padding-top: 1.5rem !important;
-        }
+        /* Main content spacing */
+        .main, .main .block-container, 
+        [data-testid="stAppViewContainer"] > section:first-child,
         .stMainBlockContainer {
             padding-top: 1.5rem !important;
         }
         
-        /* Widen sidebar to fit logo and give text more space */
-        [data-testid="stSidebar"] {
+        /* Typography */
+        .main h2 { font-size: 1.5rem !important; margin-top: 0.5rem !important; }
+        .main h2:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }
+        .main h3 { font-size: 1.1rem !important; }
+        
+        /* Sidebar width when expanded */
+        section[data-testid="stSidebar"][aria-expanded="true"],
+        section[data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
             width: 275px !important;
             min-width: 275px !important;
-        }
-        [data-testid="stSidebar"] > div:first-child {
-            width: 275px !important;
+            max-width: 275px !important;
         }
         
-        /* Prevent text wrapping in sidebar - use ellipsis instead */
+        /* Sidebar background color - only structural elements */
+        section[data-testid="stSidebar"],
+        section[data-testid="stSidebar"] > div,
+        section[data-testid="stSidebar"] > div > div,
+        section[data-testid="stSidebar"] [data-testid="stSidebarNav"],
+        section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+            background-color: #34383C !important;
+        }
+        
+        /* Refresh button styling */
+        [data-testid="stSidebar"] button[kind="secondary"] {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            border: 1px solid #000000 !important;
+        }
+        [data-testid="stSidebar"] button[kind="secondary"]:hover {
+            background-color: #1a1a1a !important;
+            border-color: #333333 !important;
+        }
+        
+        /* Sidebar collapse button position */
+        [data-testid="stSidebarCollapseButton"] {
+            position: relative !important;
+            top: -0.5rem !important;
+            z-index: 999 !important;
+        }
+        
+        /* Sidebar text - prevent wrapping */
         [data-testid="stSidebar"] p {
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
         }
         
-        /* Consistent horizontal rule spacing in sidebar */
-        [data-testid="stSidebar"] hr {
-            margin-top: 0.5rem !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        /* Consistent horizontal rule spacing in main content */
+        /* Horizontal rules spacing */
+        [data-testid="stSidebar"] hr,
         .main hr {
             margin-top: 0.5rem !important;
             margin-bottom: 1rem !important;

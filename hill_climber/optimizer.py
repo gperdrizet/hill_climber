@@ -46,9 +46,9 @@ class HillClimber:
     Args:
         data: Input data as numpy array (N, M) or pandas DataFrame with M columns
         objective_func: Function taking M column arrays, returns (metrics_dict, objective_value)
-        mode: 'maximize', 'minimize', or 'target'
+        mode: 'maximize', 'minimize', or 'target' (default: 'maximize')
         target_value: Target value (only used if mode='target')
-        max_time: Maximum runtime in minutes
+        max_time: Maximum runtime in minutes (default: 10.0)
         initial_step_spread: Initial perturbation spread as fraction of input range (default: 0.25 = 25%).
             Step values are sampled from a gaussian distribution with mean 0 and standard deviation
             calculated per-feature as: feature_range * initial_step_spread. Each feature uses its own
@@ -57,20 +57,21 @@ class HillClimber:
             specified, step spread linearly decreases from initial_step_spread to final_step_spread
             over the course of max_time, enabling time-based cooling for more refined optimization
             near the end of the run.
-        perturb_fraction: Fraction of data points to perturb each step
+        perturb_fraction: Fraction of data points to perturb each step (default: 0.001)
         n_replicas: Number of replicas for parallel tempering (default: 4), setting to 1 runs
             simulated annealing without replica exchange
-        T_min: Base temperature (will be used as T_min for ladder)
-        T_max: Maximum temperature for hottest replica (default: 100 * temperature)
-        cooling_rate: Temperature decay rate per successful step
-        temperature_scheme: 'geometric' or 'linear' temperature spacing
-        exchange_interval: Steps between exchange attempts
-        exchange_strategy: 'even_odd', 'random', or 'all_neighbors'
+        T_min: Base temperature (will be used as T_min for ladder) (default: 0.0001)
+        T_max: Maximum temperature for hottest replica (default: 100 * T_min)
+        cooling_rate: Temperature decay rate per successful step (default: 1e-10)
+        temperature_scheme: 'geometric' or 'linear' temperature spacing (default: 'geometric')
+        exchange_interval: Steps between exchange attempts (default: 100)
+        exchange_strategy: 'even_odd', 'random', or 'all_neighbors' (default: 'even_odd')
         checkpoint_file: Path to save checkpoints (default: None, no checkpointing)
         checkpoint_interval: Batches between checkpoint saves (default: 1, i.e., every batch)
-        db_enabled: Enable database logging for dashboard (default: False)
-        db_path: Path to SQLite database file (default: 'data/hill_climber_progress.db')
-        db_step_interval: Collect metrics every Nth step (default: exchange_interval // 10, or 1 if exchange_interval <= 10)
+        db_enabled: Enable database logging for dashboard (default: True)
+        db_path: Path to SQLite database file (default: '../data/hill_climb.db')
+        db_step_interval: Collect metrics every Nth step. Uses tiered sampling: 1 for exchange_interval<10,
+            10 for 10-99, 100 for 100-999, 1000 for >=1000 (default: None, auto-calculated)
         verbose: Print progress messages (default: False)
         n_workers: Number of worker processes (default: n_replicas)
     """

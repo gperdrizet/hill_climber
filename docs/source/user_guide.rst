@@ -109,7 +109,7 @@ Hyperparameters
    temperature from the temperature ladder. Set to 1 for simulated annealing without
    replica exchange.
 
-**T_min** (default: 0.1)
+**T_min** (default: 0.0001)
    Minimum temperature for the coldest replica in the temperature ladder.
    Also used as the base temperature for simulated annealing. Higher temperatures
    allow more exploration of suboptimal solutions.
@@ -123,7 +123,7 @@ Hyperparameters
    How to space temperatures in the ladder: 'geometric' or 'linear'. Geometric
    spacing typically provides better exchange acceptance rates.
 
-**exchange_interval** (default: 10000)
+**exchange_interval** (default: 100)
    Number of optimization steps between replica exchange attempts. Smaller values
    attempt exchanges more frequently but increase overhead.
 
@@ -152,12 +152,12 @@ Hyperparameters
    Fraction of data points to modify in each iteration (0.0 to 1.0). 
    Higher values create more dramatic changes per step.
 
-**cooling_rate** (default: 1e-8)
+**cooling_rate** (default: 1e-10)
    Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
    is multiplied by ``(1 - cooling_rate)`` each iteration. Smaller values result in slower
-   cooling and longer exploration. For example, ``1e-8`` means ``temp *= 0.99999999`` each step.
+   cooling and longer exploration. For example, ``1e-10`` means ``temp *= 0.9999999999`` each step.
 
-**max_time** (default: 30)
+**max_time** (default: 10)
    Maximum optimization time in minutes.
 
 **checkpoint_file** (default: None)
@@ -168,17 +168,23 @@ Hyperparameters
    Number of batches between checkpoint saves. Default is 1 (save every batch).
    Set higher to reduce I/O overhead.
 
-**db_enabled** (default: False)
+**db_enabled** (default: True)
    Enable database logging for real-time dashboard monitoring. Requires installing
    with dashboard extras.
 
-**db_path** (default: 'data/hill_climber_progress.db')
+**db_path** (default: '../data/hill_climb.db')
    Path to SQLite database file for dashboard data.
 
-**db_step_interval** (default: exchange_interval // 10)
-   Sample perturbations every Nth evaluation for database logging. Defaults to 10% sampling
-   (every 1000th perturbation if exchange_interval=10000). This creates a sampled view
-   of all perturbations in the database while keeping database size manageable.
+**db_step_interval** (default: tiered based on exchange_interval)
+   Sample perturbations every Nth evaluation for database logging. Uses tiered sampling:
+   
+   - exchange_interval < 10: sample every step (db_step_interval = 1)
+   - exchange_interval 10-99: sample every 10 steps (db_step_interval = 10)
+   - exchange_interval 100-999: sample every 100 steps (db_step_interval = 100)
+   - exchange_interval >= 1000: sample every 1000 steps (db_step_interval = 1000)
+   
+   This creates a sampled view of all perturbations in the database while keeping
+   database size manageable.
    
    .. note::
       All accepted steps and improvements are recorded regardless of this setting.
@@ -202,7 +208,7 @@ after the run ends.
    best solutions, temperatures, and history. This allows seamless resumption.
 
 **Batch size**
-   The batch size is determined by ``exchange_interval`` (default: 10000 steps).
+   The batch size is determined by ``exchange_interval`` (default: 100 steps).
    After each batch, the optimizer:
    
    - Attempts replica exchanges
@@ -248,12 +254,12 @@ replicas run simultaneously at different temperatures:
    from hill_climber import TemperatureLadder
    
    # Geometric spacing (default, recommended)
-   ladder = TemperatureLadder.geometric(n_replicas=4, T_min=1000, T_max=10000)
-   print(ladder.temperatures)  # [1000, 2154, 4641, 10000]
+   ladder = TemperatureLadder.geometric(n_replicas=4, T_min=0.0001, T_max=0.01)
+   print(ladder.temperatures)  # [0.0001, 0.000215, 0.000464, 0.01]
    
    # Linear spacing
-   ladder = TemperatureLadder.linear(n_replicas=4, T_min=1000, T_max=10000)
-   print(ladder.temperatures)  # [1000, 4000, 7000, 10000]
+   ladder = TemperatureLadder.linear(n_replicas=4, T_min=0.0001, T_max=0.01)
+   print(ladder.temperatures)  # [0.0001, 0.0034, 0.0067, 0.01]
 
 **Benefits**
 

@@ -31,11 +31,11 @@ html {
 
 /* Sidebar and navigation */
 .wy-side-nav-search {
-    background-color: #1a1a1a !important;
+    background-color: #34383C !important;
 }
 
 .wy-nav-side {
-    background-color: #2a2a2a !important;
+    background-color: #34383C !important;
 }
 
 /* Top navigation bar (breadcrumbs and page source) */
@@ -77,12 +77,15 @@ div[role="navigation"] hr,
 
 .wy-side-nav-search input[type=text] {
     border-color: #ff4b4b !important;
-    background-color: #2a2a2a !important;
-    color: #e0e0e0 !important;
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
 }
 
 .wy-side-nav-search input[type=text]:focus {
     border-color: #ff4b4b !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 .wy-menu-vertical a {
@@ -97,7 +100,7 @@ div[role="navigation"] hr,
 .wy-menu-vertical li.current a {
     color: #ff4b4b !important;
     border-right: solid 2px #ff4b4b !important;
-    background-color: #2a2a2a !important;
+    background-color: #34383C !important;
 }
 
 .wy-menu-vertical li.toctree-l1.current > a {
@@ -114,31 +117,31 @@ div[role="navigation"] hr,
     background-color: #3a3a3a !important;
 }
 
-/* Additional menu states to ensure no white backgrounds */
+/* Additional menu states to ensure consistent dark grey backgrounds */
 .wy-menu-vertical li.current {
-    background-color: #2a2a2a !important;
+    background-color: #34383C !important;
 }
 
 .wy-menu-vertical li.toctree-l1.current {
-    background-color: #2a2a2a !important;
+    background-color: #34383C !important;
 }
 
 .wy-menu-vertical li.toctree-l2 a,
 .wy-menu-vertical li.toctree-l3 a,
 .wy-menu-vertical li.toctree-l4 a {
-    background-color: #2a2a2a !important;
+    background-color: #34383C !important;
 }
 
 .wy-menu-vertical li.toctree-l2.current li.toctree-l3 {
-    background-color: #2a2a2a !important;
+    background-color: #34383C !important;
 }
 
 .wy-menu-vertical li ul li a {
-    background-color: #2a2a2a !important;
+    background-color: #34383C !important;
 }
 
 .wy-menu-vertical li ul {
-    background-color: #2a2a2a !important;
+    background-color: #34383C !important;
 }
 
 /* Sidebar caption (CONTENTS header) */
