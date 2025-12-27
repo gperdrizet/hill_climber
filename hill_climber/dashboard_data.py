@@ -10,21 +10,59 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 import pandas as pd
 
+try:
+    import streamlit as st
+    HAS_STREAMLIT = True
+except ImportError:
+    HAS_STREAMLIT = False
+
 
 def get_connection(db_path_str: str) -> sqlite3.Connection:
-    """Create a read-only SQLite connection.
+    """Create a cached read-only SQLite connection with performance optimizations.
+    
+    Connection is cached by Streamlit when available. Multiple PRAGMAs are set
+    to optimize for read-heavy dashboard workloads.
     
     Args:
         db_path_str (str): Path to the SQLite database file.
         
     Returns:
-        sqlite3.Connection: Read-only SQLite connection object.
+        sqlite3.Connection: Optimized read-only SQLite connection object.
     """
-    return sqlite3.connect(
+    # Use Streamlit caching if available
+    if HAS_STREAMLIT:
+        return _get_connection_cached(db_path_str)
+    else:
+        return _create_connection(db_path_str)
+
+
+if HAS_STREAMLIT:
+    @st.cache_resource
+    def _get_connection_cached(db_path_str: str) -> sqlite3.Connection:
+        """Streamlit-cached connection creation."""
+        return _create_connection(db_path_str)
+
+
+def _create_connection(db_path_str: str) -> sqlite3.Connection:
+    """Create an optimized read-only SQLite connection.
+    
+    Args:
+        db_path_str (str): Path to the SQLite database file.
+        
+    Returns:
+        sqlite3.Connection: Optimized connection.
+    """
+    conn = sqlite3.connect(
         f"file:{db_path_str}?mode=ro", 
         uri=True, 
         check_same_thread=False
     )
+    # Performance optimizations for read-only access
+    conn.execute("PRAGMA query_only = ON")
+    conn.execute("PRAGMA temp_store = MEMORY")
+    conn.execute("PRAGMA cache_size = -64000")  # 64MB cache
+    conn.execute("PRAGMA mmap_size = 268435456")  # 256MB memory-mapped I/O
+    return conn
 
 
 def load_run_metadata(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
@@ -67,12 +105,15 @@ def load_metrics_history(
     history_type: str = 'improvements',
     max_points_per_replica: int = 1000
 ) -> pd.DataFrame:
-    """Load metrics history with optional downsampling for performance.
+    """Load metrics history with SQL-side downsampling for performance.
     
     Loads data from different tables based on history_type:
     - 'improvements': Only new best values (monotonically improving)
     - 'accepted': All accepted steps (includes exploration)
     - 'perturbations': All sampled perturbations (sampled at db_step_interval)
+    
+    Uses SQL window functions to downsample data on the database side,
+    significantly reducing data transfer and memory usage.
     
     Args:
         conn (sqlite3.Connection): SQLite connection.
@@ -104,55 +145,59 @@ def load_metrics_history(
         elif history_type == 'perturbations':
             obj_table = 'perturbations'
             obj_column = 'objective'
-            # For perturbations, we can get metrics from step_metrics for accepted ones
-            # (perturbations that were accepted will have corresponding entries)
             metrics_table = 'step_metrics'
         else:
             raise ValueError(f"Invalid history_type: {history_type}. Must be 'improvements', 'accepted', or 'perturbations'")
         
-        # Check if objective value requested
+        # Load objectives with SQL-side downsampling
         if 'Objective value' in metric_names:
-            # Load objectives from appropriate table
             obj_query = f"""
-                SELECT replica_id, perturbation_num, {obj_column} as value
-                FROM {obj_table}
+                WITH numbered AS (
+                    SELECT 
+                        replica_id, 
+                        perturbation_num, 
+                        {obj_column} as value,
+                        ROW_NUMBER() OVER (PARTITION BY replica_id ORDER BY perturbation_num) as rn,
+                        COUNT(*) OVER (PARTITION BY replica_id) as total
+                    FROM {obj_table}
+                )
+                SELECT replica_id, perturbation_num, value
+                FROM numbered
+                WHERE total <= ? OR rn % MAX(1, CAST(total / ? AS INTEGER)) = 0
                 ORDER BY replica_id, perturbation_num
             """
-            obj_df = pd.read_sql_query(obj_query, conn)
+            obj_df = pd.read_sql_query(obj_query, conn, params=(max_points_per_replica, max_points_per_replica))
             if not obj_df.empty:
                 obj_df['metric_name'] = 'Objective value'
                 all_dfs.append(obj_df)
         
-        # Filter to get non-objective metrics
+        # Load user-defined metrics with SQL-side downsampling
         user_metrics = [m for m in metric_names if m != 'Objective value']
-        
-        # Load user-defined metrics if metrics table exists for this history type
         if user_metrics and metrics_table:
             placeholders = ','.join(['?' for _ in user_metrics])
-            metrics_query = f"SELECT replica_id, perturbation_num, metric_name, value FROM {metrics_table} WHERE metric_name IN ({placeholders}) ORDER BY replica_id, perturbation_num, metric_name"
-            metrics_df = pd.read_sql_query(metrics_query, conn, params=user_metrics)
+            metrics_query = f"""
+                WITH numbered AS (
+                    SELECT 
+                        replica_id, 
+                        perturbation_num, 
+                        metric_name, 
+                        value,
+                        ROW_NUMBER() OVER (PARTITION BY replica_id, metric_name ORDER BY perturbation_num) as rn,
+                        COUNT(*) OVER (PARTITION BY replica_id, metric_name) as total
+                    FROM {metrics_table}
+                    WHERE metric_name IN ({placeholders})
+                )
+                SELECT replica_id, perturbation_num, metric_name, value
+                FROM numbered
+                WHERE total <= ? OR rn % MAX(1, CAST(total / ? AS INTEGER)) = 0
+                ORDER BY replica_id, metric_name, perturbation_num
+            """
+            params = user_metrics + [max_points_per_replica, max_points_per_replica]
+            metrics_df = pd.read_sql_query(metrics_query, conn, params=params)
             if not metrics_df.empty:
                 all_dfs.append(metrics_df)
         
-        if not all_dfs:
-            return pd.DataFrame()
-        
-        # Combine all data
-        df = pd.concat(all_dfs, ignore_index=True)
-        
-        # Downsample per replica to ensure all replicas are represented
-        # Group by replica_id and metric_name, then sample rows
-        downsampled_dfs = []
-        for (replica_id, metric_name), group in df.groupby(['replica_id', 'metric_name']):
-            if len(group) > max_points_per_replica:
-                # Sample evenly: keep every Nth row
-                step_size = len(group) / max_points_per_replica
-                indices = [int(i * step_size) for i in range(max_points_per_replica)]
-                downsampled_dfs.append(group.iloc[indices])
-            else:
-                downsampled_dfs.append(group)
-        
-        return pd.concat(downsampled_dfs, ignore_index=True) if downsampled_dfs else pd.DataFrame()
+        return pd.concat(all_dfs, ignore_index=True) if all_dfs else pd.DataFrame()
     except Exception:
         return pd.DataFrame()
 
@@ -216,38 +261,52 @@ def get_available_metrics(conn: sqlite3.Connection, history_type: str = 'improve
     return metrics
 
 
-def get_available_directories() -> List[Path]:
-    """Return list of candidate directories for database selection.
-    
-    Includes:
-    - Current working directory
-    - Parent directory
-    - Immediate subdirectories (non-hidden)
+def get_project_root() -> Path:
+    """Find the project root by looking for pyproject.toml or .git.
     
     Returns:
-        List[Path]: De-duplicated list of directories in deterministic order.
+        Path: Project root directory.
     """
     cwd = Path.cwd()
-    dirs = [cwd, cwd.parent]
+    for parent in [cwd] + list(cwd.parents):
+        if (parent / 'pyproject.toml').exists() or (parent / '.git').exists():
+            return parent
+    return cwd
+
+
+def find_all_databases(base_path: Optional[Path] = None) -> List[Path]:
+    """Find all .db files recursively within project.
     
-    # Add immediate subdirectories
+    Searches from base_path (or project root) and returns all .db files,
+    excluding hidden directories and common build/cache folders.
+    
+    Args:
+        base_path (Path, optional): Base directory to search. Defaults to project root.
+    
+    Returns:
+        List[Path]: Sorted list of database file paths.
+    """
+    if base_path is None:
+        base_path = get_project_root()
+    
+    db_files = []
+    
+    # Directories to exclude from search
+    exclude_dirs = {'.git', '__pycache__', '.pytest_cache', 'node_modules', 
+                    '.venv', 'venv', 'env', '.tox', 'build', 'dist', '.eggs'}
+    
     try:
-        for item in cwd.iterdir():
-            if item.is_dir() and not item.name.startswith('.'):
-                dirs.append(item)
+        for item in base_path.rglob('*.db'):
+            # Skip if any parent directory is in exclude list
+            if any(part.startswith('.') or part in exclude_dirs for part in item.parts):
+                continue
+            if item.is_file():
+                db_files.append(item)
     except PermissionError:
         pass
-
-    # De-duplicate while preserving order
-    seen = set()
-    unique_dirs = []
-    for d in dirs:
-        resolved = d.resolve()
-        if resolved not in seen:
-            seen.add(resolved)
-            unique_dirs.append(resolved)
     
-    return unique_dirs
+    # Sort by path for consistent ordering
+    return sorted(db_files)
 
 
 def load_leaderboard(conn: sqlite3.Connection, limit: int = 3) -> pd.DataFrame:
@@ -291,29 +350,62 @@ def load_replica_temperatures(conn: sqlite3.Connection) -> Dict[int, float]:
 
 
 def load_temperature_ladder(conn: sqlite3.Connection) -> pd.DataFrame:
-    """Load initial temperatures from temperature ladder table.
+    """Load initial temperatures from replica_status table.
     
     Args:
         conn (sqlite3.Connection): SQLite connection.
         
     Returns:
         pd.DataFrame: DataFrame with replica_id and temperature columns.
-            Falls back to replica_status if temperature_ladder doesn't exist.
+    """
+    query = "SELECT replica_id, temperature FROM replica_status ORDER BY replica_id"
+    try:
+        return pd.read_sql_query(query, conn)
+    except Exception:
+        return pd.DataFrame()
+
+
+def load_temperature_ladder_history(conn: sqlite3.Connection) -> pd.DataFrame:
+    """Load temperature ladder history tracking temperature at each ladder position over time.
+    
+    Args:
+        conn (sqlite3.Connection): SQLite connection.
+        
+    Returns:
+        pd.DataFrame: DataFrame with columns: batch_num, ladder_position, temperature.
     """
     query = """
-        SELECT replica_id, temperature 
-        FROM temperature_ladder 
-        ORDER BY replica_id
+        SELECT batch_num, ladder_position, temperature
+        FROM temperature_ladder_history
+        ORDER BY batch_num, ladder_position
     """
     try:
         return pd.read_sql_query(query, conn)
     except Exception:
-        # Fallback: try replica_status if temperature_ladder doesn't exist
-        try:
-            alt_query = "SELECT replica_id, temperature FROM replica_status ORDER BY replica_id"
-            return pd.read_sql_query(alt_query, conn)
-        except Exception:
-            return pd.DataFrame()
+        # Table doesn't exist yet - return empty DataFrame
+        return pd.DataFrame(columns=['batch_num', 'ladder_position', 'temperature'])
+
+
+def load_batch_statistics(conn: sqlite3.Connection) -> pd.DataFrame:
+    """Load batch statistics including step spread and acceptance rates.
+    
+    Args:
+        conn (sqlite3.Connection): SQLite connection.
+        
+    Returns:
+        pd.DataFrame: DataFrame with columns: batch_num, step_spread, 
+            mean_acceptance_rate, min_acceptance_rate, max_acceptance_rate.
+    """
+    query = """
+        SELECT batch_num, step_spread, mean_acceptance_rate, min_acceptance_rate, max_acceptance_rate
+        FROM batch_statistics
+        ORDER BY batch_num
+    """
+    try:
+        return pd.read_sql_query(query, conn)
+    except Exception:
+        # Table doesn't exist yet - return empty DataFrame
+        return pd.DataFrame(columns=['batch_num', 'step_spread', 'mean_acceptance_rate', 'min_acceptance_rate', 'max_acceptance_rate'])
 
 
 def load_progress_stats(conn: sqlite3.Connection) -> Dict[str, Any]:

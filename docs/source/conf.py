@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'Hill Climber'
 copyright = '2025, Hill Climber Contributors'
 author = 'Hill Climber Contributors'
-release = '3.0.0'
+release = '3.1.0'
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -26,6 +26,13 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+html_css_files = ['custom.css']
+html_logo = '_static/logo.svg'
+html_favicon = '_static/favicon.svg'
+html_theme_options = {
+    'logo_only': True,
+    'display_version': False,
+}
 
 # -- Napoleon settings -------------------------------------------------------
 napoleon_google_docstring = True

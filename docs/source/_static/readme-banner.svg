@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 180" width="1200" height="180">
+  <!-- Background -->
+  <rect width="1200" height="180" fill="#1a1a1a"/>
+  
+  <!-- Mountain range effect - multiple inverted triangles at different scales -->
+  <polygon points="1200,180 1120,80 1200,80" fill="#ff4b4b" opacity="0.15"/>
+  <polygon points="1160,180 1020,40 1200,40" fill="#ff4b4b" opacity="0.1"/>
+  <polygon points="1080,180 880,0 1200,0" fill="#ff4b4b" opacity="0.08"/>
+  
+  <!-- Line connecting triangle centers and extending beyond -->
+  <polyline points="1053,60 1127,87 1173,113 1253,117" stroke="#000000" stroke-width="6" fill="none" opacity="0.3"/>
+  
+  <!-- Dots marking triangle centers -->
+  <circle cx="1053" cy="60" r="7" fill="#000000" opacity="0.4"/>
+  <circle cx="1127" cy="87" r="7" fill="#000000" opacity="0.4"/>
+  <circle cx="1173" cy="113" r="7" fill="#000000" opacity="0.4"/>
+  
+  <!-- Logo/Text on left -->
+  <text x="40" y="80" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="300" fill="#ff4b4b">Hill</text>
+  <text x="40" y="140" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="300" fill="#ff4b4b">climber</text>
+  
+  <!-- Small accent triangles near text - scaled up and repositioned -->
+  <polygon points="280,140 210,40 350,40" fill="#ff4b4b"/>
+  <polygon points="190,80 145,40 235,40" fill="#ff4b4b"/>
+  
+  <!-- Tagline on right -->
+  <text x="900" y="80" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="300" fill="#cccccc" text-anchor="end">Parallel optimization</text>
+  <text x="900" y="120" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="300" fill="#cccccc" text-anchor="end">with replica exchange</text>
+</svg>

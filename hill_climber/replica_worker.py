@@ -4,7 +4,7 @@ import time
 import numpy as np
 from typing import Dict, Any, Tuple, Callable
 
-from .climber_functions import perturb_vectors, evaluate_objective
+from .climber_functions import perturb_vectors, calculate_objective
 
 
 def run_replica_steps(
@@ -99,7 +99,7 @@ def run_replica_steps(
         )
         
         # Evaluate
-        metrics, objective = evaluate_objective(
+        metrics, objective = calculate_objective(
             perturbed, objective_func
         )
         
@@ -148,9 +148,9 @@ def run_replica_steps(
                     step_metrics_buffer.append((
                         replica_id, perturbation_num, metric_name, metric_value
                     ))
-            
-            # Cool temperature (using pre-extracted cooling_rate)
-            state['temperature'] *= (1 - cooling_rate)
+        
+        # Cool temperature after every step (using pre-extracted cooling_rate)
+        state['temperature'] *= (1 - cooling_rate)
         
         # If improvement, update best state and record
         if is_better:

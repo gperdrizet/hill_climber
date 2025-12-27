@@ -1,8 +1,8 @@
-# Hill Climber
+![Hill Climber](hill_climber/assets/readme-banner.svg)
 
 [![PyPI Package](https://github.com/gperdrizet/hill_climber/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/publish-to-pypi.yml) [![Documentation](https://github.com/gperdrizet/hill_climber/actions/workflows/docs.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/docs.yml) [![PR Validation](https://github.com/gperdrizet/hill_climber/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/gperdrizet/hill_climber/actions/workflows/pr-validation.yml)
 
-A Python package for hill climbing optimization of user-supplied objective functions with [simulated annealing](https://en.wikipedia.org/wiki/Simulated_annealing). Designed for flexible multi-objective optimization with support for multi-column datasets.
+A Python package for [hill climbing](https://pubsonline.informs.org/doi/10.1287/opre.21.2.498) optimization of user-supplied objective functions with [simulated annealing](https://cs.gettysburg.edu/~tneller/cs371/OptBySimAnneal.pdf) and [replica exchange](https://www.researchgate.net/publication/13255490_Replica_Monte_Carlo_Simulation_of_Spin-Glasses). Designed for flexible multi-objective optimization with support for multi-column datasets.
 
 ## 1. Documentation
 
@@ -10,10 +10,10 @@ A Python package for hill climbing optimization of user-supplied objective funct
 
 ## 2. Features
 
-- **Replica exchange (parallel tempering)**: Multiple replicas at different temperatures exchange configurations for improved global optimization (`multiprocessing.Pool`)
-- **Real-time monitoring dashboard**: Live progress plots and run info. with SQLite backend
-- **Simulated annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
 - **Flexible objectives**: Support for user supplied objective functions with custom multiple metrics
+- **Real-time monitoring dashboard**: Live progress plots and run info. with SQLite backend
+- **Replica exchange (parallel tempering)**: Replicas at different temperatures exchange configurations for improved global optimization (`multiprocessing.Pool`)
+- **Simulated annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
 - **Checkpoint/resume**: Save and resume long-running optimizations with configurable checkpoint intervals
 - **JIT compilation**: Numba-optimized core functions for performance
 
@@ -47,11 +47,13 @@ data = pd.DataFrame({
 
 # Define objective function
 def my_objective(x, y):
+
     correlation = pd.Series(x).corr(pd.Series(y))
     metrics = {'correlation': correlation}
+
     return metrics, correlation
 
-# Create optimizer with replica exchange
+# Create hill climber instance
 climber = HillClimber(
     data=data,
     objective_func=my_objective,
@@ -64,31 +66,26 @@ climber = HillClimber(
 best_data = climber.climb()
 ```
 
-Best data contains the winning solution from all replicates at the end of the run. Individual replicate results can be accessed with the climber object's `.get_replicas()` method after the run is complete.
+The return `best_data` contains the winning solution from all replicates at the end of the run. Individual replicate results can be accessed with the climber object's `.get_replicas()` method after the run is complete.
 
 ### 3.3. Real-time monitoring dashboard
 
-You can monitor real-time optimization with the built-in Streamlit dashboard. To use the dashboard, install hill climber with the dashboard extras and then launch the dashboard.
+You can monitor in-progress optimizations with the built-in Streamlit dashboard. To use the dashboard, install hill climber with the dashboard extras and then launch the dashboard:
 
-```bash
-pip install parallel-hill-climber[dashboard]
-hill-climber-dashboard
+```text
+$ pip install parallel-hill-climber[dashboard]
+$ hill-climber-dashboard
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://172.17.0.2:8501
 ```
 
-Then open the provided url in a web browser. Note: the dashboard is only avalible on the same machine (or same LAN) running hill climber.
+Access the dashboard via the URL provided. Note: the dashboard is only available on the same machine (or same LAN) running hill climber.
 
 ![Dashboard Screenshot](docs/source/dashboard.png)
 
-The dashboard provides:
-- Replica leaderboard showing current best from each replica
-- Three views of optimization progress:
-  - **All Perturbations**: Sampled overview (every db_step_interval)
-  - **Accepted Steps**: Complete SA exploration path
-  - **Improvements**: Monotonic progress toward best solution
-- Acceptance rate tracking
-- Interactive time series plots for all metrics
-- Temperature exchange visualization
-- Run metadata including hyperparameters and configuration
 
 ## 4. Development environment setup
 
@@ -100,7 +97,7 @@ To explore the examples, modify the code, or contribute:
 2. Open in GitHub Codespaces
 3. The development environment will be configured automatically
 4. Documentation will be built and served at http://localhost:8000 automatically
-5. The monitoring dashboard will start and be served at http://localhost:8501 automatically
+5. The monitoring dashboard will start at http://localhost:8501 automatically
 
 ### 4.2. Setup option 2: Local development
 
@@ -128,9 +125,9 @@ You can build and view a local copy of the documentation as follows:
 ```bash
 cd docs
 make html
-# View docs by opening docs/build/html/index.html in a browser
-# Or serve locally with: python -m http.server 8000 --directory build/html
 ```
+
+View docs by opening docs/build/html/index.html in a browser, or serve locally with: `python -m http.server 8000 --directory build/html`
 
 ### 4.4. Running tests
 
@@ -145,9 +142,6 @@ python -m pytest tests/
 
 # Run specific test file
 python -m pytest tests/test_hill_climber.py
-
-# Run with coverage
-python -m pytest tests/ --cov=hill_climber
 ```
 
 ## 5. Contributing
@@ -159,6 +153,8 @@ Contributions welcome! Please ensure all tests pass before submitting pull reque
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0). See the [LICENSE](LICENSE) file for full details.
 
 In summary, you are free to use, modify, and distribute this software, but any derivative works must also be released under the GPL-3.0 license.
+
+And please cite!
 
 ## 7. Citation
 

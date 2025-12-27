@@ -145,20 +145,3 @@ def calculate_objective(data, objective_func):
     columns = extract_columns(data)
 
     return objective_func(*columns)
-
-
-def evaluate_objective(data, objective_func):
-    """Evaluate objective function on data.
-    
-    This is a convenience wrapper around calculate_objective.
-    
-    Args:
-        data (np.ndarray): Numpy array with shape (N, M).
-        objective_func (Callable): Function taking M arrays, returns 
-            (metrics_dict, objective_value).
-        
-    Returns:
-        tuple: Tuple of (metrics_dict, objective_value) where metrics_dict is a
-            dictionary of metric names to values, and objective_value is a float.
-    """
-    return calculate_objective(data, objective_func)

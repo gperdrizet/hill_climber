@@ -12,6 +12,7 @@ import pandas as pd
 
 try:
     import streamlit as st
+
 except ImportError:
     st = None
 
@@ -21,16 +22,34 @@ def apply_custom_css() -> None:
     
     Adjusts padding, font sizes, and text wrapping for optimal dashboard appearance.
     """
+
     if st is None:
         return
         
     st.markdown("""
         <style>
-        .main { padding-top: 0 !important; }
-        .main .block-container { padding-top: 0.5rem !important; }
-        .main h2 { font-size: 1.5rem !important; }
+        .main { padding-top: 1.5rem !important; }
+        .main .block-container { padding-top: 1.5rem !important; }
+        .main h2 { font-size: 1.5rem !important; margin-top: 0.5rem !important; }
         .main h3 { font-size: 1.1rem !important; }
         .main h2:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }
+        
+        /* Prevent main content from going under header */
+        [data-testid="stAppViewContainer"] > section:first-child {
+            padding-top: 1.5rem !important;
+        }
+        .stMainBlockContainer {
+            padding-top: 1.5rem !important;
+        }
+        
+        /* Widen sidebar to fit logo and give text more space */
+        [data-testid="stSidebar"] {
+            width: 275px !important;
+            min-width: 275px !important;
+        }
+        [data-testid="stSidebar"] > div:first-child {
+            width: 275px !important;
+        }
         
         /* Prevent text wrapping in sidebar - use ellipsis instead */
         [data-testid="stSidebar"] p {
@@ -38,95 +57,109 @@ def apply_custom_css() -> None:
             overflow: hidden !important;
             text-overflow: ellipsis !important;
         }
+        
+        /* Consistent horizontal rule spacing in sidebar */
+        [data-testid="stSidebar"] hr {
+            margin-top: 0.5rem !important;
+            margin-bottom: 1rem !important;
+        }
+        
+        /* Consistent horizontal rule spacing in main content */
+        .main hr {
+            margin-top: 0.5rem !important;
+            margin-bottom: 1rem !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
 
 def render_sidebar_title() -> None:
-    """Render the sidebar title.
+    """Render the sidebar logo.
     
-    Displays 'Hill climber' as a multi-line title in the sidebar.
+    Displays the Hill climber logo in the sidebar.
     """
+
     if st is None:
         return
-        
-    st.sidebar.markdown(
-        "<h1 style='margin-top: -3rem; padding-top: 0.25rem; font-size: 2.8rem; line-height: 1.2; color: #ff4b4b;'>"
-        "Hill<br>climber</h1>",
-        unsafe_allow_html=True
-    )
+    
+    import os
+    logo_path = os.path.join(os.path.dirname(__file__), 'assets', 'logo.svg')
+    
+    if os.path.exists(logo_path):
+        with open(logo_path, 'r') as f:
+            svg_content = f.read()
+        st.sidebar.markdown(
+            f"<div style='margin-top: -3rem; padding-top: 0.25rem;'>{svg_content}</div>",
+            unsafe_allow_html=True
+        )
+    else:
+        # Fallback to text if logo not found
+        st.sidebar.markdown(
+            "<h1 style='margin-top: -3rem; padding-top: 0.25rem; font-size: 2.8rem; line-height: 1.2; color: #ff4b4b;'>"
+            "Hill<br>climber</h1>",
+            unsafe_allow_html=True
+        )
+    
+    st.sidebar.markdown("---")
 
 
-def render_database_selector(session_state: Any, dirs: List[Path]) -> Optional[str]:
+def render_database_selector(session_state: Any, db_files: List[Path], project_root: Path) -> Optional[str]:
     """Render database selection UI in sidebar.
     
     Args:
         session_state (Any): Streamlit session state object.
-        dirs (List[Path]): List of available directories to search for databases.
+        db_files (List[Path]): List of available database files in project.
+        project_root (Path): Project root directory for relative path display.
         
     Returns:
         str: Selected database path, or None if no database selected.
     """
+
     if st is None:
         return None
         
-    st.sidebar.header("Configuration")
+    st.sidebar.header("Run data")
     
     db_path = session_state.db_path
-    expander_open = not (session_state.db_user_selected and Path(db_path).exists())
     
-    with st.sidebar.expander("Database", expanded=expander_open):
-        st.write("Select the directory and database file.")
-
-        # Directory dropdown
-        cwd = Path.cwd()
-        dir_labels = ["None"]
-        for d in dirs:
-            try:
-                rel = d.relative_to(cwd)
-                label = "." if rel == Path('.') else str(rel)
-            except ValueError:
-                label = str(d)
-            dir_labels.append(label)
-
-        selected_dir_idx = st.selectbox(
-            "Directory",
-            options=list(range(len(dir_labels))),
-            format_func=lambda i: dir_labels[i]
-        )
-        
-        selected_dir = dirs[selected_dir_idx - 1] if selected_dir_idx > 0 else None
-
-        # File dropdown
-        file_labels = ["None"]
-        file_candidates = []
-        
-        if selected_dir is not None:
-            try:
-                file_candidates = [p for p in selected_dir.iterdir() if p.is_file() and p.suffix == ".db"]
-                if file_candidates:
-                    file_labels.extend([p.name for p in file_candidates])
-                else:
-                    st.info("No .db files in selected directory")
-            except PermissionError:
-                st.warning("Permission denied reading directory")
-
-        selected_file_idx = st.selectbox(
-            "Database file",
-            options=list(range(len(file_labels))),
-            format_func=lambda i: file_labels[i]
-        )
-
-        # Apply selection
-        if st.sidebar.button("Use selected file", key="db_use_selected"):
-            if selected_dir_idx > 0 and selected_file_idx > 0 and file_candidates:
-                chosen_file = file_candidates[selected_file_idx - 1]
-                session_state.db_path = str(chosen_file)
-                session_state.db_user_selected = True
-                st.toast("Database selected")
-                st.rerun()
-            else:
-                st.warning("Please select both a directory and a database file")
+    if not db_files:
+        st.sidebar.info("No .db files found in project")
+        return db_path
+    
+    # Create display labels with relative paths
+    db_labels = []
+    for db_file in db_files:
+        try:
+            rel_path = db_file.relative_to(project_root)
+            db_labels.append(str(rel_path))
+        except ValueError:
+            # File is outside project root
+            db_labels.append(str(db_file))
+    
+    # Find current selection index
+    current_idx = 0
+    if session_state.db_user_selected and db_path:
+        try:
+            current_idx = next(i for i, f in enumerate(db_files) if str(f) == db_path)
+        except StopIteration:
+            pass
+    
+    # Database file selector
+    selected_idx = st.sidebar.selectbox(
+        "Select database",
+        options=list(range(len(db_labels))),
+        format_func=lambda i: db_labels[i],
+        index=current_idx,
+        label_visibility="collapsed"
+    )
+    
+    selected_file = db_files[selected_idx]
+    
+    # Update selection if changed
+    if str(selected_file) != session_state.db_path:
+        session_state.db_path = str(selected_file)
+        session_state.db_user_selected = True
+        st.rerun()
     
     # Warn if path doesn't exist
     if session_state.db_user_selected and not Path(db_path).exists():
@@ -141,19 +174,23 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
     Returns:
         Tuple[bool, float]: Tuple of (auto_refresh_enabled, refresh_interval_seconds).
     """
+
     if st is None:
         return False, 60.0
         
-    st.sidebar.markdown("<hr style='margin-top: 0.5rem; margin-bottom: 1rem;'>", unsafe_allow_html=True)
     auto_refresh = st.sidebar.checkbox("Auto-refresh", key="auto_refresh")
+
     refresh_interval_minutes = st.sidebar.slider(
         "Refresh interval (minutes)",
         min_value=0.5, max_value=5.0, step=0.5,
         key="refresh_interval"
     )
+
     if st.sidebar.button("Refresh now", key="refresh_now"):
+
         # Increment refresh key to force clean plot re-rendering
         st.session_state.plot_refresh_key = st.session_state.get('plot_refresh_key', 0) + 1
+
         # Save current plot options before refresh
         st.session_state.saved_history_type = st.session_state.get('history_type', 'Improvements (best)')
         st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
@@ -177,6 +214,7 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
             objective_metric, additional_metrics, normalize_metrics, show_exchanges,
             max_points, and n_cols.
     """
+
     if st is None:
         return {}
         
@@ -207,59 +245,47 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     if 'refresh_interval' not in st.session_state:
         st.session_state.refresh_interval = 1.0
     
+    # Extract non-objective metrics
+    base_metrics = [m for m in available_metrics if "Objective" not in m]
+    
+    # Additional metrics - widget value automatically preserved via key
+    st.sidebar.markdown("Additional metrics")
+    additional_metrics = st.sidebar.multiselect(
+        "Additional metrics",
+        options=sorted(base_metrics),
+        key="additional_base_metrics",
+        help="Note: 'All perturbations' shows metrics only for accepted perturbations (rejected ones have no metrics)",
+        label_visibility="collapsed"
+    )
+    
     # History type selector - choose which event type to display
+    st.sidebar.markdown("History type")
     history_type = st.sidebar.radio(
         "History type",
-        options=["Improvements (best)", "Accepted steps", "All perturbations"],
+        options=["Improvements only", "Accepted steps", "All perturbations"],
         key="history_type",
         help="Improvements: Only new best values (monotonically improving)\n"
              "Accepted steps: All SA acceptances (includes exploration)\n"
              "All perturbations: Sampled perturbations (at db_step_interval)\n"
              "  - Includes both accepted and rejected\n"
-             "  - Metrics shown only for accepted perturbations"
+             "  - Metrics shown only for accepted perturbations",
+        label_visibility="collapsed"
     )
     
     # Map display name to internal key
     history_type_map = {
-        "Improvements (best)": "improvements",
+        "Improvements only": "improvements",
         "Accepted steps": "accepted",
         "All perturbations": "perturbations"
     }
     history_key = history_type_map[history_type]
     
-    # Extract non-objective metrics
-    base_metrics = [m for m in available_metrics if "Objective" not in m]
-    
-    # Additional metrics - widget value automatically preserved via key
-    additional_metrics = st.sidebar.multiselect(
-        "Additional metrics",
-        options=sorted(base_metrics),
-        key="additional_base_metrics",
-        help="Note: 'All perturbations' shows metrics only for accepted perturbations (rejected ones have no metrics)"
-    )
-    
     # Objective is always "Objective value"
     objective_metric = "Objective value"
     
-    # Other options - widget values automatically preserved via keys
-    normalize_metrics = st.sidebar.checkbox(
-        "Normalize", 
-        key="normalize_metrics",
-        help="Scale all metrics to [0, 1] range for easier comparison when they have different scales"
-    )
-    show_exchanges = st.sidebar.checkbox(
-        "Show exchange markers",
-        key="show_exchanges",
-        help="Draw vertical markers at replica exchange events"
-    )
-    max_points = st.sidebar.slider(
-        "Max points per replica",
-        min_value=100, max_value=2000, step=100,
-        key="max_points"
-    )
-    
     # Layout - widget value automatically preserved via key
-    st.sidebar.markdown("**Plot layout:**")
+    st.sidebar.markdown("Plot layout")
+
     plot_columns = st.sidebar.radio(
         "Plot layout",
         options=["One column", "Two columns"],
@@ -267,7 +293,24 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         help="Switch between two-column or single-column plot layout",
         label_visibility="collapsed"
     )
+    
+    # Other options subsection
+    st.sidebar.markdown("Other")
+    normalize_metrics = st.sidebar.checkbox(
+        "Normalize", 
+        key="normalize_metrics",
+        help="Scale all metrics to [0, 1] range for easier comparison when they have different scales"
+    )
+    show_exchanges = st.sidebar.checkbox(
+        "Show exchanges",
+        key="show_exchanges",
+        help="Draw vertical markers at replica exchange events"
+    )
+
     n_cols = 2 if plot_columns == "Two columns" else 1
+    
+    # Set max points to constant value of 1000 (not exposed to user)
+    max_points = 1000
     
     return {
         'history_type': history_key,
@@ -288,6 +331,7 @@ def render_run_information(metadata: Dict[str, Any]) -> None:
             hyperparameters, n_replicas, checkpoint_file, objective_function_name,
             and dataset_size.
     """
+
     if st is None:
         return
         
@@ -297,14 +341,13 @@ def render_run_information(metadata: Dict[str, Any]) -> None:
     hyperparams = metadata['hyperparameters']
     
     # Format display values
-    max_time_seconds = hyperparams.get('max_time', 0)
-    if max_time_seconds:
-        if max_time_seconds > 3600:  # More than 60 minutes
-            max_time_display = f"{max_time_seconds / 3600:.2f} hr"
-        elif max_time_seconds > 60:  # More than 60 seconds
-            max_time_display = f"{int(max_time_seconds / 60)} min"
+    max_time_minutes = hyperparams.get('max_time', 0)
+
+    if max_time_minutes:
+        if max_time_minutes >= 60:  # 60 minutes or more
+            max_time_display = f"{max_time_minutes / 60:.2f} hr"
         else:
-            max_time_display = f"{max_time_seconds} sec"
+            max_time_display = f"{max_time_minutes:.0f} min"
     else:
         max_time_display = 'N/A'
     
@@ -333,6 +376,7 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
         metadata (Dict[str, Any]): Dictionary with run metadata containing hyperparameters
             and exchange_interval.
     """
+
     if st is None:
         return
         
@@ -350,6 +394,7 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     initial_step_spread = hyperparams.get('initial_step_spread', hyperparams.get('step_spread', 'N/A'))
     final_step_spread = hyperparams.get('final_step_spread', 'N/A')
     step_spread_text = f"**Initial step spread:** {initial_step_spread}  \n"
+
     if final_step_spread != 'N/A':
         step_spread_text += f"**Final step spread:** {final_step_spread}  \n"
     
@@ -370,6 +415,7 @@ def render_temperature_ladder(temp_ladder_df: pd.DataFrame) -> None:
     Args:
         temp_ladder_df (pd.DataFrame): DataFrame with replica_id and temperature columns.
     """
+
     if st is None:
         return
         
@@ -378,8 +424,10 @@ def render_temperature_ladder(temp_ladder_df: pd.DataFrame) -> None:
     
     if not temp_ladder_df.empty:
         temp_lines = []
+
         for _, row in temp_ladder_df.iterrows():
             temp_lines.append(f"**Replica {int(row['replica_id'])}:** {row['temperature']:.1e}")
+
         st.sidebar.markdown("  \n".join(temp_lines))
 
 
@@ -396,16 +444,14 @@ def render_leaderboard(leaderboard_df: pd.DataFrame) -> None:
     st.header("Replica leaderboard")
     
     if not leaderboard_df.empty:
+
         cols = st.columns(3)
         medals = ['1<sup>st</sup>:', '2<sup>nd</sup>:', '3<sup>rd</sup>:']
+
         for idx, (_, row) in enumerate(leaderboard_df.iterrows()):
             with cols[idx]:
                 st.markdown(f"### {medals[idx]} Replica {int(row['replica_id'])}", unsafe_allow_html=True)
-                st.markdown(
-                    f"**Objective:** {row['best_objective']:.4f}  \n"
-                    f"**Perturbations:** {int(row['current_perturbation_num'])}  \n"
-                    f"**Temperature:** {row['temperature']:.1e}"
-                )
+                st.markdown(f"**Objective:** {row['best_objective']:.4f}")
     else:
         st.info("No replica data available yet")
 
@@ -417,6 +463,7 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
         stats (Dict[str, Any]): Dictionary with total_perturbations and total_accepted.
         metadata (Dict[str, Any]): Dictionary with run metadata including start_time.
     """
+
     if st is None:
         return
     
@@ -425,16 +472,20 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
     
     # Calculate elapsed time - use end_time if run is complete, otherwise current time
     end_time = metadata.get('end_time')
+
     if end_time is not None:
         elapsed_time = end_time - metadata['start_time']
+
     else:
         elapsed_time = time.time() - metadata['start_time']
     
     # Format elapsed time
     if elapsed_time > 3600:  # More than 60 minutes
         elapsed_display = f"{elapsed_time / 3600:.2f} hr"
+
     elif elapsed_time > 60:  # More than 60 seconds
         elapsed_display = f"{int(elapsed_time / 60)} min"
+
     else:
         elapsed_display = f"{int(elapsed_time)} sec"
     
@@ -450,5 +501,6 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
             f"**Progress rate:** {progress_rate:,.1f} accepted/sec | "
             f"**Acceptance rate:** {acceptance_rate:.1f}% ({total_accepted:,} / {total_perturbations:,})"
         )
+
     else:
         st.markdown("**Exploration rate:** N/A")

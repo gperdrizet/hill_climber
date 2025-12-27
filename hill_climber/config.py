@@ -155,6 +155,7 @@ class OptimizerConfig:
         if self.final_step_spread is not None:
             if self.final_step_spread < 0:
                 raise ValueError(f"final_step_spread must be non-negative, got {self.final_step_spread}")
+
             if self.final_step_spread > self.initial_step_spread:
                 raise ValueError(
                     f"final_step_spread must be <= initial_step_spread, got final={self.final_step_spread}, initial={self.initial_step_spread}"
@@ -187,9 +188,11 @@ class OptimizerConfig:
         
         # Set default db_step_interval if db enabled but interval not provided
         if self.db_enabled and self.db_step_interval is None:
+
             # Collect every 10 steps, but if exchange_interval <= 10, collect every step
             if self.exchange_interval <= 10:
                 self.db_step_interval = 1
+
             else:
                 self.db_step_interval = max(1, self.exchange_interval // DB_STEP_INTERVAL_DIVISOR)
         

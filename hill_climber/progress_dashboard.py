@@ -54,8 +54,11 @@ def render() -> None:
         load_run_metadata,
         load_metrics_history,
         load_temperature_exchanges,
+        load_temperature_ladder_history,
+        load_batch_statistics,
         get_available_metrics,
-        get_available_directories,
+        find_all_databases,
+        get_project_root,
         load_leaderboard,
         load_replica_temperatures,
         load_temperature_ladder,
@@ -73,7 +76,11 @@ def render() -> None:
         render_leaderboard,
         render_progress_stats
     )
-    from hill_climber.dashboard_plots import create_replica_plot
+    from hill_climber.dashboard_plots import (
+        create_replica_plot, 
+        create_temperature_ladder_plot,
+        create_batch_statistics_plot
+    )
     
     try:
         import streamlit as st
@@ -83,9 +90,11 @@ def render() -> None:
         sys.exit(1)
 
     # Page config
+    import os
+    icon_path = os.path.join(os.path.dirname(__file__), 'assets', 'favicon.svg')
     st.set_page_config(
-        page_title="Hill climber progress monitor",
-        page_icon="📈",
+        page_title="Dashboard",
+        page_icon=icon_path if os.path.exists(icon_path) else None,
         layout="wide",
         initial_sidebar_state="collapsed"
     )
@@ -98,8 +107,8 @@ def render() -> None:
     _init_session_state(st)
     
     # Sidebar: Database selection
-    dirs = get_available_directories()
-    db_path = render_database_selector(st.session_state, dirs)
+    db_files = find_all_databases(get_project_root())
+    db_path = render_database_selector(st.session_state, db_files, get_project_root())
     
     # Sidebar: Auto-refresh controls
     auto_refresh, refresh_interval = render_auto_refresh_controls()
@@ -146,6 +155,8 @@ def render() -> None:
         max_points_per_replica=plot_config['max_points']
     )
     exchanges_df = load_temperature_exchanges(conn)
+    temp_ladder_history_df = load_temperature_ladder_history(conn)
+    batch_stats_df = load_batch_statistics(conn)
 
     if metrics_df.empty:
         st.info("No metrics found yet. Waiting for data...")
@@ -175,6 +186,7 @@ def render() -> None:
     render_progress_stats(stats, metadata)
     
     # Main content: Progress plots
+    st.markdown("---")
     replica_ids = sorted(metrics_df['replica_id'].unique())
     replica_temps = load_replica_temperatures(conn)
     
@@ -191,14 +203,38 @@ def render() -> None:
     # Generate unique key for this render that includes layout
     plot_container_key = f"{st.session_state.plot_refresh_key}_{current_n_cols}"
     
-    # Create all plots
+    # Create temperature ladder plot as first plot in grid
+    if 0 % current_n_cols == 0:
+        cols = st.columns(current_n_cols)
+    
+    with cols[0]:
+        temp_ladder_fig = create_temperature_ladder_plot(
+            temp_ladder_history_df=temp_ladder_history_df,
+            temp_ladder_df=temp_ladder_df
+        )
+        st.plotly_chart(temp_ladder_fig, key=f"plot_temp_ladder_{plot_container_key}", use_container_width=True)
+    
+    # Create batch statistics plot as second plot in grid
+    plot_idx = 1
+    if plot_idx % current_n_cols == 0:
+        cols = st.columns(current_n_cols)
+    
+    col_idx = plot_idx % current_n_cols
+    with cols[col_idx]:
+        batch_stats_fig = create_batch_statistics_plot(batch_stats_df)
+        st.plotly_chart(batch_stats_fig, key=f"plot_batch_stats_{plot_container_key}", use_container_width=True)
+    
+    # Create all replica plots (offset by 2 for temp ladder and batch stats)
     for idx, replica_id in enumerate(replica_ids):
+        # Offset by 2 to account for temperature ladder and batch stats plots
+        plot_idx = idx + 2
+        
         # Create column layout at start of each row
-        if idx % current_n_cols == 0:
+        if plot_idx % current_n_cols == 0:
             cols = st.columns(current_n_cols)
         
         # Use the appropriate column
-        col_idx = idx % current_n_cols
+        col_idx = plot_idx % current_n_cols
         with cols[col_idx]:
             fig = create_replica_plot(
                 metrics_df=metrics_df,
@@ -211,7 +247,7 @@ def render() -> None:
                 normalize_metrics=plot_config['normalize_metrics'],
                 show_exchanges=plot_config['show_exchanges']
             )
-            st.plotly_chart(fig, key=f"plot_{replica_id}_{plot_container_key}", width='stretch')
+            st.plotly_chart(fig, key=f"plot_{replica_id}_{plot_container_key}", use_container_width=True)
     
     # Auto-refresh logic
     if auto_refresh:
@@ -238,7 +274,13 @@ def main() -> None:
     module file, ensuring proper Streamlit runtime initialization.
     """
     module_path = Path(__file__).resolve()
-    os.execvp('streamlit', ['streamlit', 'run', str(module_path)])
+    os.execvp('streamlit', [
+        'streamlit', 'run',
+        '--server.headless=true',
+        '--server.showEmailPrompt=false',
+        '--browser.gatherUsageStats=false',
+        str(module_path)
+    ])
 
 
 if __name__ == "__main__":

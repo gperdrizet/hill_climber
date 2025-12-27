@@ -13,7 +13,7 @@ Main Components:
     Plotting functions: Visualization tools for input data and results
 
 Example:
-    >>> from hill_climber import HillClimber, plot_optimization_results
+    >>> from hill_climber import HillClimber
     >>> import pandas as pd
     >>> import numpy as np
     >>> 
@@ -37,14 +37,9 @@ Example:
     ...     n_replicas=4
     ... )
     >>> best_data, steps_df = climber.climb()
-    >>> 
-    >>> # Visualize results
-    >>> plot_optimization_results(climber, plot_type='scatter')
-    >>> # Or from a checkpoint file
-    >>> plot_optimization_results('checkpoint.pkl', all_replicas=True)
 """
 
-__version__ = '3.0.0'
+__version__ = '3.1.0'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber
@@ -57,12 +52,10 @@ from .replica_exchange import (
 from .climber_functions import (
     perturb_vectors,
     extract_columns,
-    calculate_objective,
-    evaluate_objective
+    calculate_objective
 )
 from .plotting_functions import (
-    plot_input_data,
-    plot_optimization_results
+    plot_input_data
 )
 
 __all__ = [
@@ -75,7 +68,5 @@ __all__ = [
     'perturb_vectors',
     'extract_columns',
     'calculate_objective',
-    'evaluate_objective',
     'plot_input_data',
-    'plot_optimization_results',
 ]
