@@ -10,7 +10,7 @@ A Python package for [hill climbing](https://pubsonline.informs.org/doi/10.1287/
 
 ## 2. Features
 
-- **Flexible objectives**: Support for user supplied objective functions with custom multiple metrics
+- **Flexible objectives**: Support for user supplied objective functions with custom metrics
 - **Real-time monitoring dashboard**: Live progress plots and run info. with SQLite backend
 - **Replica exchange (parallel tempering)**: Replicas at different temperatures exchange configurations for improved global optimization (`multiprocessing.Pool`)
 - **Simulated annealing**: Temperature-based acceptance of suboptimal solutions to escape local minima
