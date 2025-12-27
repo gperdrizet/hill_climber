@@ -373,11 +373,33 @@ hr {
 
 /* Footer */
 .rst-footer-buttons {
-    border-top: 2px solid #ff4b4b !important;
+    border-top: none !important;
+    margin-bottom: 30px !important;
+}
+
+/* Hide the hr divider inside footer buttons and footer */
+.rst-footer-buttons hr,
+footer hr {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Add a horizontal line at the end of content */
+.document::after {
+    content: "";
+    display: block;
+    height: 2px;
+    background-color: #ff4b4b;
+    margin-top: 30px;
+    margin-bottom: 30px;
 }
 
 footer {
     color: #cccccc !important;
+    margin-top: 30px !important;
 }
 
 footer span.commit code {

@@ -65,33 +65,40 @@ Examples:
 
    # For 2-column data (M=2)
    def objective_2col(x, y):
-       # Calculate metrics
-       mean_x = np.mean(x)
-       mean_y = np.mean(y)
+
+      # Calculate metrics
+      mean_x = np.mean(x)
+      mean_y = np.mean(y)
        
-       # Calculate objective (e.g., minimize difference)
-       objective = -abs(mean_x - mean_y)
+      # Calculate objective (e.g., minimize difference)
+      objective = -abs(mean_x - mean_y)
        
-       # Return metrics and objective
-       metrics = {
-           'Mean X': mean_x,
-           'Mean Y': mean_y,
-           'Difference': abs(mean_x - mean_y)
-       }
-       return metrics, objective
+      # Return metrics and objective
+      metrics = {
+         'Mean X': mean_x,
+         'Mean Y': mean_y,
+         'Difference': abs(mean_x - mean_y)
+      }
+
+      return metrics, objective
 
    # For 3-column data (M=3)
    def objective_3col(x, y, z):
-       correlation_xy = pearsonr(x, y)[0]
-       correlation_xz = pearsonr(x, z)[0]
+
+      # Calculate metrics
+      correlation_xy = pearsonr(x, y)[0]
+      correlation_xz = pearsonr(x, z)[0]
        
-       objective = correlation_xy + correlation_xz
-       
-       metrics = {
-           'Corr XY': correlation_xy,
-           'Corr XZ': correlation_xz
-       }
-       return metrics, objective
+      # Calculate objective (e.g., maximize sum of correlations)
+      objective = correlation_xy + correlation_xz
+      
+      # Return metrics and objective
+      metrics = {
+         'Corr XY': correlation_xy,
+         'Corr XZ': correlation_xz
+      }
+      
+      return metrics, objective
 
 Hyperparameters
 ---------------

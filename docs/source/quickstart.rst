@@ -4,7 +4,9 @@ Quick start
 This guide will get you started with Hill Climber in just a few minutes.
 
 Hill Climber works with multi-column datasets. Your objective function receives
-one argument for each column/feature in your data.
+one argument for each column/feature in your data. The objective function must
+return a tuple of (metrics_dict, objective_value), where metrics_dict is a
+dictionary of metrics for tracking and objective_value is the scalar to optimize.
 
 Basic example
 -------------
@@ -27,8 +29,10 @@ Here's a simple example that optimizes a 2-column dataset for high Pearson corre
    # Define objective function
    def objective_high_correlation(x, y):
        """Maximize Pearson correlation."""
+    
        corr = pearsonr(x, y)[0]
        metrics = {'Pearson correlation': corr}
+
        return metrics, abs(corr)
 
    # Create optimizer with replica exchange
@@ -44,32 +48,28 @@ Here's a simple example that optimizes a 2-column dataset for high Pearson corre
    best_data = climber.climb()
 
    # View results
-   print(f"Best replica: {climber.replicas[0]['replica_id']}")
-   print(f"Best objective: {climber.replicas[0]['best_objective']:.3f}")
-   print(f"Total perturbations tried: {climber.replicas[0]['perturbation_num']}")
-   print(f"Steps accepted: {climber.replicas[0]['num_accepted']}")
-   print(f"Improvements found: {climber.replicas[0]['num_improvements']}")
+   print(f'Best replica: {climber.replicas[0]["replica_id"]}')
+   print(f'Best objective: {climber.replicas[0]["best_objective"]:.3f}')
+   print(f'Total perturbations tried: {climber.replicas[0]["perturbation_num"]}')
+   print(f'Steps accepted: {climber.replicas[0]["num_accepted"]}')
+   print(f'Improvements found: {climber.replicas[0]["num_improvements"]}')
 
 Real-time monitoring
 --------------------
 
-Monitor optimization progress in real-time using the built-in Streamlit dashboard:
+You can monitor in-progress optimizations with the built-in Streamlit dashboard. To use the dashboard, install hill climber with the dashboard extras and then launch the dashboard:
 
 .. code-block:: bash
 
-   # Install with dashboard extras
-   pip install parallel-hill-climber[dashboard]
-   
-   # Launch dashboard
-   hill-climber-dashboard
+   $ pip install parallel-hill-climber[dashboard]
+   $ hill-climber-dashboard
 
-The dashboard provides live visualization of:
+     You can now view your Streamlit app in your browser.
 
-- Replica leaderboard with current rankings
-- Optimization progress plots (perturbations, accepted steps, improvements)
-- Temperature exchange visualization
-- Interactive metric time series
-- Run metadata and hyperparameters
+     Local URL: http://localhost:8501
+     Network URL: http://172.17.0.2:8501
+
+Access the dashboard via the URL provided. Note: the dashboard is only available on the same machine (or same LAN) running hill climber.
 
 Next steps
 ----------
@@ -87,11 +87,10 @@ global optimization:
        objective_func=objective_high_correlation,
        max_time=10,
        mode='maximize',
-       n_replicas=8,  # Number of replicas (default: 4)
-       T_min=0.1,  # Minimum temperature (default: 0.1)
-       T_max=10.0,  # Maximum temperature (default: 100 * T_min)
-       exchange_interval=10000,  # Steps between exchange attempts (default: 10000)
-       temperature_scheme='geometric'  # or 'linear'
+       n_replicas=8,           # Number of replicas (default: 4)
+       T_min=0.1,              # Minimum temperature (default: 0.1)
+       T_max=10.0,             # Maximum temperature (default: 100 * T_min)
+       exchange_interval=10000 # Steps between exchange attempts (default: 10000)
    )
 
    best_data = climber.climb()
