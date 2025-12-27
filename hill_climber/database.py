@@ -68,6 +68,8 @@ class DatabaseWriter:
             if drop_existing:
                 # Drop old tables
                 cursor.execute("DROP TABLE IF EXISTS temperature_exchanges")
+                cursor.execute("DROP TABLE IF EXISTS temperature_ladder_history")
+                cursor.execute("DROP TABLE IF EXISTS batch_statistics")
                 cursor.execute("DROP TABLE IF EXISTS metrics_history")
                 cursor.execute("DROP TABLE IF EXISTS replica_status")
                 cursor.execute("DROP TABLE IF EXISTS run_metadata")
@@ -196,6 +198,27 @@ class DatabaseWriter:
                 ON improvement_metrics(metric_name)
             """)
             
+            # Composite indexes for dashboard performance
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_improvement_metrics_composite
+                ON improvement_metrics(replica_id, metric_name, perturbation_num)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_step_metrics_composite
+                ON step_metrics(replica_id, metric_name, perturbation_num)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_perturbations_composite
+                ON perturbations(replica_id, perturbation_num, objective)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_accepted_composite
+                ON accepted_steps(replica_id, perturbation_num, objective)
+            """)
+            
             # Current replica state (snapshot updated after each batch)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS replica_status (
@@ -229,6 +252,35 @@ class DatabaseWriter:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_temp_exchanges_num
                 ON temperature_exchanges(perturbation_num)
+            """)
+            
+            # Temperature ladder history table - tracks temperature at each ladder position over time
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS temperature_ladder_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    batch_num INTEGER NOT NULL,
+                    ladder_position INTEGER NOT NULL,
+                    temperature REAL NOT NULL,
+                    timestamp REAL NOT NULL,
+                    UNIQUE(batch_num, ladder_position)
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_ladder_history_batch
+                ON temperature_ladder_history(batch_num, ladder_position)
+            """)
+            
+            # Batch statistics table - tracks step spread and acceptance rates
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS batch_statistics (
+                    batch_num INTEGER PRIMARY KEY,
+                    step_spread REAL NOT NULL,
+                    mean_acceptance_rate REAL NOT NULL,
+                    min_acceptance_rate REAL NOT NULL,
+                    max_acceptance_rate REAL NOT NULL,
+                    timestamp REAL NOT NULL
+                )
             """)
 
 
@@ -440,6 +492,86 @@ class DatabaseWriter:
                 (perturbation_num, replica_id, new_temperature, timestamp)
                 VALUES (?, ?, ?, ?)
             """, [(int(pnum), int(rid), float(temp), timestamp) for pnum, rid, temp in exchanges])
+
+
+    def initialize_temperature_ladder_history(self, ladder_temps: List[float], batch_num: int = 0):
+        """Initialize temperature ladder history with starting temperatures.
+        
+        Args:
+            ladder_temps (List[float]): List of temperatures sorted from high to low.
+            batch_num (int): Batch number (default 0 for initialization).
+        """
+        if not ladder_temps:
+            return
+            
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            timestamp = time.time()
+            
+            for position, temp in enumerate(ladder_temps):
+                cursor.execute("""
+                    INSERT OR REPLACE INTO temperature_ladder_history
+                    (batch_num, ladder_position, temperature, timestamp)
+                    VALUES (?, ?, ?, ?)
+                """, (batch_num, position, temp, timestamp))
+
+
+    def update_temperature_ladder_history(self, batch_num: int, cooling_rate: float, exchange_interval: int):
+        """Update temperature ladder history by applying cooling to previous batch temperatures.
+        
+        Args:
+            batch_num (int): Current batch number.
+            cooling_rate (float): Temperature decay rate per step.
+            exchange_interval (int): Number of steps per batch.
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            timestamp = time.time()
+            
+            # Get temperatures from previous batch
+            cursor.execute("""
+                SELECT ladder_position, temperature
+                FROM temperature_ladder_history
+                WHERE batch_num = ?
+                ORDER BY ladder_position
+            """, (batch_num - 1,))
+            
+            prev_temps = cursor.fetchall()
+            
+            if not prev_temps:
+                return
+            
+            # Apply cooling and insert new batch
+            cooling_factor = (1 - cooling_rate) ** exchange_interval
+            for position, prev_temp in prev_temps:
+                new_temp = prev_temp * cooling_factor
+                cursor.execute("""
+                    INSERT OR REPLACE INTO temperature_ladder_history
+                    (batch_num, ladder_position, temperature, timestamp)
+                    VALUES (?, ?, ?, ?)
+                """, (batch_num, position, new_temp, timestamp))
+
+
+    def insert_batch_statistics(self, batch_num: int, step_spread: float, 
+                                mean_acceptance_rate: float, min_acceptance_rate: float, max_acceptance_rate: float):
+        """Insert batch statistics for step spread and acceptance rates.
+        
+        Args:
+            batch_num (int): Batch number.
+            step_spread (float): Current step spread value.
+            mean_acceptance_rate (float): Mean acceptance rate across replicas.
+            min_acceptance_rate (float): Minimum acceptance rate across replicas.
+            max_acceptance_rate (float): Maximum acceptance rate across replicas.
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            timestamp = time.time()
+            
+            cursor.execute("""
+                INSERT OR REPLACE INTO batch_statistics
+                (batch_num, step_spread, mean_acceptance_rate, min_acceptance_rate, max_acceptance_rate, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (batch_num, step_spread, mean_acceptance_rate, min_acceptance_rate, max_acceptance_rate, timestamp))
 
 
     def get_run_metadata(self) -> Optional[Dict[str, Any]]:

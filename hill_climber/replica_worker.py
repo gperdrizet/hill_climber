@@ -148,9 +148,9 @@ def run_replica_steps(
                     step_metrics_buffer.append((
                         replica_id, perturbation_num, metric_name, metric_value
                     ))
-            
-            # Cool temperature (using pre-extracted cooling_rate)
-            state['temperature'] *= (1 - cooling_rate)
+        
+        # Cool temperature after every step (using pre-extracted cooling_rate)
+        state['temperature'] *= (1 - cooling_rate)
         
         # If improvement, update best state and record
         if is_better:

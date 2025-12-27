@@ -60,12 +60,12 @@ def render_sidebar_title() -> None:
     )
 
 
-def render_database_selector(session_state: Any, dirs: List[Path], project_root: Path) -> Optional[str]:
+def render_database_selector(session_state: Any, db_files: List[Path], project_root: Path) -> Optional[str]:
     """Render database selection UI in sidebar.
     
     Args:
         session_state (Any): Streamlit session state object.
-        dirs (List[Path]): List of available directories to search for databases.
+        db_files (List[Path]): List of available database files in project.
         project_root (Path): Project root directory for relative path display.
         
     Returns:
@@ -81,80 +81,42 @@ def render_database_selector(session_state: Any, dirs: List[Path], project_root:
     expander_open = not (session_state.db_user_selected and Path(db_path).exists())
     
     with st.sidebar.expander("Database", expanded=expander_open):
-        # Show current browsing path
-        current_path = session_state.browse_path
-        try:
-            rel_path = current_path.relative_to(project_root)
-            path_display = "." if rel_path == Path('.') else str(rel_path)
-        except ValueError:
-            path_display = str(current_path)
-        
-        st.write(f"**Current location:** `{path_display}`")
-        
-        # Add parent directory option if not at project root
-        if current_path != project_root:
-            if st.button("↑ Parent Directory", key="nav_parent"):
-                session_state.browse_path = current_path.parent
-                st.rerun()
-        
-        # Directory dropdown
-        # First directory is current location, rest are subdirectories
-        dir_labels = []
-        
-        for i, d in enumerate(dirs):
-            if i == 0:
-                dir_labels.append("(current)")
-            else:
-                dir_labels.append(d.name)
-
-        if not dir_labels:
-            st.warning("No directories available")
+        if not db_files:
+            st.info("No .db files found in project")
             return db_path
-
-        selected_dir_idx = st.selectbox(
-            "Directory",
-            options=list(range(len(dir_labels))),
-            format_func=lambda i: dir_labels[i]
-        )
         
-        selected_dir = dirs[selected_dir_idx]
+        # Create display labels with relative paths
+        db_labels = []
+        for db_file in db_files:
+            try:
+                rel_path = db_file.relative_to(project_root)
+                db_labels.append(str(rel_path))
+            except ValueError:
+                # File is outside project root
+                db_labels.append(str(db_file))
         
-        # Navigate into subdirectory
-        if selected_dir_idx > 0:  # Not current directory
-            if st.button("→ Open", key="nav_open"):
-                session_state.browse_path = selected_dir
-                st.rerun()
-
-        # File dropdown
-        file_labels = []
-        file_candidates = []
+        # Find current selection index
+        current_idx = 0
+        if session_state.db_user_selected and db_path:
+            try:
+                current_idx = next(i for i, f in enumerate(db_files) if str(f) == db_path)
+            except StopIteration:
+                pass
         
-        try:
-            file_candidates = [p for p in selected_dir.iterdir() if p.is_file() and p.suffix == ".db"]
-
-            if file_candidates:
-                file_labels = [p.name for p in file_candidates]
-            else:
-                st.info("No .db files in selected directory")
-
-        except PermissionError:
-            st.warning("Permission denied reading directory")
-
-        if not file_labels:
-            return db_path
-
-        selected_file_idx = st.selectbox(
+        # Database file selector
+        selected_idx = st.selectbox(
             "Database file",
-            options=list(range(len(file_labels))),
-            format_func=lambda i: file_labels[i]
+            options=list(range(len(db_labels))),
+            format_func=lambda i: db_labels[i],
+            index=current_idx
         )
-
-        # Apply selection
-        if st.sidebar.button("Use selected file", key="db_use_selected"):
-            chosen_file = file_candidates[selected_file_idx]
-            session_state.db_path = str(chosen_file)
+        
+        selected_file = db_files[selected_idx]
+        
+        # Update selection if changed
+        if str(selected_file) != session_state.db_path:
+            session_state.db_path = str(selected_file)
             session_state.db_user_selected = True
-            st.toast("Database selected")
             st.rerun()
     
     # Warn if path doesn't exist
@@ -288,12 +250,6 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         key="show_exchanges",
         help="Draw vertical markers at replica exchange events"
     )
-
-    max_points = st.sidebar.slider(
-        "Max points per replica",
-        min_value=100, max_value=2000, step=100,
-        key="max_points"
-    )
     
     # Layout - widget value automatically preserved via key
     st.sidebar.markdown("**Plot layout:**")
@@ -307,6 +263,9 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     )
 
     n_cols = 2 if plot_columns == "Two columns" else 1
+    
+    # Set max points to constant value of 1000 (not exposed to user)
+    max_points = 1000
     
     return {
         'history_type': history_key,
@@ -453,7 +412,6 @@ def render_leaderboard(leaderboard_df: pd.DataFrame) -> None:
                 st.markdown(f"### {medals[idx]} Replica {int(row['replica_id'])}", unsafe_allow_html=True)
                 st.markdown(
                     f"**Objective:** {row['best_objective']:.4f}  \n"
-                    f"**Perturbations:** {int(row['current_perturbation_num'])}  \n"
                     f"**Temperature:** {row['temperature']:.1e}"
                 )
     else:

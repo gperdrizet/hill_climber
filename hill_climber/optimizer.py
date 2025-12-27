@@ -3,7 +3,7 @@
 import os
 import pickle
 import time
-from typing import Callable, Optional, Dict, Any, Tuple, List
+from typing import Callable, Optional, Dict, Any, List
 
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ from .replica_worker import run_replica_steps
 from .config import (
     OptimizerConfig,
     DEFAULT_T_MIN,
-    DEFAULT_T_MAX_MULTIPLIER,
+    #DEFAULT_T_MAX_MULTIPLIER,
     DEFAULT_COOLING_RATE,
     DEFAULT_INITIAL_STEP_SPREAD,
     DEFAULT_FINAL_STEP_SPREAD,
@@ -32,8 +32,8 @@ from .config import (
     DEFAULT_MAX_TIME,
     DEFAULT_MODE,
     DEFAULT_CHECKPOINT_INTERVAL,
-    DEFAULT_DB_PATH,
-    DB_STEP_INTERVAL_DIVISOR,
+    #DEFAULT_DB_PATH,
+    #DB_STEP_INTERVAL_DIVISOR,
     DEFAULT_COLUMN_PREFIX,
 )
 
@@ -207,17 +207,22 @@ class HillClimber:
         # Parallel processing parameters (already validated in config)
         if config.n_workers is None:
             self.n_workers = self.n_replicas
+
         elif config.n_workers == 0:
             self.n_workers = 0
+
         elif config.n_workers > cpu_count() - 1:
             print(
                 "Warning: Requested n_workers + main process exceeds available " +
                 f"CPU cores ({cpu_count()}). Consider decreasing n_replicas and/or n_workers"
             )
+
             self.n_workers = config.n_workers
+
         elif config.n_workers > config.n_replicas:
             print('Requested workers exceed number of replicas; reducing n_workers to n_replicas.')
             self.n_workers = config.n_replicas
+
         else:
             # Normal case: use the specified n_workers
             self.n_workers = config.n_workers
@@ -250,18 +255,24 @@ class HillClimber:
         print()
         print("Perturbation settings:")
         print(f"  Initial step spread: {self.initial_step_spread} (fraction of range)")
+
         if self.final_step_spread is not None:
             print(f"  Final step spread:   {self.final_step_spread} (fraction at end of run)")
+
         print(f"  Perturb fraction:    {self.perturb_fraction}")
         print()
         print("Database settings:")
         print(f"  Enabled:            {self.db_enabled}")
+
         if self.db_enabled:
             print(f"  Path:               {self.db_path}")
             print(f"  Step interval:      {self.db_step_interval}")
+
         print()
+
         if self.checkpoint_file:
             print(f"Checkpointing:        {self.checkpoint_file} (every {self.checkpoint_interval} batch)")
+
         print("=" * 70)
 
 
@@ -304,6 +315,13 @@ class HillClimber:
 
         if self.verbose:
             print(f"Initialized {len(self.replicas)} replicas.")
+        
+        # Store initial ladder temperatures for theoretical cooling tracking
+        self.initial_ladder_temps = sorted([r['temperature'] for r in self.replicas], reverse=True)
+        
+        # Initialize temperature ladder history in database
+        if self.db_enabled:
+            self.db_writer.initialize_temperature_ladder_history(self.initial_ladder_temps, batch_num=0)
 
         # Initialize exchange scheduler and statistics
         scheduler = ExchangeScheduler(self.n_replicas, self.exchange_strategy)
@@ -337,20 +355,65 @@ class HillClimber:
                 if self.n_replicas > 1:
                     self._exchange_round(scheduler)
                 
+                # Increment batch counter
+                self.batch_counter += 1
+                
+                # Update temperature ladder history by applying cooling to previous batch
+                if self.db_enabled:
+                    self.db_writer.update_temperature_ladder_history(
+                        self.batch_counter, 
+                        self.cooling_rate, 
+                        self.exchange_interval
+                    )
+                    
+                    # Record batch statistics (step spread and acceptance rates)
+                    # Calculate acceptance rates for each replica from the preceding batch
+                    acceptance_rates = []
+                    for replica in self.replicas:
+                        # Acceptance rate = num_accepted / perturbation_num
+                        if replica['perturbation_num'] > 0:
+                            rate = replica['num_accepted'] / replica['perturbation_num']
+                            acceptance_rates.append(rate)
+                    
+                    if acceptance_rates:
+                        mean_acceptance = float(np.mean(acceptance_rates))
+                        min_acceptance = float(np.min(acceptance_rates))
+                        max_acceptance = float(np.max(acceptance_rates))
+                        
+                        # Calculate current step spread (same logic as replica_worker)
+                        data_range = self.bounds[1] - self.bounds[0]
+                        if start_time is not None and self.final_step_spread is not None:
+                            elapsed_time = time.time() - start_time
+                            progress = min(elapsed_time / (self.max_time * 60.0), 1.0)
+                            step_spread_initial = self.initial_step_spread * data_range
+                            step_spread_final = self.final_step_spread * data_range
+                            current_step_spread = step_spread_initial + (step_spread_final - step_spread_initial) * progress
+                        else:
+                            current_step_spread = self.step_spread_absolute
+                        
+                        # Convert back to fraction (0-1) by dividing by data_range, then take mean across dimensions
+                        step_spread_fraction = current_step_spread / data_range
+                        step_spread_scalar = float(np.mean(step_spread_fraction))
+                        
+                        self.db_writer.insert_batch_statistics(
+                            self.batch_counter,
+                            step_spread_scalar,
+                            mean_acceptance,
+                            min_acceptance,
+                            max_acceptance
+                        )
+                
                 # Checkpoint after every checkpoint_interval batches
                 if self.checkpoint_file and (self.batch_counter % self.checkpoint_interval == 0):
                     self.save_checkpoint(self.checkpoint_file)
                 
                 # Update average batch time
                 batch_time = time.time() - batch_start
-                if self.batch_counter == 0:
+                if self.batch_counter == 1:
                     avg_batch_time = batch_time
                 else:
                     # Running average: new_avg = old_avg + (new_value - old_avg) / (n + 1)
-                    avg_batch_time = avg_batch_time + (batch_time - avg_batch_time) / (self.batch_counter + 1)
-                
-                # Increment batch counter
-                self.batch_counter += 1
+                    avg_batch_time = avg_batch_time + (batch_time - avg_batch_time) / self.batch_counter
         
         return self._finalize_results()
     

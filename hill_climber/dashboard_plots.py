@@ -6,8 +6,231 @@ separating visualization logic from data and UI concerns.
 
 from typing import List, Dict, Optional
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+
+
+def create_temperature_ladder_plot(
+    temp_ladder_history_df: pd.DataFrame,
+    temp_ladder_df: pd.DataFrame
+) -> go.Figure:
+    """Create a plot showing temperature ladder evolution over time.
+    
+    Each trace represents a fixed ladder position (rank), showing how the
+    temperature at that position decreases due to cooling over time.
+    
+    Args:
+        temp_ladder_history_df (pd.DataFrame): Temperature ladder history with columns:
+            batch_num, ladder_position, temperature.
+        temp_ladder_df (pd.DataFrame): Initial temperature ladder (unused, kept for compatibility).
+        
+    Returns:
+        go.Figure: Plotly Figure showing temperature evolution for each ladder step.
+    """
+    fig = go.Figure()
+    
+    if temp_ladder_history_df.empty:
+        # Return empty figure with message
+        fig.add_annotation(
+            text="No temperature ladder data available yet",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16, color="gray")
+        )
+        fig.update_layout(
+            height=400,
+            title_text="Temperature ladder",
+            title_font_size=20,
+            margin=dict(l=40, r=20, t=90, b=40)
+        )
+        return fig
+    
+    # Determine number of ladder positions
+    n_replicas = temp_ladder_history_df['ladder_position'].nunique()
+    
+    # Generate red color gradient from dark to light
+    red_colors = []
+    for i in range(n_replicas):
+        intensity = 1.0 - (0.7 * i / max(1, n_replicas - 1))  # 1.0 to 0.3
+        red = int(255 * intensity)
+        green = int(50 * (1 - intensity))  # Slight warmth
+        blue = int(50 * (1 - intensity))
+        red_colors.append(f'rgb({red},{green},{blue})')
+    
+    # Plot each ladder position
+    for position in range(n_replicas):
+        position_data = temp_ladder_history_df[
+            temp_ladder_history_df['ladder_position'] == position
+        ].sort_values('batch_num')
+        
+        if not position_data.empty:
+            batches = position_data['batch_num']
+            temps = position_data['temperature']
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=batches,
+                    y=temps,
+                    mode='lines',
+                    line=dict(color=red_colors[position], width=2),
+                    hovertemplate=f'Ladder position {position}<br>Batch: %{{x:.0f}}<br>Temperature: %{{y:.2e}}<extra></extra>',
+                    showlegend=False
+                )
+            )
+    
+    # Layout
+    fig.update_layout(
+        title_text="Temperature ladder",
+        title_font_size=20,
+        xaxis_title="Batch",
+        yaxis=dict(
+            title="Temperature",
+            type="log",
+            exponentformat="power"
+        ),
+        height=400,
+        margin=dict(l=60, r=20, t=90, b=40),
+        showlegend=False
+    )
+    
+    return fig
+
+
+def create_batch_statistics_plot(batch_stats_df: pd.DataFrame) -> go.Figure:
+    """Create a plot showing step spread and acceptance rates over time.
+    
+    Shows two traces: step spread and mean acceptance rate with min-max range.
+    
+    Args:
+        batch_stats_df (pd.DataFrame): Batch statistics with columns:
+            batch_num, step_spread, mean_acceptance_rate, min_acceptance_rate, max_acceptance_rate.
+        
+    Returns:
+        go.Figure: Plotly Figure with dual y-axes showing step spread and acceptance rates.
+    """
+    fig = go.Figure()
+    
+    if batch_stats_df.empty:
+        # Return empty figure with message
+        fig.add_annotation(
+            text="No batch statistics available yet",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16, color="gray")
+        )
+        fig.update_layout(
+            height=400,
+            title_text="Step performance",
+            title_font_size=20,
+            margin=dict(l=40, r=40, t=90, b=40)
+        )
+        return fig
+    
+    # Clean data - replace NaN/inf with 0
+    batch_stats_df = batch_stats_df.fillna(0)
+    batch_stats_df = batch_stats_df.replace([np.inf, -np.inf], 0)
+    
+    # Convert to Python native types for JSON serialization
+    batches = [int(x) for x in batch_stats_df['batch_num']]
+    step_spread = [float(x) for x in batch_stats_df['step_spread']]
+    mean_accept = [float(x) for x in batch_stats_df['mean_acceptance_rate']]
+    min_accept = [float(x) for x in batch_stats_df['min_acceptance_rate']]
+    max_accept = [float(x) for x in batch_stats_df['max_acceptance_rate']]
+    
+    # Add step spread trace (left y-axis)
+    fig.add_trace(
+        go.Scatter(
+            x=batches,
+            y=step_spread,
+            mode='lines',
+            name='Step spread',
+            line=dict(color='blue', width=2),
+            hovertemplate='Batch: %{x:.0f}<br>Step spread: %{y:.1%}<extra></extra>',
+            yaxis='y'
+        )
+    )
+    
+    # Add acceptance rate traces (right y-axis)
+    # Mean line
+    fig.add_trace(
+        go.Scatter(
+            x=batches,
+            y=mean_accept,
+            mode='lines',
+            name='Mean acceptance',
+            line=dict(color='green', width=2),
+            hovertemplate='Batch: %{x:.0f}<br>Acceptance: %{y:.1%}<extra></extra>',
+            yaxis='y2'
+        )
+    )
+    
+    # Calculate bounds with clipping to valid range [0, 1]
+    upper_bound = [float(np.clip(x, 0, 1)) for x in max_accept]
+    lower_bound = [float(np.clip(x, 0, 1)) for x in min_accept]
+    
+    # Upper bound (max)
+    fig.add_trace(
+        go.Scatter(
+            x=batches,
+            y=upper_bound,
+            mode='lines',
+            name='Min-max range',
+            line=dict(color='lightgreen', width=0),
+            showlegend=False,
+            hoverinfo='skip',
+            yaxis='y2'
+        )
+    )
+    
+    # Lower bound (min) with fill
+    fig.add_trace(
+        go.Scatter(
+            x=batches,
+            y=lower_bound,
+            mode='lines',
+            name='Min-max range',
+            line=dict(color='lightgreen', width=0),
+            fill='tonexty',
+            fillcolor='rgba(144, 238, 144, 0.2)',
+            showlegend=True,
+            hoverinfo='skip',
+            yaxis='y2'
+        )
+    )
+    
+    # Update layout with dual y-axes
+    fig.update_layout(
+        xaxis=dict(title="Batch"),
+        yaxis=dict(
+            title="Step spread",
+            side='left',
+            tickformat='.1%'
+        ),
+        yaxis2=dict(
+            title="Acceptance rate",
+            side='right',
+            overlaying='y',
+            tickformat='.1%'
+        )
+    )
+    
+    fig.update_layout(
+        title_text="Step performance",
+        title_font_size=20,
+        height=400,
+        margin=dict(l=60, r=60, t=90, b=40),
+        hovermode='x unified',
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    return fig
 
 
 def create_replica_plot(
