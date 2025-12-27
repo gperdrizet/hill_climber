@@ -36,7 +36,7 @@ No local setup required:
 2. Open in GitHub Codespaces
 3. The development environment will be configured automatically
 4. Documentation will be built and served at http://localhost:8000 automatically
-5. The monitoring dashboard will start and be served at http://localhost:8501 automatically
+5. The monitoring dashboard will start at http://localhost:8501 automatically
 
 Option 2: Local development
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -69,8 +69,8 @@ Clone and install locally:
 
       cd docs
       make html
-      # View docs by opening docs/build/html/index.html in a browser
-      # Or serve locally with: python -m http.server 8000 --directory build/html
+
+   View docs by opening docs/build/html/index.html in a browser or serve locally with: `python -m http.server 8000 --directory build/html`.
 
 5. Run tests to verify installation:
 
@@ -81,9 +81,6 @@ Clone and install locally:
 
       # Run specific test file
       python -m pytest tests/test_hill_climber.py
-
-      # Run with coverage
-      python -m pytest tests/ --cov=hill_climber
 
    All tests should pass.
 

@@ -6,16 +6,16 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; Hill Climber 3.1.0 documentation</title>
+  <title>API reference &mdash; Hill Climber 3.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=d782da62" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4278e204" />
 
   
     <link rel="shortcut icon" href="_static/favicon.svg"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=dd1205ac"></script>
+      <script src="_static/documentation_options.js?v=4f6ddb47"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -149,9 +149,9 @@ exploitation.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> – Input data as numpy array (N, M) or pandas DataFrame with M columns</p></li>
 <li><p><strong>objective_func</strong> – Function taking M column arrays, returns (metrics_dict, objective_value)</p></li>
-<li><p><strong>mode</strong> – ‘maximize’, ‘minimize’, or ‘target’</p></li>
+<li><p><strong>mode</strong> – ‘maximize’, ‘minimize’, or ‘target’ (default: ‘maximize’)</p></li>
 <li><p><strong>target_value</strong> – Target value (only used if mode=’target’)</p></li>
-<li><p><strong>max_time</strong> – Maximum runtime in minutes</p></li>
+<li><p><strong>max_time</strong> – Maximum runtime in minutes (default: 10.0)</p></li>
 <li><p><strong>initial_step_spread</strong> – Initial perturbation spread as fraction of input range (default: 0.25 = 25%).
 Step values are sampled from a gaussian distribution with mean 0 and standard deviation
 calculated per-feature as: feature_range * initial_step_spread. Each feature uses its own
@@ -160,20 +160,21 @@ range for more appropriate perturbations across different scales.</p></li>
 specified, step spread linearly decreases from initial_step_spread to final_step_spread
 over the course of max_time, enabling time-based cooling for more refined optimization
 near the end of the run.</p></li>
-<li><p><strong>perturb_fraction</strong> – Fraction of data points to perturb each step</p></li>
+<li><p><strong>perturb_fraction</strong> – Fraction of data points to perturb each step (default: 0.001)</p></li>
 <li><p><strong>n_replicas</strong> – Number of replicas for parallel tempering (default: 4), setting to 1 runs
 simulated annealing without replica exchange</p></li>
-<li><p><strong>T_min</strong> – Base temperature (will be used as T_min for ladder)</p></li>
-<li><p><strong>T_max</strong> – Maximum temperature for hottest replica (default: 100 * temperature)</p></li>
-<li><p><strong>cooling_rate</strong> – Temperature decay rate per successful step</p></li>
-<li><p><strong>temperature_scheme</strong> – ‘geometric’ or ‘linear’ temperature spacing</p></li>
-<li><p><strong>exchange_interval</strong> – Steps between exchange attempts</p></li>
-<li><p><strong>exchange_strategy</strong> – ‘even_odd’, ‘random’, or ‘all_neighbors’</p></li>
+<li><p><strong>T_min</strong> – Base temperature (will be used as T_min for ladder) (default: 0.0001)</p></li>
+<li><p><strong>T_max</strong> – Maximum temperature for hottest replica (default: 100 * T_min)</p></li>
+<li><p><strong>cooling_rate</strong> – Temperature decay rate per successful step (default: 1e-10)</p></li>
+<li><p><strong>temperature_scheme</strong> – ‘geometric’ or ‘linear’ temperature spacing (default: ‘geometric’)</p></li>
+<li><p><strong>exchange_interval</strong> – Steps between exchange attempts (default: 100)</p></li>
+<li><p><strong>exchange_strategy</strong> – ‘even_odd’, ‘random’, or ‘all_neighbors’ (default: ‘even_odd’)</p></li>
 <li><p><strong>checkpoint_file</strong> – Path to save checkpoints (default: None, no checkpointing)</p></li>
 <li><p><strong>checkpoint_interval</strong> – Batches between checkpoint saves (default: 1, i.e., every batch)</p></li>
-<li><p><strong>db_enabled</strong> – Enable database logging for dashboard (default: False)</p></li>
-<li><p><strong>db_path</strong> – Path to SQLite database file (default: ‘data/hill_climber_progress.db’)</p></li>
-<li><p><strong>db_step_interval</strong> – Collect metrics every Nth step (default: exchange_interval // 10, or 1 if exchange_interval &lt;= 10)</p></li>
+<li><p><strong>db_enabled</strong> – Enable database logging for dashboard (default: True)</p></li>
+<li><p><strong>db_path</strong> – Path to SQLite database file (default: ‘../data/hill_climb.db’)</p></li>
+<li><p><strong>db_step_interval</strong> – Collect metrics every Nth step. Uses tiered sampling: 1 for exchange_interval&lt;10,
+10 for 10-99, 100 for 100-999, 1000 for &gt;=1000 (default: None, auto-calculated)</p></li>
 <li><p><strong>verbose</strong> – Print progress messages (default: False)</p></li>
 <li><p><strong>n_workers</strong> – Number of worker processes (default: n_replicas)</p></li>
 </ul>

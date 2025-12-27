@@ -1,9 +1,9 @@
 Hill climber documentation
 ==========================
 
-A flexible simulated annealing optimizer for generating synthetic datasets with specific statistical properties.
+A flexible simulated annealing optimizer with replica exchange for generating synthetic datasets with specific properties (or whatever else you can dream up).
 
-**Hill Climber** is a Python package that uses simulated annealing to optimize datasets according to user-defined objective functions. It's particularly useful for:
+**Hill Climber** is a Python package to optimize datasets with user-defined objective functions. It's particularly useful for:
 
 - Generating synthetic data with specific statistical properties
 - Exploring relationships between different correlation measures

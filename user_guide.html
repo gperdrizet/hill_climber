@@ -6,16 +6,16 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User guide &mdash; Hill Climber 3.1.0 documentation</title>
+  <title>User guide &mdash; Hill Climber 3.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=d782da62" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4278e204" />
 
   
     <link rel="shortcut icon" href="_static/favicon.svg"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=dd1205ac"></script>
+      <script src="_static/documentation_options.js?v=4f6ddb47"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -156,33 +156,40 @@ in your input data.</p>
 <p>Examples:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># For 2-column data (M=2)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">objective_2col</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-    <span class="c1"># Calculate metrics</span>
-    <span class="n">mean_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    <span class="n">mean_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 
-    <span class="c1"># Calculate objective (e.g., minimize difference)</span>
-    <span class="n">objective</span> <span class="o">=</span> <span class="o">-</span><span class="nb">abs</span><span class="p">(</span><span class="n">mean_x</span> <span class="o">-</span> <span class="n">mean_y</span><span class="p">)</span>
+   <span class="c1"># Calculate metrics</span>
+   <span class="n">mean_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+   <span class="n">mean_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 
-    <span class="c1"># Return metrics and objective</span>
-    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s1">&#39;Mean X&#39;</span><span class="p">:</span> <span class="n">mean_x</span><span class="p">,</span>
-        <span class="s1">&#39;Mean Y&#39;</span><span class="p">:</span> <span class="n">mean_y</span><span class="p">,</span>
-        <span class="s1">&#39;Difference&#39;</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">mean_x</span> <span class="o">-</span> <span class="n">mean_y</span><span class="p">)</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span>
+   <span class="c1"># Calculate objective (e.g., minimize difference)</span>
+   <span class="n">objective</span> <span class="o">=</span> <span class="o">-</span><span class="nb">abs</span><span class="p">(</span><span class="n">mean_x</span> <span class="o">-</span> <span class="n">mean_y</span><span class="p">)</span>
+
+   <span class="c1"># Return metrics and objective</span>
+   <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s1">&#39;Mean X&#39;</span><span class="p">:</span> <span class="n">mean_x</span><span class="p">,</span>
+      <span class="s1">&#39;Mean Y&#39;</span><span class="p">:</span> <span class="n">mean_y</span><span class="p">,</span>
+      <span class="s1">&#39;Difference&#39;</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">mean_x</span> <span class="o">-</span> <span class="n">mean_y</span><span class="p">)</span>
+   <span class="p">}</span>
+
+   <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span>
 
 <span class="c1"># For 3-column data (M=3)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">objective_3col</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
-    <span class="n">correlation_xy</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">correlation_xz</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="n">objective</span> <span class="o">=</span> <span class="n">correlation_xy</span> <span class="o">+</span> <span class="n">correlation_xz</span>
+   <span class="c1"># Calculate metrics</span>
+   <span class="n">correlation_xy</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+   <span class="n">correlation_xz</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s1">&#39;Corr XY&#39;</span><span class="p">:</span> <span class="n">correlation_xy</span><span class="p">,</span>
-        <span class="s1">&#39;Corr XZ&#39;</span><span class="p">:</span> <span class="n">correlation_xz</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span>
+   <span class="c1"># Calculate objective (e.g., maximize sum of correlations)</span>
+   <span class="n">objective</span> <span class="o">=</span> <span class="n">correlation_xy</span> <span class="o">+</span> <span class="n">correlation_xz</span>
+
+   <span class="c1"># Return metrics and objective</span>
+   <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s1">&#39;Corr XY&#39;</span><span class="p">:</span> <span class="n">correlation_xy</span><span class="p">,</span>
+      <span class="s1">&#39;Corr XZ&#39;</span><span class="p">:</span> <span class="n">correlation_xz</span>
+   <span class="p">}</span>
+
+   <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span>
 </pre></div>
 </div>
 </section>
@@ -194,7 +201,7 @@ provide better exploration but use more memory. Each replica runs at a different
 temperature from the temperature ladder. Set to 1 for simulated annealing without
 replica exchange.</p>
 </dd>
-<dt><strong>T_min</strong> (default: 0.1)</dt><dd><p>Minimum temperature for the coldest replica in the temperature ladder.
+<dt><strong>T_min</strong> (default: 0.0001)</dt><dd><p>Minimum temperature for the coldest replica in the temperature ladder.
 Also used as the base temperature for simulated annealing. Higher temperatures
 allow more exploration of suboptimal solutions.</p>
 </dd>
@@ -205,7 +212,7 @@ be significantly higher than T_min for effective replica exchange. Defaults to
 <dt><strong>temperature_scheme</strong> (default: ‘geometric’)</dt><dd><p>How to space temperatures in the ladder: ‘geometric’ or ‘linear’. Geometric
 spacing typically provides better exchange acceptance rates.</p>
 </dd>
-<dt><strong>exchange_interval</strong> (default: 10000)</dt><dd><p>Number of optimization steps between replica exchange attempts. Smaller values
+<dt><strong>exchange_interval</strong> (default: 100)</dt><dd><p>Number of optimization steps between replica exchange attempts. Smaller values
 attempt exchanges more frequently but increase overhead.</p>
 </dd>
 <dt><strong>exchange_strategy</strong> (default: ‘even_odd’)</dt><dd><p>Strategy for selecting replica pairs for exchange:</p>
@@ -230,11 +237,11 @@ near the end of the run. Leave as None to maintain constant step spread througho
 <dt><strong>perturb_fraction</strong> (default: 0.001)</dt><dd><p>Fraction of data points to modify in each iteration (0.0 to 1.0).
 Higher values create more dramatic changes per step.</p>
 </dd>
-<dt><strong>cooling_rate</strong> (default: 1e-8)</dt><dd><p>Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
+<dt><strong>cooling_rate</strong> (default: 1e-10)</dt><dd><p>Amount subtracted from 1 to get the multiplicative cooling factor. The temperature
 is multiplied by <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">-</span> <span class="pre">cooling_rate)</span></code> each iteration. Smaller values result in slower
-cooling and longer exploration. For example, <code class="docutils literal notranslate"><span class="pre">1e-8</span></code> means <code class="docutils literal notranslate"><span class="pre">temp</span> <span class="pre">*=</span> <span class="pre">0.99999999</span></code> each step.</p>
+cooling and longer exploration. For example, <code class="docutils literal notranslate"><span class="pre">1e-10</span></code> means <code class="docutils literal notranslate"><span class="pre">temp</span> <span class="pre">*=</span> <span class="pre">0.9999999999</span></code> each step.</p>
 </dd>
-<dt><strong>max_time</strong> (default: 30)</dt><dd><p>Maximum optimization time in minutes.</p>
+<dt><strong>max_time</strong> (default: 10)</dt><dd><p>Maximum optimization time in minutes.</p>
 </dd>
 <dt><strong>checkpoint_file</strong> (default: None)</dt><dd><p>Path to save checkpoints. If specified, the optimizer saves its state after each
 batch, allowing resumption if interrupted.</p>
@@ -242,14 +249,20 @@ batch, allowing resumption if interrupted.</p>
 <dt><strong>checkpoint_interval</strong> (default: 1)</dt><dd><p>Number of batches between checkpoint saves. Default is 1 (save every batch).
 Set higher to reduce I/O overhead.</p>
 </dd>
-<dt><strong>db_enabled</strong> (default: False)</dt><dd><p>Enable database logging for real-time dashboard monitoring. Requires installing
+<dt><strong>db_enabled</strong> (default: True)</dt><dd><p>Enable database logging for real-time dashboard monitoring. Requires installing
 with dashboard extras.</p>
 </dd>
-<dt><strong>db_path</strong> (default: ‘data/hill_climber_progress.db’)</dt><dd><p>Path to SQLite database file for dashboard data.</p>
+<dt><strong>db_path</strong> (default: ‘../data/hill_climb.db’)</dt><dd><p>Path to SQLite database file for dashboard data.</p>
 </dd>
-<dt><strong>db_step_interval</strong> (default: exchange_interval // 10)</dt><dd><p>Sample perturbations every Nth evaluation for database logging. Defaults to 10% sampling
-(every 1000th perturbation if exchange_interval=10000). This creates a sampled view
-of all perturbations in the database while keeping database size manageable.</p>
+<dt><strong>db_step_interval</strong> (default: tiered based on exchange_interval)</dt><dd><p>Sample perturbations every Nth evaluation for database logging. Uses tiered sampling:</p>
+<ul class="simple">
+<li><p>exchange_interval &lt; 10: sample every step (db_step_interval = 1)</p></li>
+<li><p>exchange_interval 10-99: sample every 10 steps (db_step_interval = 10)</p></li>
+<li><p>exchange_interval 100-999: sample every 100 steps (db_step_interval = 100)</p></li>
+<li><p>exchange_interval &gt;= 1000: sample every 1000 steps (db_step_interval = 1000)</p></li>
+</ul>
+<p>This creates a sampled view of all perturbations in the database while keeping
+database size manageable.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>All accepted steps and improvements are recorded regardless of this setting.
@@ -273,7 +286,7 @@ after the run ends.</p>
 best solutions, temperatures, and history. This allows seamless resumption.</p>
 </div>
 <dl class="simple">
-<dt><strong>Batch size</strong></dt><dd><p>The batch size is determined by <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> (default: 10000 steps).
+<dt><strong>Batch size</strong></dt><dd><p>The batch size is determined by <code class="docutils literal notranslate"><span class="pre">exchange_interval</span></code> (default: 100 steps).
 After each batch, the optimizer:</p>
 <ul class="simple">
 <li><p>Attempts replica exchanges</p></li>
@@ -315,12 +328,12 @@ replicas run simultaneously at different temperatures:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemperatureLadder</span>
 
 <span class="c1"># Geometric spacing (default, recommended)</span>
-<span class="n">ladder</span> <span class="o">=</span> <span class="n">TemperatureLadder</span><span class="o">.</span><span class="n">geometric</span><span class="p">(</span><span class="n">n_replicas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">T_min</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="p">)</span>  <span class="c1"># [1000, 2154, 4641, 10000]</span>
+<span class="n">ladder</span> <span class="o">=</span> <span class="n">TemperatureLadder</span><span class="o">.</span><span class="n">geometric</span><span class="p">(</span><span class="n">n_replicas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">T_min</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="p">)</span>  <span class="c1"># [0.0001, 0.000215, 0.000464, 0.01]</span>
 
 <span class="c1"># Linear spacing</span>
-<span class="n">ladder</span> <span class="o">=</span> <span class="n">TemperatureLadder</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">n_replicas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">T_min</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="p">)</span>  <span class="c1"># [1000, 4000, 7000, 10000]</span>
+<span class="n">ladder</span> <span class="o">=</span> <span class="n">TemperatureLadder</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">n_replicas</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">T_min</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span> <span class="n">T_max</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ladder</span><span class="o">.</span><span class="n">temperatures</span><span class="p">)</span>  <span class="c1"># [0.0001, 0.0034, 0.0067, 0.01]</span>
 </pre></div>
 </div>
 <p><strong>Benefits</strong></p>

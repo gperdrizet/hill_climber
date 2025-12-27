@@ -6,16 +6,16 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; Hill Climber 3.1.0 documentation</title>
+  <title>Installation &mdash; Hill Climber 3.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=d782da62" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4278e204" />
 
   
     <link rel="shortcut icon" href="_static/favicon.svg"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=dd1205ac"></script>
+      <script src="_static/documentation_options.js?v=4f6ddb47"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -123,7 +123,7 @@
 <li><p>Open in GitHub Codespaces</p></li>
 <li><p>The development environment will be configured automatically</p></li>
 <li><p>Documentation will be built and served at <a class="reference external" href="http://localhost:8000">http://localhost:8000</a> automatically</p></li>
-<li><p>The monitoring dashboard will start and be served at <a class="reference external" href="http://localhost:8501">http://localhost:8501</a> automatically</p></li>
+<li><p>The monitoring dashboard will start at <a class="reference external" href="http://localhost:8501">http://localhost:8501</a> automatically</p></li>
 </ol>
 </section>
 <section id="option-2-local-development">
@@ -150,10 +150,9 @@
 <li><p>Build documentation (optional):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>docs
 make<span class="w"> </span>html
-<span class="c1"># View docs by opening docs/build/html/index.html in a browser</span>
-<span class="c1"># Or serve locally with: python -m http.server 8000 --directory build/html</span>
 </pre></div>
 </div>
+<p>View docs by opening docs/build/html/index.html in a browser or serve locally with: <cite>python -m http.server 8000 –directory build/html</cite>.</p>
 </li>
 <li><p>Run tests to verify installation:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run all tests</span>
@@ -161,9 +160,6 @@ python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> <
 
 <span class="c1"># Run specific test file</span>
 python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/test_hill_climber.py
-
-<span class="c1"># Run with coverage</span>
-python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>--cov<span class="o">=</span>hill_climber
 </pre></div>
 </div>
 <p>All tests should pass.</p>

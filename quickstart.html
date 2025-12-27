@@ -6,16 +6,16 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quick start &mdash; Hill Climber 3.1.0 documentation</title>
+  <title>Quick start &mdash; Hill Climber 3.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=d782da62" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=4278e204" />
 
   
     <link rel="shortcut icon" href="_static/favicon.svg"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=dd1205ac"></script>
+      <script src="_static/documentation_options.js?v=4f6ddb47"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -91,7 +91,9 @@
 <h1>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h1>
 <p>This guide will get you started with Hill Climber in just a few minutes.</p>
 <p>Hill Climber works with multi-column datasets. Your objective function receives
-one argument for each column/feature in your data.</p>
+one argument for each column/feature in your data. The objective function must
+return a tuple of (metrics_dict, objective_value), where metrics_dict is a
+dictionary of metrics for tracking and objective_value is the scalar to optimize.</p>
 <section id="basic-example">
 <h2>Basic example<a class="headerlink" href="#basic-example" title="Link to this heading"></a></h2>
 <p>Here’s a simple example that optimizes a 2-column dataset for high Pearson correlation:</p>
@@ -109,8 +111,10 @@ one argument for each column/feature in your data.</p>
 <span class="c1"># Define objective function</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">objective_high_correlation</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Maximize Pearson correlation.&quot;&quot;&quot;</span>
+
     <span class="n">corr</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Pearson correlation&#39;</span><span class="p">:</span> <span class="n">corr</span><span class="p">}</span>
+
     <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">corr</span><span class="p">)</span>
 
 <span class="c1"># Create optimizer with replica exchange</span>
@@ -126,32 +130,27 @@ one argument for each column/feature in your data.</p>
 <span class="n">best_data</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
 
 <span class="c1"># View results</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best replica: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;replica_id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best objective: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;best_objective&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total perturbations tried: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;perturbation_num&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Steps accepted: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;num_accepted&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Improvements found: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;num_improvements&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Best replica: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;replica_id&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Best objective: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;best_objective&quot;</span><span class="p">]</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Total perturbations tried: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;perturbation_num&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Steps accepted: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;num_accepted&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Improvements found: </span><span class="si">{</span><span class="n">climber</span><span class="o">.</span><span class="n">replicas</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;num_improvements&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
 <section id="real-time-monitoring">
 <h2>Real-time monitoring<a class="headerlink" href="#real-time-monitoring" title="Link to this heading"></a></h2>
-<p>Monitor optimization progress in real-time using the built-in Streamlit dashboard:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install with dashboard extras</span>
-pip<span class="w"> </span>install<span class="w"> </span>parallel-hill-climber<span class="o">[</span>dashboard<span class="o">]</span>
+<p>You can monitor in-progress optimizations with the built-in Streamlit dashboard. To use the dashboard, install hill climber with the dashboard extras and then launch the dashboard:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>parallel-hill-climber<span class="o">[</span>dashboard<span class="o">]</span>
+$<span class="w"> </span>hill-climber-dashboard
 
-<span class="c1"># Launch dashboard</span>
-hill-climber-dashboard
+<span class="w">  </span>You<span class="w"> </span>can<span class="w"> </span>now<span class="w"> </span>view<span class="w"> </span>your<span class="w"> </span>Streamlit<span class="w"> </span>app<span class="w"> </span><span class="k">in</span><span class="w"> </span>your<span class="w"> </span>browser.
+
+<span class="w">  </span>Local<span class="w"> </span>URL:<span class="w"> </span>http://localhost:8501
+<span class="w">  </span>Network<span class="w"> </span>URL:<span class="w"> </span>http://172.17.0.2:8501
 </pre></div>
 </div>
-<p>The dashboard provides live visualization of:</p>
-<ul class="simple">
-<li><p>Replica leaderboard with current rankings</p></li>
-<li><p>Optimization progress plots (perturbations, accepted steps, improvements)</p></li>
-<li><p>Temperature exchange visualization</p></li>
-<li><p>Interactive metric time series</p></li>
-<li><p>Run metadata and hyperparameters</p></li>
-</ul>
+<p>Access the dashboard via the URL provided. Note: the dashboard is only available on the same machine (or same LAN) running hill climber.</p>
 </section>
 <section id="next-steps">
 <h2>Next steps<a class="headerlink" href="#next-steps" title="Link to this heading"></a></h2>
@@ -166,11 +165,10 @@ global optimization:</p>
     <span class="n">objective_func</span><span class="o">=</span><span class="n">objective_high_correlation</span><span class="p">,</span>
     <span class="n">max_time</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
     <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;maximize&#39;</span><span class="p">,</span>
-    <span class="n">n_replicas</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>  <span class="c1"># Number of replicas (default: 4)</span>
-    <span class="n">T_min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>  <span class="c1"># Minimum temperature (default: 0.1)</span>
-    <span class="n">T_max</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>  <span class="c1"># Maximum temperature (default: 100 * T_min)</span>
-    <span class="n">exchange_interval</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>  <span class="c1"># Steps between exchange attempts (default: 10000)</span>
-    <span class="n">temperature_scheme</span><span class="o">=</span><span class="s1">&#39;geometric&#39;</span>  <span class="c1"># or &#39;linear&#39;</span>
+    <span class="n">n_replicas</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>           <span class="c1"># Number of replicas (default: 4)</span>
+    <span class="n">T_min</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span>           <span class="c1"># Minimum temperature (default: 0.0001)</span>
+    <span class="n">T_max</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>             <span class="c1"># Maximum temperature (default: 100 * T_min)</span>
+    <span class="n">exchange_interval</span><span class="o">=</span><span class="mi">100</span>   <span class="c1"># Steps between exchange attempts (default: 100)</span>
 <span class="p">)</span>
 
 <span class="n">best_data</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
