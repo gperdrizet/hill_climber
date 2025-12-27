@@ -1,3 +1,8 @@
+.. image:: _static/readme-banner.svg
+   :alt: Hill Climber
+   :align: center
+   :width: 100%
+
 Hill climber documentation
 ==========================
 

@@ -1,0 +1,182 @@
+/* Hill Climber Documentation Custom Styles */
+
+/* Color scheme: black (#1a1a1a), grey (#cccccc), orange/red (#ff4b4b) */
+
+/* Sidebar and navigation */
+.wy-side-nav-search {
+    background-color: #1a1a1a !important;
+}
+
+.wy-side-nav-search input[type=text] {
+    border-color: #ff4b4b !important;
+}
+
+.wy-side-nav-search input[type=text]:focus {
+    border-color: #ff4b4b !important;
+}
+
+.wy-menu-vertical a {
+    color: #cccccc !important;
+}
+
+.wy-menu-vertical a:hover {
+    background-color: #2a2a2a !important;
+    color: #ff4b4b !important;
+}
+
+.wy-menu-vertical li.current a {
+    color: #ff4b4b !important;
+    border-right: solid 2px #ff4b4b !important;
+}
+
+.wy-menu-vertical li.toctree-l1.current > a {
+    background-color: #2a2a2a !important;
+    border-bottom: solid 1px #ff4b4b !important;
+    border-top: solid 1px #ff4b4b !important;
+}
+
+.wy-menu-vertical li.toctree-l2.current > a {
+    background-color: #2a2a2a !important;
+}
+
+.wy-menu-vertical li.toctree-l2.current li.toctree-l3 > a {
+    background-color: #2a2a2a !important;
+}
+
+.wy-side-nav-search > a img.logo,
+.wy-side-nav-search .wy-dropdown > a img.logo {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.5rem 0 !important;
+}
+
+/* Links */
+a {
+    color: #ff4b4b !important;
+}
+
+a:hover {
+    color: #ff6b6b !important;
+}
+
+a:visited {
+    color: #ff4b4b !important;
+}
+
+/* Code blocks and literals */
+.highlight {
+    background-color: #1a1a1a !important;
+}
+
+code.literal {
+    background-color: #2a2a2a !important;
+    color: #ff4b4b !important;
+    border: 1px solid #3a3a3a !important;
+}
+
+.rst-content code.literal,
+.rst-content tt.literal {
+    color: #ff4b4b !important;
+}
+
+/* Admonitions */
+.rst-content .note {
+    background-color: #2a2a2a !important;
+    border-left: 3px solid #ff4b4b !important;
+}
+
+.rst-content .warning {
+    background-color: #2a2a2a !important;
+    border-left: 3px solid #ff4b4b !important;
+}
+
+.rst-content .tip {
+    background-color: #2a2a2a !important;
+    border-left: 3px solid #ff4b4b !important;
+}
+
+/* Tables */
+.rst-content table.docutils thead {
+    background-color: #1a1a1a !important;
+    color: #ff4b4b !important;
+}
+
+.rst-content table.docutils tbody tr:nth-child(odd) {
+    background-color: #f5f5f5 !important;
+}
+
+/* Version selector */
+.rst-versions {
+    background-color: #1a1a1a !important;
+    border-top: 2px solid #ff4b4b !important;
+}
+
+.rst-versions a {
+    color: #cccccc !important;
+}
+
+.rst-versions .rst-current-version {
+    background-color: #2a2a2a !important;
+    color: #ff4b4b !important;
+}
+
+.rst-versions .rst-current-version:hover {
+    background-color: #3a3a3a !important;
+}
+
+/* Buttons */
+.btn-neutral {
+    background-color: #2a2a2a !important;
+    color: #ff4b4b !important;
+    border-color: #ff4b4b !important;
+}
+
+.btn-neutral:hover {
+    background-color: #ff4b4b !important;
+    color: #1a1a1a !important;
+}
+
+.btn-neutral:visited {
+    color: #ff4b4b !important;
+}
+
+/* Search results */
+.search li:first-child {
+    border-top-color: #ff4b4b !important;
+}
+
+.search li {
+    border-bottom-color: #cccccc !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    color: #1a1a1a !important;
+}
+
+.rst-content h1 {
+    border-bottom: 3px solid #ff4b4b !important;
+}
+
+.rst-content h2 {
+    border-bottom: 2px solid #ff4b4b !important;
+}
+
+/* Top navigation bar */
+.wy-nav-top {
+    background-color: #1a1a1a !important;
+}
+
+/* Footer */
+.rst-footer-buttons {
+    border-top: 2px solid #ff4b4b !important;
+}
+
+footer {
+    color: #cccccc !important;
+}
+
+footer span.commit code {
+    background-color: #2a2a2a !important;
+    color: #ff4b4b !important;
+}
