@@ -200,7 +200,7 @@ class OptimizerConfig:
         
         # Validate db_step_interval against exchange_interval
         if self.db_enabled and self.db_step_interval is not None:
-            if self.db_step_interval >= self.exchange_interval:
+            if self.db_step_interval > self.exchange_interval:
                 # Calculate recommended value using same tiered logic
                 if self.exchange_interval < 10:
                     recommended = 1
@@ -212,8 +212,8 @@ class OptimizerConfig:
                     recommended = 1000
                     
                 raise ValueError(
-                    f"db_step_interval ({self.db_step_interval}) must be less than exchange_interval "
-                    f"({self.exchange_interval}). When db_step_interval >= exchange_interval, no metrics "
+                    f"db_step_interval ({self.db_step_interval}) must be less than or equal to exchange_interval "
+                    f"({self.exchange_interval}). When db_step_interval > exchange_interval, no metrics "
                     f"will be collected for the database. Recommended: set db_step_interval to "
                     f"{recommended} or lower to collect metrics during optimization."
                 )
