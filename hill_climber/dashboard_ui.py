@@ -28,11 +28,19 @@ def apply_custom_css() -> None:
         
     st.markdown("""
         <style>
-        .main { padding-top: 0 !important; }
-        .main .block-container { padding-top: 0.5rem !important; }
-        .main h2 { font-size: 1.5rem !important; }
+        .main { padding-top: 1.5rem !important; }
+        .main .block-container { padding-top: 1.5rem !important; }
+        .main h2 { font-size: 1.5rem !important; margin-top: 0.5rem !important; }
         .main h3 { font-size: 1.1rem !important; }
         .main h2:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }
+        
+        /* Prevent main content from going under header */
+        [data-testid="stAppViewContainer"] > section:first-child {
+            padding-top: 1.5rem !important;
+        }
+        .stMainBlockContainer {
+            padding-top: 1.5rem !important;
+        }
         
         /* Prevent text wrapping in sidebar - use ellipsis instead */
         [data-testid="stSidebar"] p {
@@ -43,6 +51,12 @@ def apply_custom_css() -> None:
         
         /* Consistent horizontal rule spacing in sidebar */
         [data-testid="stSidebar"] hr {
+            margin-top: 0.5rem !important;
+            margin-bottom: 1rem !important;
+        }
+        
+        /* Consistent horizontal rule spacing in main content */
+        .main hr {
             margin-top: 0.5rem !important;
             margin-bottom: 1rem !important;
         }
