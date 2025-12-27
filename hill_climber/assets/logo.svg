@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 92" width="240" height="92">
+  <!-- Text: Hill climber -->
+  <text x="5" y="37" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="300" fill="#ff4b4b">Hill</text>
+  <text x="5" y="87" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="300" fill="#ff4b4b">climber</text>
+  
+  <!-- Single inverted triangle spanning both lines -->
+  <!-- Large triangle: base wider, peak at bottom of 'climber' -->
+  <!-- Large triangle: base wider, peak at bottom of 'climber', moved right -->
+  <polygon points="185,87 135,5 235,5" fill="#ff4b4b"/>
+  <!-- Small triangle: base wider, peak at bottom of 'Hill', moved right -->
+  <polygon points="120,39 80,5 160,5" fill="#ff4b4b"/>
+</svg>

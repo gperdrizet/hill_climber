@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Main inverted triangle -->
+  <polygon points="32,60 10,10 54,10" fill="#ff4b4b"/>
+  
+  <!-- Small accent triangle -->
+  <polygon points="20,30 12,10 28,10" fill="#ff4b4b" opacity="0.7"/>
+</svg>

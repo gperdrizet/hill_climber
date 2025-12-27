@@ -42,6 +42,15 @@ def apply_custom_css() -> None:
             padding-top: 1.5rem !important;
         }
         
+        /* Widen sidebar to fit logo and give text more space */
+        [data-testid="stSidebar"] {
+            width: 275px !important;
+            min-width: 275px !important;
+        }
+        [data-testid="stSidebar"] > div:first-child {
+            width: 275px !important;
+        }
+        
         /* Prevent text wrapping in sidebar - use ellipsis instead */
         [data-testid="stSidebar"] p {
             white-space: nowrap !important;
@@ -65,19 +74,32 @@ def apply_custom_css() -> None:
 
 
 def render_sidebar_title() -> None:
-    """Render the sidebar title.
+    """Render the sidebar logo.
     
-    Displays 'Hill climber' as a multi-line title in the sidebar.
+    Displays the Hill climber logo in the sidebar.
     """
 
     if st is None:
         return
-        
-    st.sidebar.markdown(
-        "<h1 style='margin-top: -3rem; padding-top: 0.25rem; font-size: 2.8rem; line-height: 1.2; color: #ff4b4b;'>"
-        "Hill<br>climber</h1>",
-        unsafe_allow_html=True
-    )
+    
+    import os
+    logo_path = os.path.join(os.path.dirname(__file__), 'assets', 'logo.svg')
+    
+    if os.path.exists(logo_path):
+        with open(logo_path, 'r') as f:
+            svg_content = f.read()
+        st.sidebar.markdown(
+            f"<div style='margin-top: -3rem; padding-top: 0.25rem;'>{svg_content}</div>",
+            unsafe_allow_html=True
+        )
+    else:
+        # Fallback to text if logo not found
+        st.sidebar.markdown(
+            "<h1 style='margin-top: -3rem; padding-top: 0.25rem; font-size: 2.8rem; line-height: 1.2; color: #ff4b4b;'>"
+            "Hill<br>climber</h1>",
+            unsafe_allow_html=True
+        )
+    
     st.sidebar.markdown("---")
 
 

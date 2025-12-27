@@ -90,9 +90,11 @@ def render() -> None:
         sys.exit(1)
 
     # Page config
+    import os
+    icon_path = os.path.join(os.path.dirname(__file__), 'assets', 'favicon.svg')
     st.set_page_config(
-        page_title="Hill climber progress monitor",
-        page_icon="📈",
+        page_title="Dashboard",
+        page_icon=icon_path if os.path.exists(icon_path) else None,
         layout="wide",
         initial_sidebar_state="collapsed"
     )
