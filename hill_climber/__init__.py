@@ -39,7 +39,7 @@ Example:
     >>> best_data, steps_df = climber.climb()
 """
 
-__version__ = '3.0.0'
+__version__ = '3.1.0'
 __author__ = 'gperdrizet'
 
 from .optimizer import HillClimber
