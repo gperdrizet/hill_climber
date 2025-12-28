@@ -10,7 +10,6 @@ Main Components:
     ReplicaState: State container for individual replicas
     OptimizerConfig: Type-safe configuration dataclass
     Helper functions: Data manipulation and objective calculation utilities
-    Plotting functions: Visualization tools for input data and results
 
 Example:
     >>> from hill_climber import HillClimber
@@ -54,9 +53,6 @@ from .climber_functions import (
     extract_columns,
     calculate_objective
 )
-from .plotting_functions import (
-    plot_input_data
-)
 
 __all__ = [
     'HillClimber',
@@ -68,5 +64,4 @@ __all__ = [
     'perturb_vectors',
     'extract_columns',
     'calculate_objective',
-    'plot_input_data',
 ]
