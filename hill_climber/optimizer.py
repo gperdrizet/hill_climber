@@ -565,6 +565,9 @@ class HillClimber:
             
             # Mark run as complete
             self.db_writer.set_run_end_time()
+            
+            # Checkpoint database to consolidate WAL files and remove auxiliary files
+            self.db_writer.checkpoint_database()
 
         # Final checkpoint
         if self.checkpoint_file:

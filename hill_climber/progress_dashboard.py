@@ -115,17 +115,20 @@ def render() -> None:
 
     # Check database and connect
     if not Path(db_path).exists():
+        st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
         st.info("Select a database in the sidebar to view progress.")
         return
 
     try:
         conn = get_connection(db_path)
     except Exception as e:
+        st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
         st.error(f"Failed to connect to database: {e}")
         st.stop()
 
     metadata = load_run_metadata(conn)
     if metadata is None:
+        st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
         st.warning("No run metadata found. Waiting for optimization to start...")
         time.sleep(refresh_interval if auto_refresh else 10)
         if auto_refresh:
