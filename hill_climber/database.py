@@ -337,6 +337,17 @@ class DatabaseWriter:
             """, (time.time(),))
 
 
+    def checkpoint_database(self):
+        """Checkpoint the database to consolidate WAL files.
+        
+        Merges all Write-Ahead Log (WAL) changes back into the main database
+        file and removes the auxiliary .db-shm and .db-wal files. This should
+        be called when the optimization is complete to clean up temporary files.
+        """
+        with self.get_connection() as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+
+
     def update_replica_status(self, replica_id: int, current_perturbation_num: int,
                              num_accepted: int, num_improvements: int,
                              temperature: float, best_objective: float,
