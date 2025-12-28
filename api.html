@@ -96,11 +96,6 @@
 <li class="toctree-l3"><a class="reference internal" href="#hill_climber.climber_functions.calculate_objective"><code class="docutils literal notranslate"><span class="pre">calculate_objective()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#module-hill_climber.plotting_functions">Plotting functions</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#hill_climber.plotting_functions.plot_input_data"><code class="docutils literal notranslate"><span class="pre">plot_input_data()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#hill_climber.plotting_functions.plot_results"><code class="docutils literal notranslate"><span class="pre">plot_results()</span></code></a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="notebooks.html">Example notebooks</a></li>
@@ -1297,84 +1292,6 @@ Supports multi-column data.</p>
 <span class="gp">... </span>    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;mean_x&#39;</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">()},</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">+</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">metrics</span><span class="p">,</span> <span class="n">objective</span> <span class="o">=</span> <span class="n">calculate_objective</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">obj_func</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-</section>
-<section id="module-hill_climber.plotting_functions">
-<span id="plotting-functions"></span><h2>Plotting functions<a class="headerlink" href="#module-hill_climber.plotting_functions" title="Link to this heading"></a></h2>
-<p>Plotting functions for hill climbing optimization.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="hill_climber.plotting_functions.plot_input_data">
-<span class="sig-prename descclassname"><span class="pre">hill_climber.plotting_functions.</span></span><span class="sig-name descname"><span class="pre">plot_input_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scatter'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/plotting_functions.html#plot_input_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.plotting_functions.plot_input_data" title="Link to this definition"></a></dt>
-<dd><p>Plot input data distribution.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>Union</em><em>[</em><em>np.ndarray</em><em>, </em><em>pd.DataFrame</em><em>]</em>) – Numpy array (Nx2) or pandas DataFrame
-with 2 columns.</p></li>
-<li><p><strong>plot_type</strong> (<em>str</em>) – Type of plot - ‘scatter’ or ‘kde’. Default is ‘scatter’.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If plot_type is not ‘scatter’ or ‘kde’.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_input_data</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_input_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;scatter&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_input_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;kde&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="hill_climber.plotting_functions.plot_results">
-<span class="sig-prename descclassname"><span class="pre">hill_climber.plotting_functions.</span></span><span class="sig-name descname"><span class="pre">plot_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'scatter'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exchange_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_current</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hill_climber/plotting_functions.html#plot_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hill_climber.plotting_functions.plot_results" title="Link to this definition"></a></dt>
-<dd><p>Visualize hill climbing results with progress and snapshots.</p>
-<p>Creates a comprehensive visualization showing:
-- Progress plot with metrics and objective value over time
-- Snapshot plots at 25%, 50%, 75%, and 100% completion</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>results</strong> (<em>Union</em><em>[</em><em>Tuple</em><em>, </em><em>List</em><em>[</em><em>Tuple</em><em>]</em><em>]</em>) – Results from climb(). Can be:
-- Tuple (best_data, steps_df) from single climb() call
-- Tuple (temp_history, best_data, steps_df) with replica exchange
-- List of result tuples for multi-replica visualization</p></li>
-<li><p><strong>plot_type</strong> (<em>str</em>) – Type of snapshot plots - ‘scatter’ or ‘histogram’.
-Default is ‘scatter’. Note: ‘histogram’ uses KDE plots.</p></li>
-<li><p><strong>metrics</strong> (<em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of metric names to display. If None, all
-available metrics are shown. Default is None.</p></li>
-<li><p><strong>exchange_interval</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of steps per batch. If provided,
-x-axis shows batches instead of steps. Default is None.</p></li>
-<li><p><strong>show_current</strong> (<em>bool</em>) – If True, plot ‘Current Objective’ (shows SA exploration).
-If False, plot ‘Objective value’ (only improvements). Default is False.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>ValueError</strong> – If plot_type is not ‘scatter’ or ‘histogram’.</p></li>
-<li><p><strong>ValueError</strong> – If any specified metric is not found in the results.</p></li>
-</ul>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None</p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">hill_climber</span><span class="w"> </span><span class="kn">import</span> <span class="n">HillClimber</span><span class="p">,</span> <span class="n">plot_results</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">climber</span> <span class="o">=</span> <span class="n">HillClimber</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">objective_func</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">climber</span><span class="o">.</span><span class="n">climb</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">plot_type</span><span class="o">=</span><span class="s1">&#39;scatter&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Pearson&#39;</span><span class="p">,</span> <span class="s1">&#39;Spearman&#39;</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_results</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">show_current</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># Show SA exploration</span>
 </pre></div>
 </div>
 </dd></dl>

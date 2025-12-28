@@ -654,6 +654,9 @@
             
             <span class="c1"># Mark run as complete</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">set_run_end_time</span><span class="p">()</span>
+            
+            <span class="c1"># Checkpoint database to consolidate WAL files and remove auxiliary files</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db_writer</span><span class="o">.</span><span class="n">checkpoint_database</span><span class="p">()</span>
 
         <span class="c1"># Final checkpoint</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_file</span><span class="p">:</span>
