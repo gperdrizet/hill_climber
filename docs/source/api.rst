@@ -68,10 +68,3 @@ Core functions
 .. automodule:: hill_climber.climber_functions
    :members:
    :undoc-members:
-
-Plotting functions
-------------------
-
-.. automodule:: hill_climber.plotting_functions
-   :members:
-   :undoc-members:
