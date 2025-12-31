@@ -32,5 +32,10 @@ echo "Configuring Git LFS tracking patterns..."
 git lfs track "*.db"
 git lfs track "*.pkl"
 
+echo "Pulling Git LFS files..."
+
+# Pull all LFS files to replace pointer files with actual content
+git lfs pull
+
 echo "Git LFS setup complete!"
 echo "Tracked patterns: *.db, *.pkl"
