@@ -32,7 +32,11 @@
 			
 			// Disable automatic port forwarding to give explicit control
 			"remote.autoForwardPorts": false,
-			"remote.restoreForwardedPorts": false
+			"remote.restoreForwardedPorts": false,
+			
+			// Disable VS Code's terminal suggest feature to restore native shell tab completion
+			// The IDE-style suggestions can conflict with bash/zsh completion and make unexpected suggestions
+			"terminal.integrated.suggest.enabled": false
 		},
 
 		// Add the IDs of VS code extensions you want to install here
@@ -66,11 +70,11 @@
 	"postCreateCommand": "",
 
 	// Use 'postAttachCommand' to run commands each time a user connects to the container.
-	// 1. Prunes old Git LFS objects to free disk space
+	// 1. Cleans up Git LFS temp files and prunes old objects to free disk space
 	// 2. Executes a script that rebuilds documentation and starts a local web server
 	// 3. Starts the hill climber progress dashboard in the background
 	// 4. Prints process IDs for both services to stdout
-	"postAttachCommand": "git lfs prune > /dev/null 2>&1; bash .devcontainer/build-and-serve-docs.sh; nohup hill-climber-dashboard > /tmp/dashboard.log 2>&1 & sleep 3 && echo \"Progress dashboard started. Access it at http://localhost:8501\" && echo \"Progress dashboard PID: $(lsof -ti:8501 2>/dev/null || echo 'unknown')\" && echo \"Dashboard logs are available at /tmp/dashboard.log\"",
+	"postAttachCommand": "rm -rf .git/lfs/tmp/* 2>/dev/null; git lfs prune > /dev/null 2>&1; bash .devcontainer/build-and-serve-docs.sh; nohup hill-climber-dashboard > /tmp/dashboard.log 2>&1 & sleep 3 && echo \"Progress dashboard started. Access it at http://localhost:8501\" && echo \"Progress dashboard PID: $(lsof -ti:8501 2>/dev/null || echo 'unknown')\" && echo \"Dashboard logs are available at /tmp/dashboard.log\"",
 
 	// Configure port forwarding for the documentation server & progress dashboard
 	"forwardPorts": [8000, 8501],
