@@ -118,6 +118,16 @@ To run the example notebooks, modify the code, or contribute:
    pip install -r requirements.txt
    ```
 
+4. Install the package in editable mode (required for the dashboard CLI):
+   ```bash
+   pip install -e .
+   ```
+
+5. Launch the monitoring dashboard:
+   ```bash
+   hill-climber-dashboard
+   ```
+
 ### 4.3. Building documentation
 
 You can build and view a local copy of the documentation as follows:

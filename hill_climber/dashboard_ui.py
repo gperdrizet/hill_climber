@@ -248,8 +248,16 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         st.session_state.normalize_metrics = st.session_state.saved_normalize_metrics
     if 'saved_show_exchanges' in st.session_state and 'show_exchanges' not in st.session_state:
         st.session_state.show_exchanges = st.session_state.saved_show_exchanges
-    if 'saved_plot_columns' in st.session_state and 'plot_columns' not in st.session_state:
-        st.session_state.plot_columns = st.session_state.saved_plot_columns
+    
+    # For plot_columns, calculate the index instead of setting session state
+    # to avoid conflict between default value and session state
+    plot_columns_options = ["One column", "Two columns"]
+    plot_columns_default_index = 1  # Default to "Two columns"
+    if 'saved_plot_columns' in st.session_state:
+        try:
+            plot_columns_default_index = plot_columns_options.index(st.session_state.saved_plot_columns)
+        except ValueError:
+            pass  # Keep default if saved value not in options
     
     # Extract non-objective metrics
     base_metrics = [m for m in available_metrics if "Objective" not in m]
@@ -294,8 +302,8 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
 
     plot_columns = st.sidebar.radio(
         "Plot layout",
-        options=["One column", "Two columns"],
-        index=1,  # Default to "Two columns"
+        options=plot_columns_options,
+        index=plot_columns_default_index,
         key="plot_columns",
         help="Switch between two-column or single-column plot layout",
         label_visibility="collapsed"
