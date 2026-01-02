@@ -58,7 +58,8 @@
 	// 4. Install and configure Git LFS for tracking large binary files (.db, .pkl)
 	// 5. Upgrade pip to latest version for better dependency resolution
 	// 6. Install all Python dependencies from requirements.txt to user site-packages
-	"onCreateCommand": "sudo apt update && sudo apt upgrade -y && sudo apt-get install gnupg2 -y && bash .devcontainer/install-gh.sh && bash .devcontainer/install-git-lfs.sh && pip3 install --upgrade pip && pip3 install --user -r requirements.txt",
+	// 7. Install the hill_climber package in editable mode (creates console scripts like hill-climber-dashboard)
+	"onCreateCommand": "sudo apt update && sudo apt upgrade -y && sudo apt-get install gnupg2 -y && bash .devcontainer/install-gh.sh && bash .devcontainer/install-git-lfs.sh && pip3 install --upgrade pip && pip3 install --user -r requirements.txt && pip3 install --user -e .",
 
 	// Use 'postCreateCommand' to run commands once after the container is created
 	// This runs only on initial container creation, not on subsequent starts/attaches
