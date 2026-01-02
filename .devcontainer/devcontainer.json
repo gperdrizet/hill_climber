@@ -69,7 +69,7 @@
 	// 1. Executes a script that rebuilds documentation and starts a local web server
 	// 2. starts the hill climber progress dashboard in the background
 	// 3. Prints process IDs for both services to stdout
-	"postAttachCommand": "bash .devcontainer/build-and-serve-docs.sh && (hill-climber-dashboard > /tmp/dashboard.log 2>&1 &) && sleep 2 && echo \"Progress dashboard started. Access it at http://localhost:8501\" && echo \"Progress dashboard PID: $(lsof -ti:8501 2>/dev/null || echo 'unknown')\" && echo \"Dashboard logs are available at /tmp/dashboard.log\"",
+	"postAttachCommand": "bash .devcontainer/build-and-serve-docs.sh; nohup hill-climber-dashboard > /tmp/dashboard.log 2>&1 & sleep 3 && echo \"Progress dashboard started. Access it at http://localhost:8501\" && echo \"Progress dashboard PID: $(lsof -ti:8501 2>/dev/null || echo 'unknown')\" && echo \"Dashboard logs are available at /tmp/dashboard.log\"",
 
 	// Configure port forwarding for the documentation server & progress dashboard
 	"forwardPorts": [8000, 8501],
