@@ -55,5 +55,9 @@ setsid python -m http.server 8000 --directory docs/build/html > /tmp/docs-server
 # Give the server a moment to start
 sleep 1
 
+# Get the PID of the documentation server
+DOCS_PID=$(lsof -ti:8000 2>/dev/null || echo "unknown")
+
 echo "Documentation server started. Access it at http://localhost:8000"
+echo "Documentation server PID: $DOCS_PID"
 echo "Server logs are available at /tmp/docs-server.log"
