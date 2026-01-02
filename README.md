@@ -63,10 +63,10 @@ climber = HillClimber(
 )
 
 # Run optimization
-best_data = climber.climb()
+best_data_df = climber.climb()
 ```
 
-The return `best_data` contains the winning solution from all replicates at the end of the run. Individual replicate results can be accessed with the climber object's `.get_replicas()` method after the run is complete.
+The return, `best_data_df` in this example, contains the winning solution from all replicates at the end of the run. Individual replicate results can be accessed with the climber object's `.get_replicas()` method after the run is complete.
 
 ### 3.3. Real-time monitoring dashboard
 
@@ -89,7 +89,7 @@ Access the dashboard via the URL provided. Note: the dashboard is only available
 
 ## 4. Development environment setup
 
-To explore the examples, modify the code, or contribute:
+To run the example notebooks, modify the code, or contribute:
 
 ### 4.1. Setup option 1: GitHub Codespaces (No local setup required)
 
