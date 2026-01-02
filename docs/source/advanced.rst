@@ -210,11 +210,32 @@ per-feature as ``initial_step_spread * feature_range``:
 
 **Time-based cooling**
 
-Optionally specify ``final_step_spread`` to linearly decrease perturbation size over time:
+Specify ``final_step_spread`` to decrease perturbation size over time, with three
+available cooling schemes controlled by ``step_spread_scheme``:
 
-- Step spread interpolates from ``initial_step_spread`` to ``final_step_spread``
-- Cooling is time-based (over ``max_time``), not iteration-based
-- Enables refined optimization near the end of long runs
+**Linear** (default): Steady decrease from initial to final
+
+.. math::
+
+   \text{step\_spread}(t) = \text{initial} + (\text{final} - \text{initial}) \times t
+
+**Geometric**: Exponential decay, spending more time at smaller step sizes
+
+.. math::
+
+   \text{step\_spread}(t) = \text{initial} \times \left(\frac{\text{final}}{\text{initial}}\right)^t
+
+**Zeno**: Halve at t=0.5, then t=0.75, t=0.875, etc. (Zeno's paradox schedule)
+
+.. math::
+
+   \text{step\_spread}(t) = \text{initial} \times 0.5^{\lfloor -\log_2(1 - t) \rfloor}
+
+With ``initial=1.0`` and ``final=0.001``, at the halfway point (t=0.5):
+
+- **linear**: 0.5005 (50% of initial)
+- **geometric**: 0.0316 (3.2% of initial)  
+- **zeno**: 0.5 (exactly one halving)
 
 Example:
 
@@ -223,9 +244,10 @@ Example:
    climber = HillClimber(
        data=data,
        objective_func=my_objective,
-       perturb_fraction=0.001,      # perturb 0.1% of elements (default)
-       initial_step_spread=0.25,    # Start at 25% of each feature's range
-       final_step_spread=0.01       # End at 1% for refined optimization
+       perturb_fraction=0.001,       # perturb 0.1% of elements (default)
+       initial_step_spread=0.25,     # Start at 25% of each feature's range
+       final_step_spread=0.01,       # End at 1% for refined optimization
+       step_spread_scheme='zeno'     # Use Zeno halving schedule
    )
 
 Faster convergence
@@ -300,6 +322,7 @@ Oscillating objective values
 
 - Decrease ``initial_step_spread`` for finer control (try 0.05-0.1)
 - Use ``final_step_spread`` to gradually reduce perturbation size (try 0.001-0.01)
+- Try ``step_spread_scheme='geometric'`` or ``'zeno'`` for more time at smaller step sizes
 - Decrease ``T_min`` to be more selective
 - Check for bugs in objective function
 - Ensure objective weights are balanced

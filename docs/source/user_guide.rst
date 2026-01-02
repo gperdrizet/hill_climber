@@ -144,9 +144,16 @@ Hyperparameters
 
 **final_step_spread** (default: None)
    Final perturbation spread as a fraction of each feature's data range. If specified,
-   step spread linearly decreases from initial_step_spread to final_step_spread over
+   step spread decreases from initial_step_spread to final_step_spread over
    the course of max_time, enabling time-based cooling for more refined optimization
    near the end of the run. Leave as None to maintain constant step spread throughout.
+
+**step_spread_scheme** (default: 'linear')
+   Controls how step spread decreases over time when ``final_step_spread`` is specified:
+   
+   - 'linear': Steady decrease from initial to final
+   - 'geometric': Exponential decay, spending more time at smaller step sizes
+   - 'zeno': Halve at t=0.5, then t=0.75, t=0.875, etc. (Zeno's paradox schedule)
 
 **perturb_fraction** (default: 0.001)
    Fraction of data points to modify in each iteration (0.0 to 1.0). 
