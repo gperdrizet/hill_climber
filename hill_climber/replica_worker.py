@@ -53,6 +53,7 @@ def run_replica_steps(
     perturb_fraction = state['hyperparameters']['perturb_fraction']
     step_spread_initial = state['hyperparameters']['step_spread_absolute_initial']
     step_spread_final = state['hyperparameters'].get('step_spread_absolute_final', None)
+    step_spread_scheme = state['hyperparameters'].get('step_spread_scheme', 'linear')
     max_time = state['hyperparameters']['max_time']
     cooling_rate = state['hyperparameters']['cooling_rate']
     replica_id = state['replica_id']
@@ -61,8 +62,26 @@ def run_replica_steps(
     if start_time is not None and step_spread_final is not None:
         elapsed_time = time.time() - start_time
         progress = min(elapsed_time / (max_time * 60.0), 1.0)  # max_time is in minutes
-        # Linear interpolation from initial to final
-        step_spread = step_spread_initial + (step_spread_final - step_spread_initial) * progress
+        
+        if step_spread_scheme == 'geometric':
+            # Geometric interpolation: initial * (final/initial)^progress
+            # This gives exponential decay, with more time spent at smaller step sizes
+            ratio = step_spread_final / step_spread_initial
+            step_spread = step_spread_initial * np.power(ratio, progress)
+        elif step_spread_scheme == 'zeno':
+            # Zeno halving: halve at t=0.5, t=0.75, t=0.875, etc.
+            # Number of halvings = floor(-log2(1 - progress))
+            if progress >= 1.0:
+                # At exactly t=1.0, use final step spread
+                step_spread = step_spread_final
+            else:
+                n_halvings = int(-np.log2(1.0 - progress))
+                step_spread = step_spread_initial * np.power(0.5, n_halvings)
+                # Clamp to final step spread (acts as a floor)
+                step_spread = np.maximum(step_spread, step_spread_final)
+        else:
+            # Linear interpolation (default): initial + (final - initial) * progress
+            step_spread = step_spread_initial + (step_spread_final - step_spread_initial) * progress
     else:
         step_spread = step_spread_initial
     

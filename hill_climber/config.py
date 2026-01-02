@@ -49,6 +49,10 @@ VALID_MODES = ['maximize', 'minimize', 'target']
 # Valid temperature schemes
 VALID_TEMPERATURE_SCHEMES = ['geometric', 'linear']
 
+# Valid step spread cooling schemes
+VALID_STEP_SPREAD_SCHEMES = ['linear', 'geometric', 'zeno']
+DEFAULT_STEP_SPREAD_SCHEME = 'linear'
+
 # Valid exchange strategies
 VALID_EXCHANGE_STRATEGIES = ['even_odd', 'random', 'all_neighbors']
 
@@ -71,6 +75,7 @@ class OptimizerConfig:
         max_time: Maximum runtime in minutes
         initial_step_spread: Initial perturbation spread as fraction of input range (default: 0.25 = 25%)
         final_step_spread: Final perturbation spread at end of run (default: None = no cooling)
+        step_spread_scheme: Step spread cooling schedule - 'linear', 'geometric', or 'zeno' (default: 'linear')
         perturb_fraction: Fraction of data points to perturb each step
         n_replicas: Number of replicas for parallel tempering (default: 4)
         T_min: Base temperature (will be used as T_min for ladder)
@@ -94,6 +99,7 @@ class OptimizerConfig:
     max_time: float = DEFAULT_MAX_TIME
     initial_step_spread: float = DEFAULT_INITIAL_STEP_SPREAD
     final_step_spread: Optional[float] = DEFAULT_FINAL_STEP_SPREAD
+    step_spread_scheme: str = DEFAULT_STEP_SPREAD_SCHEME
     perturb_fraction: float = DEFAULT_PERTURB_FRACTION
     n_replicas: int = DEFAULT_N_REPLICAS
     T_min: float = DEFAULT_T_MIN
@@ -134,6 +140,12 @@ class OptimizerConfig:
         if self.exchange_strategy not in VALID_EXCHANGE_STRATEGIES:
             raise ValueError(
                 f"exchange_strategy must be one of {VALID_EXCHANGE_STRATEGIES}, got '{self.exchange_strategy}'"
+            )
+        
+        # Validate step spread scheme
+        if self.step_spread_scheme not in VALID_STEP_SPREAD_SCHEMES:
+            raise ValueError(
+                f"step_spread_scheme must be one of {VALID_STEP_SPREAD_SCHEMES}, got '{self.step_spread_scheme}'"
             )
         
         # Validate numeric ranges

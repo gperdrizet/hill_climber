@@ -23,6 +23,7 @@ from .config import (
     DEFAULT_COOLING_RATE,
     DEFAULT_INITIAL_STEP_SPREAD,
     DEFAULT_FINAL_STEP_SPREAD,
+    DEFAULT_STEP_SPREAD_SCHEME,
     DEFAULT_PERTURB_FRACTION,
     DEFAULT_N_REPLICAS,
     DEFAULT_EXCHANGE_INTERVAL,
@@ -57,6 +58,10 @@ class HillClimber:
             specified, step spread linearly decreases from initial_step_spread to final_step_spread
             over the course of max_time, enabling time-based cooling for more refined optimization
             near the end of the run.
+        step_spread_scheme: Step spread cooling schedule (default: 'linear'). Options:
+            - 'linear': Linear interpolation from initial to final
+            - 'geometric': Exponential decay (more time at smaller step sizes)
+            - 'zeno': Halve at t=0.5, then t=0.75, t=0.875, etc. (Zeno's paradox schedule)
         perturb_fraction: Fraction of data points to perturb each step (default: 0.001)
         n_replicas: Number of replicas for parallel tempering (default: 4), setting to 1 runs
             simulated annealing without replica exchange
@@ -85,6 +90,7 @@ class HillClimber:
         max_time: float = DEFAULT_MAX_TIME,
         initial_step_spread: float = DEFAULT_INITIAL_STEP_SPREAD,
         final_step_spread: Optional[float] = DEFAULT_FINAL_STEP_SPREAD,
+        step_spread_scheme: str = DEFAULT_STEP_SPREAD_SCHEME,
         perturb_fraction: float = DEFAULT_PERTURB_FRACTION,
         n_replicas: int = DEFAULT_N_REPLICAS,
         T_min: float = DEFAULT_T_MIN,
@@ -112,6 +118,7 @@ class HillClimber:
             max_time=max_time,
             initial_step_spread=initial_step_spread,
             final_step_spread=final_step_spread,
+            step_spread_scheme=step_spread_scheme,
             perturb_fraction=perturb_fraction,
             n_replicas=n_replicas,
             T_min=T_min,
@@ -150,6 +157,7 @@ class HillClimber:
         self.max_time = config.max_time
         self.initial_step_spread = config.initial_step_spread
         self.final_step_spread = config.final_step_spread
+        self.step_spread_scheme = config.step_spread_scheme
         self.perturb_fraction = config.perturb_fraction
         self.temperature = config.T_min
         self.cooling_rate = config.cooling_rate
@@ -256,6 +264,7 @@ class HillClimber:
 
         if self.final_step_spread is not None:
             print(f"  Final step spread:   {self.final_step_spread} (fraction at end of run)")
+            print(f"  Cooling scheme:      {self.step_spread_scheme}")
 
         print(f"  Perturb fraction:    {self.perturb_fraction}")
         print()
@@ -385,7 +394,22 @@ class HillClimber:
                             progress = min(elapsed_time / (self.max_time * 60.0), 1.0)
                             step_spread_initial = self.initial_step_spread * data_range
                             step_spread_final = self.final_step_spread * data_range
-                            current_step_spread = step_spread_initial + (step_spread_final - step_spread_initial) * progress
+                            
+                            if self.step_spread_scheme == 'geometric':
+                                # Geometric interpolation: initial * (final/initial)^progress
+                                ratio = step_spread_final / step_spread_initial
+                                current_step_spread = step_spread_initial * np.power(ratio, progress)
+                            elif self.step_spread_scheme == 'zeno':
+                                # Zeno halving: halve at t=0.5, t=0.75, t=0.875, etc.
+                                if progress >= 1.0:
+                                    current_step_spread = step_spread_final
+                                else:
+                                    n_halvings = int(-np.log2(1.0 - progress))
+                                    current_step_spread = step_spread_initial * np.power(0.5, n_halvings)
+                                    current_step_spread = np.maximum(current_step_spread, step_spread_final)
+                            else:
+                                # Linear interpolation (default)
+                                current_step_spread = step_spread_initial + (step_spread_final - step_spread_initial) * progress
                         else:
                             current_step_spread = self.step_spread_absolute
                         
@@ -678,6 +702,7 @@ class HillClimber:
             'target_value': self.target_value,
             'initial_step_spread': self.initial_step_spread,
             'final_step_spread': self.final_step_spread,
+            'step_spread_scheme': self.step_spread_scheme,
             'step_spread_absolute_initial': self.step_spread_absolute.copy(),
             'step_spread_absolute_final': self.final_step_spread * (self.bounds[1] - self.bounds[0]) if self.final_step_spread is not None else None
         }
