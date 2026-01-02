@@ -39,20 +39,15 @@ Here's a simple example that optimizes a 2-column dataset for high Pearson corre
    climber = HillClimber(
        data=data,
        objective_func=objective_high_correlation,
-       max_time=5,  # 5 minutes
+       max_time=5,
        mode='maximize',
-       n_replicas=4  # Use 4 replicas for parallel tempering
+       n_replicas=4
    )
 
    # Run optimization
-   best_data = climber.climb()
+   best_data_df = climber.climb()
 
-   # View results
-   print(f'Best replica: {climber.replicas[0]["replica_id"]}')
-   print(f'Best objective: {climber.replicas[0]["best_objective"]:.3f}')
-   print(f'Total perturbations tried: {climber.replicas[0]["perturbation_num"]}')
-   print(f'Steps accepted: {climber.replicas[0]["num_accepted"]}')
-   print(f'Improvements found: {climber.replicas[0]["num_improvements"]}')
+The ``climb()`` method runs the optimization and returns the best result.
 
 Real-time monitoring
 --------------------
@@ -70,29 +65,3 @@ You can monitor in-progress optimizations with the built-in Streamlit dashboard.
      Network URL: http://172.17.0.2:8501
 
 Access the dashboard via the URL provided. Note: the dashboard is only available on the same machine (or same LAN) running hill climber.
-
-Next steps
-----------
-Replica exchange (parallel tempering)
---------------------------------------
-
-Hill Climber uses replica exchange (parallel tempering) by default. Multiple
-replicas run at different temperatures and exchange configurations to improve
-global optimization:
-
-.. code-block:: python
-
-   climber = HillClimber(
-       data=data,
-       objective_func=objective_high_correlation,
-       max_time=10,
-       mode='maximize',
-       n_replicas=8,           # Number of replicas (default: 4)
-       T_min=0.0001,           # Minimum temperature (default: 0.0001)
-       T_max=10.0,             # Maximum temperature (default: 100 * T_min)
-       exchange_interval=100   # Steps between exchange attempts (default: 100)
-   )
-
-   best_data = climber.climb()
-
-The ``climb()`` method automatically runs all replicas and returns the best result.

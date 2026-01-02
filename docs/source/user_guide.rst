@@ -203,76 +203,6 @@ If you specify a ``checkpoint_file`` path, the optimizer saves its state periodi
 allowing you to resume from the most recent state if interrupted or continue optimization
 after the run ends.
 
-.. note::
-   Checkpoints store the entire optimizer state, including current solutions,
-   best solutions, temperatures, and history. This allows seamless resumption.
-
-**Batch size**
-   The batch size is determined by ``exchange_interval`` (default: 100 steps).
-   After each batch, the optimizer:
-   
-   - Attempts replica exchanges
-   - Saves a checkpoint (if ``checkpoint_file`` is specified and checkpoint_interval condition is met)
-   - Updates the progress dashboard database (if ``db_enabled`` is True)
-
-**Checkpoint frequency**
-   The actual frequency of checkpoints is controlled by ``checkpoint_interval``. By default,
-   a checkpoint is saved after every batch (i.e., every ``exchange_interval`` steps). You can
-   save checkpoints less frequently by setting ``checkpoint_interval`` to a higher value to reduce I/O.
-
-Boundary handling
------------------
-
-Hill Climber uses **reflection** to keep perturbed values within the original
-data bounds:
-
-- When a perturbation would push a value beyond the minimum bound, it reflects
-  back into the valid range
-- Same for maximum bounds
-- This prevents artificial accumulation of points at boundaries
-
-Example: If minimum is 5 and a perturbation creates 4.5, it reflects to 5.5.
-
-Replica exchange (parallel tempering)
--------------------------------------
-
-Hill Climber 2.0 uses replica exchange to improve global optimization. Multiple
-replicas run simultaneously at different temperatures:
-
-**How it works**
-
-1. Each replica has its own temperature from a ladder (e.g., 1000, 2154, 4641, 10000)
-2. All replicas perform optimization steps independently
-3. Periodically, replicas attempt to exchange configurations
-4. Exchanges use Metropolis criterion: better solutions move to cooler temperatures
-5. The coldest replica typically finds the best solution
-
-**Temperature ladder**
-
-.. code-block:: python
-
-   from hill_climber import TemperatureLadder
-   
-   # Geometric spacing (default, recommended)
-   ladder = TemperatureLadder.geometric(n_replicas=4, T_min=0.0001, T_max=0.01)
-   print(ladder.temperatures)  # [0.0001, 0.000215, 0.000464, 0.01]
-   
-   # Linear spacing
-   ladder = TemperatureLadder.linear(n_replicas=4, T_min=0.0001, T_max=0.01)
-   print(ladder.temperatures)  # [0.0001, 0.0034, 0.0067, 0.01]
-
-**Benefits**
-
-- Better global optimization compared to single-temperature annealing
-- Hotter replicas explore broadly, cooler replicas exploit locally
-- Exchanges allow good solutions to refine at low temperatures
-- More robust than independent parallel runs
-
-Checkpointing
--------------
-
-For long optimizations, save intermediate progress:
-
 .. code-block:: python
 
    climber = HillClimber(
@@ -307,6 +237,67 @@ Resume from a checkpoint:
 .. note::
    It is also possible to resume a run while it is still in memory by simply calling
    ``climb()`` again on the existing ``HillClimber`` instance.
+
+**Batch size**
+   The batch size is determined by ``exchange_interval`` (default: 100 steps).
+   After each batch, the optimizer:
+   
+   - Attempts replica exchanges
+   - Saves a checkpoint (if ``checkpoint_file`` is specified and checkpoint_interval condition is met)
+   - Updates the progress dashboard database (if ``db_enabled`` is True)
+
+**Checkpoint frequency**
+   The actual frequency of checkpoints is controlled by ``checkpoint_interval``. By default,
+   a checkpoint is saved after every batch (i.e., every ``exchange_interval`` steps). You can
+   save checkpoints less frequently by setting ``checkpoint_interval`` to a higher value to reduce I/O.
+
+Boundary handling
+-----------------
+
+Hill climber uses **reflection** to keep perturbed values within the original
+data bounds:
+
+- When a perturbation would push a value beyond the minimum bound, it reflects
+  back into the valid range
+- Same for maximum bounds
+- This prevents artificial accumulation of points at boundaries
+
+Example: If minimum is 5 and a perturbation creates 4.5, it reflects to 5.5.
+
+Replica exchange (parallel tempering)
+-------------------------------------
+
+Hill climber uses replica exchange to improve global optimization. Multiple
+replicas run simultaneously at different temperatures:
+
+**How it works**
+
+1. Each replica has its own temperature from a ladder (e.g., 1000, 2154, 4641, 10000)
+2. All replicas perform optimization steps independently
+3. Periodically, replicas attempt to exchange configurations
+4. Exchanges use Metropolis criterion: better solutions move to cooler temperatures
+5. The coldest replica typically finds the best solution
+
+**Temperature ladder**
+
+.. code-block:: python
+
+   from hill_climber import TemperatureLadder
+   
+   # Geometric spacing (default, recommended)
+   ladder = TemperatureLadder.geometric(n_replicas=4, T_min=0.0001, T_max=0.01)
+   print(ladder.temperatures)  # [0.0001, 0.000215, 0.000464, 0.01]
+   
+   # Linear spacing
+   ladder = TemperatureLadder.linear(n_replicas=4, T_min=0.0001, T_max=0.01)
+   print(ladder.temperatures)  # [0.0001, 0.0034, 0.0067, 0.01]
+
+**Benefits**
+
+- Better global optimization compared to single-temperature annealing
+- Hotter replicas explore broadly, cooler replicas exploit locally
+- Exchanges allow good solutions to refine at low temperatures
+- More robust than independent parallel runs
 
 Results structure
 -----------------
