@@ -1,7 +1,7 @@
 Real-time monitoring dashboard
 ==============================
 
-The Hill Climber package includes a real-time monitoring dashboard built with Streamlit and SQLite for visualizing optimization progress as it runs. The dashboard uses a modular architecture separating data loading, UI components, and plot generation.
+Hill Climber includes a real-time monitoring dashboard for visualizing optimization progress. Database logging is **enabled by default**, so you can monitor any optimization run without additional configuration.
 
 Features
 --------
@@ -40,27 +40,6 @@ This will install:
 Usage
 -----
 
-Enabling database logging
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To use the dashboard, enable database logging in your HillClimber instance:
-
-.. code-block:: python
-
-   from hill_climber import HillClimber
-   
-   climber = HillClimber(
-       data=data,
-       objective_func=my_objective,
-       db_enabled=True,  # Enable database logging
-       db_path='my_optimization.db',  # Optional: custom path
-       db_step_interval=100,  # Optional: collect every 100th step
-       checkpoint_interval=10,  # Optional: checkpoint every 10 batches
-       # ... other parameters
-   )
-   
-   best_data = climber.climb()
-
 Launching the dashboard
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -96,7 +75,8 @@ The database logging system uses an efficient collection and write strategy:
 - No buffering needed - workers return collected metrics to main process
 
 db_enabled : bool, default=True
-    Enable database logging for dashboard monitoring
+    Database logging for dashboard monitoring. Enabled by default. Set to ``False`` to disable
+    if you don't need real-time monitoring and want to minimize I/O
 
 db_path : str, optional
     Path to SQLite database file. Defaults to ``'../data/hill_climb.db'``
@@ -128,7 +108,7 @@ Default settings (recommended)
        data=data,
        objective_func=objective,
        exchange_interval=100,
-       db_enabled=True,
+       # Database logging enabled by default
        # db_step_interval defaults to 100 (one sample per batch)
    )
 
@@ -147,11 +127,23 @@ Higher resolution (more database load)
        data=data,
        objective_func=objective,
        exchange_interval=1000,
-       db_enabled=True,
        db_step_interval=100  # Collect every 100th step instead of default 1000
    )
 
 Collects 10 samples per replica per batch instead of 1 (10x higher resolution).
+
+Disabling database logging
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you don't need real-time monitoring and want to minimize I/O overhead:
+
+.. code-block:: python
+
+   climber = HillClimber(
+       data=data,
+       objective_func=objective,
+       db_enabled=False  # Disable database logging
+   )
 
 Database schema
 ---------------
@@ -227,7 +219,6 @@ Example:
        objective_func=objective,
        checkpoint_file='optimization.pkl',
        checkpoint_interval=10,  # Checkpoint every 10 batches
-       db_enabled=True,
        db_path='optimization.db'  # Monitor every batch
    )
 
@@ -252,14 +243,13 @@ Complete example
        corr = np.corrcoef(x, y)[0, 1]
        return {'Correlation': corr}, corr
    
-   # Create optimizer with database enabled
+   # Create optimizer (database logging enabled by default)
    climber = HillClimber(
        data=data,
        objective_func=objective,
        max_time=30,
        n_replicas=4,
        exchange_interval=100,
-       db_enabled=True,
        db_path='correlation_opt.db',
        checkpoint_file='correlation_opt.pkl',
        checkpoint_interval=5  # Checkpoint every 5 batches
@@ -282,9 +272,9 @@ Troubleshooting
 Database file not found
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Ensure your HillClimber instance has ``db_enabled=True``
 - Check that the database path in the dashboard matches your configuration
 - Verify the optimization has started and completed at least one batch
+- Ensure ``db_enabled`` has not been set to ``False``
 
 No data appearing
 ^^^^^^^^^^^^^^^^^
@@ -304,8 +294,7 @@ Slow optimization performance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Increase ``db_step_interval`` to reduce collection overhead
-- Consider disabling database logging (``db_enabled=False``) for production runs
-- Use checkpoints for state recovery instead of database monitoring
+- For I/O-constrained systems, disable database logging with ``db_enabled=False``
 
 Database size estimation
 ------------------------
