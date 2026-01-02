@@ -17,8 +17,11 @@ set -e
 echo "Installing GitHub CLI (gh)..."
 
 # Download and install the GitHub CLI GPG key for package verification
-curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
-    sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+if ! curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+    sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null; then
+    echo "Warning: Failed to download GitHub CLI keyring. Skipping GitHub CLI installation."
+    exit 0
+fi
 
 # Set proper permissions on the keyring
 sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
