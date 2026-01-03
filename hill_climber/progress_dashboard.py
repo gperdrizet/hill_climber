@@ -204,39 +204,27 @@ def render() -> None:
     replica_ids = sorted(metrics_df['replica_id'].unique())
     replica_temps = load_replica_temperatures(conn)
     
-    # Detect layout changes and increment refresh key to force clean re-render
     current_n_cols = plot_config['n_cols']
-    if 'previous_layout' not in st.session_state:
-        st.session_state.previous_layout = current_n_cols
-    
-    layout_changed = st.session_state.previous_layout != current_n_cols
-    if layout_changed:
-        st.session_state.previous_layout = current_n_cols
-        st.session_state.plot_refresh_key += 1
-    
-    # Generate unique key for this render that includes layout
-    plot_container_key = f"{st.session_state.plot_refresh_key}_{current_n_cols}"
     
     # Create temperature ladder plot as first plot in grid
-    if 0 % current_n_cols == 0:
-        cols = st.columns(current_n_cols)
+    cols = st.columns(current_n_cols)
     
     with cols[0]:
         temp_ladder_fig = create_temperature_ladder_plot(
             temp_ladder_history_df=temp_ladder_history_df,
             temp_ladder_df=temp_ladder_df
         )
-        st.plotly_chart(temp_ladder_fig, key=f"plot_temp_ladder_{plot_container_key}", width="stretch")
+        st.plotly_chart(temp_ladder_fig, key="temp_ladder", use_container_width=True)
     
     # Create batch statistics plot as second plot in grid
     plot_idx = 1
-    if plot_idx % current_n_cols == 0:
+    col_idx = plot_idx % current_n_cols
+    if col_idx == 0:
         cols = st.columns(current_n_cols)
     
-    col_idx = plot_idx % current_n_cols
     with cols[col_idx]:
         batch_stats_fig = create_batch_statistics_plot(batch_stats_df)
-        st.plotly_chart(batch_stats_fig, key=f"plot_batch_stats_{plot_container_key}", width="stretch")
+        st.plotly_chart(batch_stats_fig, key="batch_stats", use_container_width=True)
     
     # Create all replica plots (offset by 2 for temp ladder and batch stats)
     for idx, replica_id in enumerate(replica_ids):
@@ -244,11 +232,11 @@ def render() -> None:
         plot_idx = idx + 2
         
         # Create column layout at start of each row
-        if plot_idx % current_n_cols == 0:
+        col_idx = plot_idx % current_n_cols
+        if col_idx == 0:
             cols = st.columns(current_n_cols)
         
         # Use the appropriate column
-        col_idx = plot_idx % current_n_cols
         with cols[col_idx]:
             fig = create_replica_plot(
                 metrics_df=metrics_df,
@@ -261,7 +249,7 @@ def render() -> None:
                 normalize_metrics=plot_config['normalize_metrics'],
                 show_exchanges=plot_config['show_exchanges']
             )
-            st.plotly_chart(fig, key=f"plot_{replica_id}_{plot_container_key}", width="stretch")
+            st.plotly_chart(fig, key=f"replica_{replica_id}", use_container_width=True)
     
     # Auto-refresh logic
     if auto_refresh:
