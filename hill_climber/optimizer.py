@@ -666,6 +666,7 @@ class HillClimber:
             'target_value': self.target_value,
             'initial_step_spread': self.initial_step_spread,
             'final_step_spread': self.final_step_spread,
+            'step_spread_scheme': self.step_spread_scheme,
             'T_min': self.T_min,
             'T_max': self.T_max,
             'temperature_scheme': self.temperature_scheme,

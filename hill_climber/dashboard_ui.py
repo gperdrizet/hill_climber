@@ -408,10 +408,12 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     
     initial_step_spread = hyperparams.get('initial_step_spread', hyperparams.get('step_spread', 'N/A'))
     final_step_spread = hyperparams.get('final_step_spread', 'N/A')
+    step_spread_scheme = hyperparams.get('step_spread_scheme', 'N/A')
     step_spread_text = f"**Initial step spread:** {initial_step_spread}  \n"
 
     if final_step_spread != 'N/A':
         step_spread_text += f"**Final step spread:** {final_step_spread}  \n"
+        step_spread_text += f"**Step spread scheme:** {step_spread_scheme}  \n"
     
     hyperparams_text = f"""**Mode:** {hyperparams.get('mode', 'N/A')}  
 {step_spread_text}**Perturb fraction:** {hyperparams.get('perturb_fraction', 'N/A')}  
