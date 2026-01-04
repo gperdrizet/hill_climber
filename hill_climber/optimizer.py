@@ -20,7 +20,6 @@ from .replica_worker import run_replica_steps
 from .config import (
     OptimizerConfig,
     DEFAULT_T_MIN,
-    DEFAULT_COOLING_RATE,
     DEFAULT_INITIAL_STEP_SPREAD,
     DEFAULT_FINAL_STEP_SPREAD,
     DEFAULT_STEP_SPREAD_SCHEME,
@@ -78,11 +77,10 @@ class HillClimber:
             If specified, T_min will decrease from T_min_initial to T_min_final over the run.
         T_max_final: Final maximum temperature for temperature ladder cooling (default: None).
             If specified, T_max will decrease from T_max_initial to T_max_final over the run.
-        temperature_cooling_scheme: Temperature ladder cooling schedule (default: 'linear'). Options:
+        temperature_cooling_scheme: Temperature ladder cooling schedule (default: 'geometric'). Options:
             - 'linear': Linear interpolation from initial to final temperature range
             - 'geometric': Exponential decay of temperature range
             - 'zeno': Halve temperature range at t=0.5, then t=0.75, t=0.875, etc.
-        cooling_rate: Temperature decay rate per successful step (default: 1e-10)
         temperature_scheme: 'geometric' or 'linear' temperature spacing (default: 'geometric')
         exchange_interval: Steps between exchange attempts (default: 100)
         exchange_strategy: 'even_odd', 'random', or 'all_neighbors' (default: 'even_odd')
@@ -115,7 +113,6 @@ class HillClimber:
         T_min_final: Optional[float] = None,
         T_max_final: Optional[float] = None,
         temperature_cooling_scheme: str = DEFAULT_TEMPERATURE_COOLING_SCHEME,
-        cooling_rate: float = DEFAULT_COOLING_RATE,
         temperature_scheme: str = DEFAULT_TEMPERATURE_SCHEME,
         exchange_interval: int = DEFAULT_EXCHANGE_INTERVAL,
         exchange_strategy: str = DEFAULT_EXCHANGE_STRATEGY,
@@ -148,7 +145,6 @@ class HillClimber:
             T_min_final=T_min_final,
             T_max_final=T_max_final,
             temperature_cooling_scheme=temperature_cooling_scheme,
-            cooling_rate=cooling_rate,
             temperature_scheme=temperature_scheme,
             exchange_interval=exchange_interval,
             exchange_strategy=exchange_strategy,
@@ -241,7 +237,6 @@ class HillClimber:
         print("Temperature settings:")
         print(f"  T_min:              {self.config.T_min}")
         print(f"  T_max:              {self.config.T_max}")
-        print(f"  Cooling rate:       {self.config.cooling_rate}")
         print(f"  Temperature scheme: {self.config.temperature_scheme}")
         print()
         print("Replica exchange:")
@@ -368,15 +363,8 @@ class HillClimber:
                 # Increment batch counter
                 self.batch_counter += 1
                 
-                # Update temperature ladder history by applying cooling to previous batch
+                # Record batch statistics (step spread and acceptance rates)
                 if self.config.db_enabled:
-                    self.db_writer.update_temperature_ladder_history(
-                        self.batch_counter, 
-                        self.config.cooling_rate, 
-                        self.config.exchange_interval
-                    )
-                    
-                    # Record batch statistics (step spread and acceptance rates)
                     # Calculate acceptance rates for each replica from the preceding batch
                     acceptance_rates = []
                     for replica in self.replicas:
@@ -658,7 +646,6 @@ class HillClimber:
             'max_time': self.config.max_time,
             'perturb_fraction': self.config.perturb_fraction,
             'temperature': self.temperature,
-            'cooling_rate': self.config.cooling_rate,
             'mode': self.config.mode,
             'target_value': self.config.target_value,
             'initial_step_spread': self.config.initial_step_spread,
@@ -695,7 +682,6 @@ class HillClimber:
         hyperparams = {
             'max_time': self.config.max_time,
             'perturb_fraction': self.config.perturb_fraction,
-            'cooling_rate': self.config.cooling_rate,
             'mode': self.config.mode,
             'target_value': self.config.target_value,
             'initial_step_spread': self.config.initial_step_spread,
@@ -945,7 +931,6 @@ class HillClimber:
             max_time=hyperparams['max_time'],
             perturb_fraction=hyperparams['perturb_fraction'],
             temperature=hyperparams.get('temperature', 1000),
-            cooling_rate=hyperparams['cooling_rate'],
             mode=hyperparams['mode'],
             target_value=hyperparams.get('target_value'),
             # Handle both old (step_spread) and new (initial_step_spread) names for backward compatibility

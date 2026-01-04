@@ -16,7 +16,6 @@ from typing import Optional, Callable
 # Temperature parameters
 DEFAULT_T_MIN = 1e-2  # Default minimum temperature for coldest replica
 DEFAULT_T_MAX_MULTIPLIER = 100  # T_max = T_min * this multiplier when not specified (results in T_max=1.0)
-DEFAULT_COOLING_RATE = 1e-4  # Default temperature decay rate per step
 
 # Perturbation parameters
 DEFAULT_INITIAL_STEP_SPREAD = 0.5  # Default perturbation spread (50% of data range)
@@ -89,7 +88,6 @@ class OptimizerConfig:
         T_min_final: Final minimum temperature at end of run (default: None, no cooling)
         T_max_final: Final maximum temperature at end of run (default: None, no cooling)
         temperature_cooling_scheme: Temperature ladder cooling schedule - 'linear', 'geometric', or 'zeno' (default: 'linear')
-        cooling_rate: Temperature decay rate per successful step (per-replica cooling)
         temperature_scheme: 'geometric' or 'linear' temperature spacing within ladder
         exchange_interval: Steps between exchange attempts
         exchange_strategy: 'even_odd', 'random', or 'all_neighbors'
@@ -118,7 +116,6 @@ class OptimizerConfig:
     T_min_final: Optional[float] = 0.0
     T_max_final: Optional[float] = 0.0
     temperature_cooling_scheme: str = DEFAULT_TEMPERATURE_COOLING_SCHEME
-    cooling_rate: float = DEFAULT_COOLING_RATE
     temperature_scheme: str = DEFAULT_TEMPERATURE_SCHEME
     exchange_interval: int = DEFAULT_EXCHANGE_INTERVAL
     exchange_strategy: str = DEFAULT_EXCHANGE_STRATEGY
@@ -185,11 +182,6 @@ class OptimizerConfig:
                 raise ValueError(
                     f"final_step_spread must be <= initial_step_spread, got final={self.final_step_spread}, initial={self.initial_step_spread}"
                 )
-        
-        if not 0 < self.cooling_rate < 1:
-            raise ValueError(
-                f"cooling_rate must be in (0, 1), got {self.cooling_rate}"
-            )
         
         # Validate temperature cooling scheme
         if self.temperature_cooling_scheme not in VALID_TEMPERATURE_COOLING_SCHEMES:

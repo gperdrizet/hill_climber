@@ -13,7 +13,13 @@ import os
 import time
 from pathlib import Path
 from typing import Any
-from .dashboard_imports import st, HAS_STREAMLIT
+
+# Use absolute import to work when run via streamlit run
+try:
+    from hill_climber.dashboard_imports import st, HAS_STREAMLIT
+except ImportError:
+    # Fallback for relative import when imported as module
+    from .dashboard_imports import st, HAS_STREAMLIT
 
 
 def _init_session_state(st: Any) -> None:
@@ -217,7 +223,7 @@ def render() -> None:
             temp_ladder_history_df=temp_ladder_history_df,
             temp_ladder_df=temp_ladder_df
         )
-        st.plotly_chart(temp_ladder_fig, key=f"temp_ladder_{key_suffix}", use_container_width=True)
+        st.plotly_chart(temp_ladder_fig, key=f"temp_ladder_{key_suffix}", width='stretch')
     
     # Create batch statistics plot as second plot in grid
     plot_idx = 1
@@ -227,7 +233,7 @@ def render() -> None:
     
     with cols[col_idx]:
         batch_stats_fig = create_batch_statistics_plot(batch_stats_df)
-        st.plotly_chart(batch_stats_fig, key=f"batch_stats_{key_suffix}", use_container_width=True)
+        st.plotly_chart(batch_stats_fig, key=f"batch_stats_{key_suffix}", width='stretch')
     
     # Create all replica plots (offset by 2 for temp ladder and batch stats)
     for idx, replica_id in enumerate(replica_ids):
@@ -252,7 +258,7 @@ def render() -> None:
                 normalize_metrics=plot_config['normalize_metrics'],
                 show_exchanges=plot_config['show_exchanges']
             )
-            st.plotly_chart(fig, key=f"replica_{replica_id}_{key_suffix}", use_container_width=True)
+            st.plotly_chart(fig, key=f"replica_{replica_id}_{key_suffix}", width='stretch')
     
     # Auto-refresh logic
     if auto_refresh:

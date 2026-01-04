@@ -56,7 +56,6 @@ def run_replica_steps(
     step_spread_final = state['hyperparameters'].get('step_spread_absolute_final', None)
     step_spread_scheme = state['hyperparameters'].get('step_spread_scheme', 'linear')
     max_time = state['hyperparameters']['max_time']
-    cooling_rate = state['hyperparameters']['cooling_rate']
     replica_id = state['replica_id']
     
     # Calculate time-based step spread cooling (applies to all features proportionally)
@@ -144,9 +143,6 @@ def run_replica_steps(
             state['current_objective'] = objective
             state['current_metrics'] = metrics.copy()
             state['num_accepted'] += 1
-        
-        # Cool temperature after every step (using pre-extracted cooling_rate)
-        state['temperature'] *= (1 - cooling_rate)
         
         # If improvement, update best state
         if is_better:

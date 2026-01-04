@@ -412,7 +412,6 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     
     hyperparams_text = f"""**Mode:** {hyperparams.get('mode', 'N/A')}  
 {step_spread_text}**Perturb fraction:** {hyperparams.get('perturb_fraction', 'N/A')}  
-**Cooling rate:** {hyperparams.get('cooling_rate', 'N/A')}  
 **Exchange interval:** {metadata['exchange_interval']}  
 **Exchange strategy:** {hyperparams.get('exchange_strategy', 'N/A')}  
 **T_min:** {t_min_str}  

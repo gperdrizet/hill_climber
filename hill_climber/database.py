@@ -436,43 +436,45 @@ class DatabaseWriter:
                 """, (batch_num, position, temp, timestamp))
 
 
-    def update_temperature_ladder_history(self, batch_num: int, cooling_rate: float, exchange_interval: int):
-        """Update temperature ladder history by applying cooling to previous batch temperatures.
-        
-        Args:
-            batch_num (int): Current batch number.
-            cooling_rate (float): Temperature decay rate per step.
-            exchange_interval (int): Number of steps per batch.
-        """
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            timestamp = time.time()
-            
-            # Get temperatures from previous batch
-            cursor.execute("""
-                SELECT ladder_position, temperature
-                FROM temperature_ladder_history
-                WHERE batch_num = ?
-                ORDER BY ladder_position
-            """, (batch_num - 1,))
-            
-            prev_temps = cursor.fetchall()
-            
-            if not prev_temps:
-                return
-            
-            # Apply cooling and insert new batch
-            cooling_factor = (1 - cooling_rate) ** exchange_interval
-            for position, prev_temp in prev_temps:
-                new_temp = prev_temp * cooling_factor
-                cursor.execute("""
-                    INSERT OR REPLACE INTO temperature_ladder_history
-                    (batch_num, ladder_position, temperature, timestamp)
-                    VALUES (?, ?, ?, ?)
-                """, (batch_num, position, new_temp, timestamp))
+    # DEPRECATED: This method is no longer used since cooling_rate parameter was removed
+    # Temperature ladder cooling is now handled directly in optimizer._update_temperature_ladder()
+    # def update_temperature_ladder_history(self, batch_num: int, cooling_rate: float, exchange_interval: int):
+    #     """Update temperature ladder history by applying cooling to previous batch temperatures.
+    #     
+    #     Args:
+    #         batch_num (int): Current batch number.
+    #         cooling_rate (float): Temperature decay rate per step.
+    #         exchange_interval (int): Number of steps per batch.
+    #     """
+    #     with self.get_connection() as conn:
+    #         cursor = conn.cursor()
+    #         timestamp = time.time()
+    #         
+    #         # Get temperatures from previous batch
+    #         cursor.execute("""
+    #             SELECT ladder_position, temperature
+    #             FROM temperature_ladder_history
+    #             WHERE batch_num = ?
+    #             ORDER BY ladder_position
+    #         """, (batch_num - 1,))
+    #         
+    #         prev_temps = cursor.fetchall()
+    #         
+    #         if not prev_temps:
+    #             return
+    #         
+    #         # Apply cooling and insert new batch
+    #         cooling_factor = (1 - cooling_rate) ** exchange_interval
+    #         for position, prev_temp in prev_temps:
+    #             new_temp = prev_temp * cooling_factor
+    #             cursor.execute("""
+    #                 INSERT OR REPLACE INTO temperature_ladder_history
+    #                 (batch_num, ladder_position, temperature, timestamp)
+    #                 VALUES (?, ?, ?, ?)
+    #             """, (batch_num, position, new_temp, timestamp))
 
 
-    def insert_batch_statistics(self, batch_num: int, step_spread: float, 
+    def insert_batch_statistics(self, batch_num: int, step_spread: float,
                                 mean_acceptance_rate: float, min_acceptance_rate: float, max_acceptance_rate: float):
         """Insert batch statistics for step spread and acceptance rates.
         

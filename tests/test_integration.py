@@ -77,7 +77,6 @@ class TestIntegrationWithRealObjective(unittest.TestCase):
             exchange_interval=10,
             initial_step_spread=0.1,
             T_min=10.0,
-            cooling_rate=0.005,
             mode='maximize',
             verbose=False,
             db_enabled=False
