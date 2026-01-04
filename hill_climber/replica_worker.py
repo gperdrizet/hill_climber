@@ -99,6 +99,10 @@ def run_replica_steps(
     improvements_buffer = []
     improvement_metrics_buffer = []
     
+    # Track last recorded snapshots to avoid duplicates
+    last_recorded_accepted_num = -1
+    last_recorded_best_num = -1
+    
     if db_enabled:
         db_step_interval = db_config['step_interval']
     
@@ -139,58 +143,60 @@ def run_replica_steps(
             new_dist = abs(objective - target_value)
             is_better = new_dist < current_dist
         
-        # Record ALL perturbations at db_step_interval (sampled view)
-        if db_enabled and (perturbation_num % db_step_interval == 0):
-            timestamp = time.time()
-            perturbations_buffer.append((
-                replica_id, perturbation_num, objective,
-                accept, is_better, state['temperature'], timestamp
-            ))
-        
-        # If accepted, update current state and record
+        # If accepted, update current state
         if accept:
-            # Update current state
             state['current_data'] = perturbed
             state['current_objective'] = objective
             state['num_accepted'] += 1
-            
-            # Record accepted step with full metrics (sampled at db_step_interval)
-            if db_enabled and (perturbation_num % db_step_interval == 0):
-                timestamp = time.time()
-                accepted_buffer.append((
-                    replica_id, perturbation_num, objective,
-                    state['temperature'], timestamp
-                ))
-                
-                # Record all user-defined metrics for this accepted step
-                for metric_name, metric_value in metrics.items():
-                    step_metrics_buffer.append((
-                        replica_id, perturbation_num, metric_name, metric_value
-                    ))
         
         # Cool temperature after every step (using pre-extracted cooling_rate)
         state['temperature'] *= (1 - cooling_rate)
         
-        # If improvement, update best state and record
+        # If improvement, update best state
         if is_better:
             state['best_data'] = perturbed.copy()
             state['best_objective'] = objective
             state['best_metrics'] = metrics.copy()
             state['num_improvements'] += 1
+        
+        # Snapshot recording at db_step_interval: capture current state of all categories
+        if db_enabled and (perturbation_num % db_step_interval == 0):
+            timestamp = time.time()
             
-            # Record improvement
-            if db_enabled:
-                timestamp = time.time()
-                improvements_buffer.append((
-                    replica_id, perturbation_num, objective,
+            # 1. Always record current perturbation being evaluated
+            perturbations_buffer.append((
+                replica_id, perturbation_num, objective,
+                accept, is_better, state['temperature'], timestamp
+            ))
+            
+            # 2. Record current accepted state (last accepted step's objective)
+            # Only record if we've had an acceptance since the last snapshot
+            if state['num_accepted'] > 0 and last_recorded_accepted_num != state['num_accepted']:
+                accepted_buffer.append((
+                    replica_id, perturbation_num, state['current_objective'],
                     state['temperature'], timestamp
                 ))
-                
-                # Record all metrics at improvement point
-                for metric_name, metric_value in metrics.items():
+                # Record metrics for current accepted state
+                current_metrics = calculate_objective(state['current_data'], objective_func)[0]
+                for metric_name, metric_value in current_metrics.items():
+                    step_metrics_buffer.append((
+                        replica_id, perturbation_num, metric_name, metric_value
+                    ))
+                last_recorded_accepted_num = state['num_accepted']
+            
+            # 3. Record current best (improvement state)
+            # Only record if best has changed since last snapshot
+            if state['num_improvements'] > 0 and last_recorded_best_num != state['num_improvements']:
+                improvements_buffer.append((
+                    replica_id, perturbation_num, state['best_objective'],
+                    state['temperature'], timestamp
+                ))
+                # Record metrics for current best
+                for metric_name, metric_value in state['best_metrics'].items():
                     improvement_metrics_buffer.append((
                         replica_id, perturbation_num, metric_name, metric_value
                     ))
+                last_recorded_best_num = state['num_improvements']
     
     # Return all buffers to main process for centralized writing
     if db_enabled:

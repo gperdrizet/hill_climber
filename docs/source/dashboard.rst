@@ -82,14 +82,20 @@ db_path : str, optional
     Path to SQLite database file. Defaults to ``'../data/hill_climb.db'``
 
 db_step_interval : int, optional
-    Collect metrics every Nth step. Uses tiered sampling based on exchange_interval:
+    Snapshot interval for recording optimization state. Every Nth step, records:
     
-    - exchange_interval < 10: sample every step (1)
-    - exchange_interval 10-99: sample every 10 steps
-    - exchange_interval 100-999: sample every 100 steps  
-    - exchange_interval >= 1000: sample every 1000 steps
+    - Current perturbation being evaluated
+    - Current accepted state (if changed since last snapshot)
+    - Current best state (if changed since last snapshot)
     
-    Must be less than or equal to exchange_interval to ensure at least one collection per batch.
+    Uses tiered sampling based on exchange_interval:
+    
+    - exchange_interval < 10: snapshot every step (1)
+    - exchange_interval 10-99: snapshot every 10 steps
+    - exchange_interval 100-999: snapshot every 100 steps  
+    - exchange_interval >= 1000: snapshot every 1000 steps
+    
+    Must be less than or equal to exchange_interval to ensure at least one snapshot per batch.
 
 checkpoint_interval : int, default=1
     Number of batches between checkpoint saves. Default is 1 (checkpoint every batch).
@@ -114,9 +120,10 @@ Default settings (recommended)
 
 This provides good balance between resolution and performance:
 
-- Collects 100 steps per replica per batch (100 / 1)
-- Main process writes all collected metrics once per batch
+- Takes 1 snapshot per replica per batch (at exchange_interval)
+- Main process writes all collected snapshots once per batch
 - No worker I/O contention
+- Minimal database size with full progression visibility
 
 Higher resolution (more database load)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -174,17 +181,42 @@ Current state of each replica (updated after each batch):
 - ``current_objective``: Current objective value
 - ``timestamp``: Unix timestamp of last update
 
-metrics_history
-^^^^^^^^^^^^^^^
+perturbations, accepted_steps, improvements tables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Time series of metrics (sampled according to ``db_step_interval``):
+Three tables capture different views of the optimization process, all sampled at ``db_step_interval``:
+
+**perturbations**: Current perturbation being evaluated at each snapshot
 
 - ``replica_id``: Replica identifier
-- ``step``: Step number when metric was recorded
+- ``perturbation_num``: Step number
+- ``objective``: Objective value of current perturbation
+- ``is_accepted``: Whether this perturbation was accepted
+- ``is_improvement``: Whether this perturbation improved the best solution
+- ``temperature``: Current temperature
+
+**accepted_steps**: Current accepted state at each snapshot (when changed)
+
+- ``replica_id``: Replica identifier
+- ``perturbation_num``: Step number
+- ``objective``: Current accepted objective value
+- ``temperature``: Current temperature
+
+**improvements**: Current best solution at each snapshot (when changed)
+
+- ``replica_id``: Replica identifier
+- ``perturbation_num``: Step number
+- ``best_objective``: Current best objective value
+- ``temperature``: Current temperature
+
+**step_metrics** and **improvement_metrics**: User-defined metrics for accepted and best states
+
+- ``replica_id``: Replica identifier
+- ``perturbation_num``: Step number
 - ``metric_name``: Name of the metric
 - ``value``: Metric value
 
-Indexed on ``(replica_id, step)`` for fast queries.
+All tables are indexed on ``(replica_id, perturbation_num)`` for fast queries.
 
 temperature_exchanges
 ^^^^^^^^^^^^^^^^^^^^^

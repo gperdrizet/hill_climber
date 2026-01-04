@@ -183,19 +183,21 @@ Hyperparameters
    Path to SQLite database file for dashboard data.
 
 **db_step_interval** (default: tiered based on exchange_interval)
-   Sample perturbations every Nth evaluation for database logging. Uses tiered sampling:
+   Snapshot interval for database logging. Every Nth step, records the current state:
    
-   - exchange_interval < 10: sample every step (db_step_interval = 1)
-   - exchange_interval 10-99: sample every 10 steps (db_step_interval = 10)
-   - exchange_interval 100-999: sample every 100 steps (db_step_interval = 100)
-   - exchange_interval >= 1000: sample every 1000 steps (db_step_interval = 1000)
+   - Current perturbation being evaluated
+   - Current accepted state (if changed)
+   - Current best solution (if changed)
    
-   This creates a sampled view of all perturbations in the database while keeping
+   Uses tiered sampling:
+   
+   - exchange_interval < 10: snapshot every step (db_step_interval = 1)
+   - exchange_interval 10-99: snapshot every 10 steps (db_step_interval = 10)
+   - exchange_interval 100-999: snapshot every 100 steps (db_step_interval = 100)
+   - exchange_interval >= 1000: snapshot every 1000 steps (db_step_interval = 1000)
+   
+   This creates a regularly-sampled view of optimization progress while keeping
    database size manageable.
-   
-   .. note::
-      All accepted steps and improvements are recorded regardless of this setting.
-      Only the sampled perturbation records are affected by db_step_interval.
 
 **verbose** (default: False)
    Print progress messages during optimization.
@@ -336,27 +338,27 @@ After optimization, you can access replica state:
 State tracking
 --------------
 
-Hill Climber tracks three types of events:
+Hill Climber uses a snapshot-based approach to track optimization state:
 
-**Perturbations** (all evaluations)
-   Every perturbation is evaluated. A sampled view is recorded to the database
-   every ``db_step_interval`` evaluations for monitoring without overwhelming storage.
+**Snapshot recording** (every db_step_interval steps)
+   At regular intervals, the optimizer records three snapshots:
+   
+   1. **Current perturbation**: The perturbation being evaluated at this step
+   2. **Current accepted state**: The currently accepted solution (if changed since last snapshot)
+   3. **Current best state**: The current best solution found (if changed since last snapshot)
 
-**Accepted steps** (SA acceptances)
-   When simulated annealing accepts a move (even if worse), it's recorded with
-   full user-defined metrics. This shows the complete SA exploration path.
-
-**Improvements** (new best found)
-   When a new best solution is found, it's recorded with full metrics. This
-   provides a monotonic view of progress toward the optimal solution.
+**Three views of optimization**
+   - **Perturbations**: Shows what's being explored (all attempts)
+   - **Accepted steps**: Shows the simulated annealing trajectory (SA path)
+   - **Improvements**: Shows monotonic progress toward optimal solution
 
 All events are indexed by ``perturbation_num``, a monotonically increasing counter
 that never resets. This provides:
 
-- **Single source of truth**: Database contains complete history
-- **Clear semantics**: No confusion between different counters
-- **Three views**: Sample, complete SA path, improvements only
-- **Easy analysis**: Query any view independently
+- **Compact storage**: Only snapshots at regular intervals, not every event
+- **Three perspectives**: Exploration, acceptance, and improvement
+- **Clear semantics**: Single time axis across all views
+- **Efficient queries**: Regular sampling enables fast dashboard updates
 
 Database schema
 ---------------
@@ -364,34 +366,34 @@ Database schema
 When ``db_enabled=True``, Hill Climber creates:
 
 **perturbations** table
-   Sampled view of all evaluations (every db_step_interval)
+   Snapshots of current perturbation at each db_step_interval
    
-   - perturbation_num, objective, is_accepted, is_improvement, temperature
+   - replica_id, perturbation_num, objective, is_accepted, is_improvement, temperature
 
 **accepted_steps** table
-   Complete record of all SA-accepted moves
+   Snapshots of current accepted state (when changed since last snapshot)
    
-   - perturbation_num, objective, temperature
+   - replica_id, perturbation_num, objective, temperature
 
 **step_metrics** table
-   User-defined metrics for each accepted step
+   User-defined metrics for accepted state snapshots
    
-   - perturbation_num, metric_name, value
+   - replica_id, perturbation_num, metric_name, value
 
 **improvements** table
-   Complete record of all improvements found
+   Snapshots of current best solution (when changed since last snapshot)
    
-   - perturbation_num, best_objective, temperature
+   - replica_id, perturbation_num, best_objective, temperature
 
 **improvement_metrics** table
-   User-defined metrics at each improvement
+   User-defined metrics for best solution snapshots
    
-   - perturbation_num, metric_name, value
+   - replica_id, perturbation_num, metric_name, value
 
 **replica_status** table
    Current snapshot of each replica (updated after each batch)
    
-   - current_perturbation_num, num_accepted, num_improvements, best_objective
+   - replica_id, current_perturbation_num, num_accepted, num_improvements, best_objective, temperature
 
 Internal Architecture
 ---------------------

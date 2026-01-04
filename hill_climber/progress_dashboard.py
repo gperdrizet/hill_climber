@@ -206,6 +206,9 @@ def render() -> None:
     
     current_n_cols = plot_config['n_cols']
     
+    # Create unique key suffix based on plot configuration to force re-rendering on changes
+    key_suffix = f"{plot_config['history_type']}_{plot_config['normalize_metrics']}_{plot_config['show_exchanges']}_{plot_config['n_cols']}"
+    
     # Create temperature ladder plot as first plot in grid
     cols = st.columns(current_n_cols)
     
@@ -214,7 +217,7 @@ def render() -> None:
             temp_ladder_history_df=temp_ladder_history_df,
             temp_ladder_df=temp_ladder_df
         )
-        st.plotly_chart(temp_ladder_fig, key="temp_ladder", use_container_width=True)
+        st.plotly_chart(temp_ladder_fig, key=f"temp_ladder_{key_suffix}", use_container_width=True)
     
     # Create batch statistics plot as second plot in grid
     plot_idx = 1
@@ -224,7 +227,7 @@ def render() -> None:
     
     with cols[col_idx]:
         batch_stats_fig = create_batch_statistics_plot(batch_stats_df)
-        st.plotly_chart(batch_stats_fig, key="batch_stats", use_container_width=True)
+        st.plotly_chart(batch_stats_fig, key=f"batch_stats_{key_suffix}", use_container_width=True)
     
     # Create all replica plots (offset by 2 for temp ladder and batch stats)
     for idx, replica_id in enumerate(replica_ids):
@@ -249,7 +252,7 @@ def render() -> None:
                 normalize_metrics=plot_config['normalize_metrics'],
                 show_exchanges=plot_config['show_exchanges']
             )
-            st.plotly_chart(fig, key=f"replica_{replica_id}", use_container_width=True)
+            st.plotly_chart(fig, key=f"replica_{replica_id}_{key_suffix}", use_container_width=True)
     
     # Auto-refresh logic
     if auto_refresh:
