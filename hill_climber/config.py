@@ -24,7 +24,7 @@ DEFAULT_PERTURB_FRACTION = 0.001  # Default fraction of points to perturb (0.1%)
 DEFAULT_FINAL_STEP_SPREAD = 0.01  # Default final step spread (1% of data range)
 
 # Replica exchange parameters
-DEFAULT_N_REPLICAS = 20  # Default number of replicas for parallel tempering
+DEFAULT_N_REPLICAS = 4  # Default number of replicas for parallel tempering
 DEFAULT_EXCHANGE_INTERVAL = 10000  # Default steps between exchange attempts
 DEFAULT_TEMPERATURE_SCHEME = 'geometric'  # Default temperature ladder spacing
 DEFAULT_EXCHANGE_STRATEGY = 'even_odd'  # Default replica pairing strategy
@@ -51,11 +51,11 @@ VALID_TEMPERATURE_SCHEMES = ['geometric', 'linear']
 
 # Valid temperature cooling schemes (for dynamic ladder cooling)
 VALID_TEMPERATURE_COOLING_SCHEMES = ['linear', 'geometric', 'zeno']
-DEFAULT_TEMPERATURE_COOLING_SCHEME = 'linear'
+DEFAULT_TEMPERATURE_COOLING_SCHEME = 'geometric'
 
 # Valid step spread cooling schemes
 VALID_STEP_SPREAD_SCHEMES = ['linear', 'geometric', 'zeno']
-DEFAULT_STEP_SPREAD_SCHEME = 'linear'
+DEFAULT_STEP_SPREAD_SCHEME = 'zeno'
 
 # Valid exchange strategies
 VALID_EXCHANGE_STRATEGIES = ['even_odd', 'random', 'all_neighbors']
@@ -115,8 +115,8 @@ class OptimizerConfig:
     T_max: Optional[float] = None
     T_min_initial: Optional[float] = None
     T_max_initial: Optional[float] = None
-    T_min_final: Optional[float] = None
-    T_max_final: Optional[float] = None
+    T_min_final: Optional[float] = 0.0
+    T_max_final: Optional[float] = 0.0
     temperature_cooling_scheme: str = DEFAULT_TEMPERATURE_COOLING_SCHEME
     cooling_rate: float = DEFAULT_COOLING_RATE
     temperature_scheme: str = DEFAULT_TEMPERATURE_SCHEME
@@ -250,7 +250,7 @@ class OptimizerConfig:
         
         # Set default T_max if not provided
         if self.T_max is None:
-            self.T_max = 0.01  # Default T_max = 0.01
+            self.T_max = self.T_min * DEFAULT_T_MAX_MULTIPLIER  # T_max = T_min * 100
         
         # Set defaults for temperature cooling if new params not provided (backward compatibility)
         if self.T_min_initial is None:

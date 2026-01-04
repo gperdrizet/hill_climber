@@ -35,8 +35,8 @@ class TestHillClimber(unittest.TestCase):
         )
         
         self.assertEqual(climber.n_replicas, 2)
-        self.assertEqual(climber.T_min, 0.0001)  # Default is 0.0001
-        self.assertEqual(climber.T_max, 0.01)
+        self.assertEqual(climber.T_min, 0.01)  # New default is 0.01
+        self.assertEqual(climber.T_max, 1.0)  # T_max = T_min * 100
         self.assertTrue(climber.is_dataframe)
         self.assertEqual(climber.column_names, ['x', 'y'])
     
