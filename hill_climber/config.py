@@ -14,18 +14,18 @@ from typing import Optional, Callable
 # =============================================================================
 
 # Temperature parameters
-DEFAULT_T_MIN = 0.0001  # Default minimum temperature for coldest replica
-DEFAULT_T_MAX_MULTIPLIER = 100  # T_max = T_min * this multiplier when not specified
-DEFAULT_COOLING_RATE = 1e-10  # Default temperature decay rate per step
+DEFAULT_T_MIN = 1e-2  # Default minimum temperature for coldest replica
+DEFAULT_T_MAX_MULTIPLIER = 100  # T_max = T_min * this multiplier when not specified (results in T_max=1.0)
+DEFAULT_COOLING_RATE = 1e-4  # Default temperature decay rate per step
 
 # Perturbation parameters
-DEFAULT_INITIAL_STEP_SPREAD = 0.25  # Default perturbation spread (25% of data range)
+DEFAULT_INITIAL_STEP_SPREAD = 0.5  # Default perturbation spread (50% of data range)
 DEFAULT_PERTURB_FRACTION = 0.001  # Default fraction of points to perturb (0.1%)
-DEFAULT_FINAL_STEP_SPREAD = None  # Default final step spread (None = no cooling)
+DEFAULT_FINAL_STEP_SPREAD = 0.01  # Default final step spread (1% of data range)
 
 # Replica exchange parameters
-DEFAULT_N_REPLICAS = 4  # Default number of replicas for parallel tempering
-DEFAULT_EXCHANGE_INTERVAL = 100  # Default steps between exchange attempts
+DEFAULT_N_REPLICAS = 20  # Default number of replicas for parallel tempering
+DEFAULT_EXCHANGE_INTERVAL = 10000  # Default steps between exchange attempts
 DEFAULT_TEMPERATURE_SCHEME = 'geometric'  # Default temperature ladder spacing
 DEFAULT_EXCHANGE_STRATEGY = 'even_odd'  # Default replica pairing strategy
 
@@ -48,6 +48,10 @@ VALID_MODES = ['maximize', 'minimize', 'target']
 
 # Valid temperature schemes
 VALID_TEMPERATURE_SCHEMES = ['geometric', 'linear']
+
+# Valid temperature cooling schemes (for dynamic ladder cooling)
+VALID_TEMPERATURE_COOLING_SCHEMES = ['linear', 'geometric', 'zeno']
+DEFAULT_TEMPERATURE_COOLING_SCHEME = 'linear'
 
 # Valid step spread cooling schemes
 VALID_STEP_SPREAD_SCHEMES = ['linear', 'geometric', 'zeno']
@@ -78,10 +82,15 @@ class OptimizerConfig:
         step_spread_scheme: Step spread cooling schedule - 'linear', 'geometric', or 'zeno' (default: 'linear')
         perturb_fraction: Fraction of data points to perturb each step
         n_replicas: Number of replicas for parallel tempering (default: 4)
-        T_min: Base temperature (will be used as T_min for ladder)
-        T_max: Maximum temperature for hottest replica (default: 100 * T_min)
-        cooling_rate: Temperature decay rate per successful step
-        temperature_scheme: 'geometric' or 'linear' temperature spacing
+        T_min: Base minimum temperature (backward compat: used as both initial and final if new params not set)
+        T_max: Maximum temperature (backward compat: used as both initial and final if new params not set)
+        T_min_initial: Initial minimum temperature for coldest replica (default: None, uses T_min)
+        T_max_initial: Initial maximum temperature for hottest replica (default: None, uses T_max)
+        T_min_final: Final minimum temperature at end of run (default: None, no cooling)
+        T_max_final: Final maximum temperature at end of run (default: None, no cooling)
+        temperature_cooling_scheme: Temperature ladder cooling schedule - 'linear', 'geometric', or 'zeno' (default: 'linear')
+        cooling_rate: Temperature decay rate per successful step (per-replica cooling)
+        temperature_scheme: 'geometric' or 'linear' temperature spacing within ladder
         exchange_interval: Steps between exchange attempts
         exchange_strategy: 'even_odd', 'random', or 'all_neighbors'
         checkpoint_file: Path to save checkpoints (default: None, no checkpointing)
@@ -104,6 +113,11 @@ class OptimizerConfig:
     n_replicas: int = DEFAULT_N_REPLICAS
     T_min: float = DEFAULT_T_MIN
     T_max: Optional[float] = None
+    T_min_initial: Optional[float] = None
+    T_max_initial: Optional[float] = None
+    T_min_final: Optional[float] = None
+    T_max_final: Optional[float] = None
+    temperature_cooling_scheme: str = DEFAULT_TEMPERATURE_COOLING_SCHEME
     cooling_rate: float = DEFAULT_COOLING_RATE
     temperature_scheme: str = DEFAULT_TEMPERATURE_SCHEME
     exchange_interval: int = DEFAULT_EXCHANGE_INTERVAL
@@ -177,6 +191,12 @@ class OptimizerConfig:
                 f"cooling_rate must be in (0, 1), got {self.cooling_rate}"
             )
         
+        # Validate temperature cooling scheme
+        if self.temperature_cooling_scheme not in VALID_TEMPERATURE_COOLING_SCHEMES:
+            raise ValueError(
+                f"temperature_cooling_scheme must be one of {VALID_TEMPERATURE_COOLING_SCHEMES}, got '{self.temperature_cooling_scheme}'"
+            )
+        
         if self.T_min <= 0:
             raise ValueError(f"T_min must be positive, got {self.T_min}")
         
@@ -185,6 +205,45 @@ class OptimizerConfig:
                 f"T_max must be greater than T_min, got T_max={self.T_max}, T_min={self.T_min}"
             )
         
+        # Validate temperature cooling parameters if provided
+        if self.T_min_initial is not None:
+            if self.T_min_initial <= 0:
+                raise ValueError(f"T_min_initial must be positive, got {self.T_min_initial}")
+        
+        if self.T_max_initial is not None:
+            if self.T_max_initial is not None and self.T_min_initial is not None:
+                if self.T_max_initial <= self.T_min_initial:
+                    raise ValueError(
+                        f"T_max_initial must be > T_min_initial, got T_max_initial={self.T_max_initial}, T_min_initial={self.T_min_initial}"
+                    )
+        
+        if self.T_min_final is not None:
+            if self.T_min_final < 0:
+                raise ValueError(f"T_min_final must be non-negative, got {self.T_min_final}")
+            if self.T_min_initial is not None and self.T_min_final > self.T_min_initial:
+                raise ValueError(
+                    f"T_min_final should be <= T_min_initial for cooling, got T_min_final={self.T_min_final}, T_min_initial={self.T_min_initial}"
+                )
+            # Replace 0 with small epsilon to avoid division by zero
+            if self.T_min_final == 0:
+                self.T_min_final = 1e-15
+        
+        if self.T_max_final is not None:
+            if self.T_max_final < 0:
+                raise ValueError(f"T_max_final must be non-negative, got {self.T_max_final}")
+            # Replace 0 with small epsilon to avoid division by zero
+            if self.T_max_final == 0:
+                self.T_max_final = 1e-15
+            # Allow T_max_final = T_min_final only if user specified both as 0 (now both epsilon)
+            if self.T_min_final is not None and self.T_max_final < self.T_min_final:
+                raise ValueError(
+                    f"T_max_final must be >= T_min_final, got T_max_final={self.T_max_final}, T_min_final={self.T_min_final}"
+                )
+            if self.T_max_initial is not None and self.T_max_final > self.T_max_initial:
+                raise ValueError(
+                    f"T_max_final should be <= T_max_initial for cooling, got T_max_final={self.T_max_final}, T_max_initial={self.T_max_initial}"
+                )
+        
         # Validate objective function is callable
         if not callable(self.objective_func):
             raise ValueError("objective_func must be callable")
@@ -192,6 +251,13 @@ class OptimizerConfig:
         # Set default T_max if not provided
         if self.T_max is None:
             self.T_max = 0.01  # Default T_max = 0.01
+        
+        # Set defaults for temperature cooling if new params not provided (backward compatibility)
+        if self.T_min_initial is None:
+            self.T_min_initial = self.T_min
+        if self.T_max_initial is None:
+            self.T_max_initial = self.T_max
+        # T_min_final and T_max_final remain None if not specified (no ladder cooling)
         
         # Set default db_path if db enabled but path not provided
         if self.db_enabled and self.db_path is None:

@@ -28,6 +28,7 @@ from .config import (
     DEFAULT_N_REPLICAS,
     DEFAULT_EXCHANGE_INTERVAL,
     DEFAULT_TEMPERATURE_SCHEME,
+    DEFAULT_TEMPERATURE_COOLING_SCHEME,
     DEFAULT_EXCHANGE_STRATEGY,
     DEFAULT_MAX_TIME,
     DEFAULT_MODE,
@@ -67,6 +68,20 @@ class HillClimber:
             simulated annealing without replica exchange
         T_min: Base temperature (will be used as T_min for ladder) (default: 0.0001)
         T_max: Maximum temperature for hottest replica (default: 100 * T_min)
+        T_min_initial: Initial minimum temperature for temperature ladder cooling (default: None, uses T_min).
+            If specified along with T_min_final, enables dynamic temperature ladder cooling where the
+            minimum temperature evolves from T_min_initial to T_min_final over max_time.
+        T_max_initial: Initial maximum temperature for temperature ladder cooling (default: None, uses T_max).
+            If specified along with T_max_final, enables dynamic temperature ladder cooling where the
+            maximum temperature evolves from T_max_initial to T_max_final over max_time.
+        T_min_final: Final minimum temperature for temperature ladder cooling (default: None).
+            If specified, T_min will decrease from T_min_initial to T_min_final over the run.
+        T_max_final: Final maximum temperature for temperature ladder cooling (default: None).
+            If specified, T_max will decrease from T_max_initial to T_max_final over the run.
+        temperature_cooling_scheme: Temperature ladder cooling schedule (default: 'linear'). Options:
+            - 'linear': Linear interpolation from initial to final temperature range
+            - 'geometric': Exponential decay of temperature range
+            - 'zeno': Halve temperature range at t=0.5, then t=0.75, t=0.875, etc.
         cooling_rate: Temperature decay rate per successful step (default: 1e-10)
         temperature_scheme: 'geometric' or 'linear' temperature spacing (default: 'geometric')
         exchange_interval: Steps between exchange attempts (default: 100)
@@ -95,6 +110,11 @@ class HillClimber:
         n_replicas: int = DEFAULT_N_REPLICAS,
         T_min: float = DEFAULT_T_MIN,
         T_max: Optional[float] = None,
+        T_min_initial: Optional[float] = None,
+        T_max_initial: Optional[float] = None,
+        T_min_final: Optional[float] = None,
+        T_max_final: Optional[float] = None,
+        temperature_cooling_scheme: str = DEFAULT_TEMPERATURE_COOLING_SCHEME,
         cooling_rate: float = DEFAULT_COOLING_RATE,
         temperature_scheme: str = DEFAULT_TEMPERATURE_SCHEME,
         exchange_interval: int = DEFAULT_EXCHANGE_INTERVAL,
@@ -123,6 +143,11 @@ class HillClimber:
             n_replicas=n_replicas,
             T_min=T_min,
             T_max=T_max,
+            T_min_initial=T_min_initial,
+            T_max_initial=T_max_initial,
+            T_min_final=T_min_final,
+            T_max_final=T_max_final,
+            temperature_cooling_scheme=temperature_cooling_scheme,
             cooling_rate=cooling_rate,
             temperature_scheme=temperature_scheme,
             exchange_interval=exchange_interval,
@@ -269,19 +294,27 @@ class HillClimber:
         if self.config.db_enabled:
             self._initialize_database()
         
-        # Initialize temperature ladder
+        # Initialize temperature ladder (using initial values if temperature cooling is enabled)
+        T_min_current = self.config.T_min_initial
+        T_max_current = self.config.T_max_initial
+        
         if self.config.temperature_scheme == 'geometric':
             self.temperature_ladder = TemperatureLadder.geometric(
-                self.config.n_replicas, self.config.T_min, self.config.T_max
+                self.config.n_replicas, T_min_current, T_max_current
             )
 
         else:
             self.temperature_ladder = TemperatureLadder.linear(
-                self.config.n_replicas, self.config.T_min, self.config.T_max
+                self.config.n_replicas, T_min_current, T_max_current
             )
         
         if self.config.verbose:
             print(f"Temperature ladder: {self.temperature_ladder.temperatures}")
+            if self.config.T_min_final is not None or self.config.T_max_final is not None:
+                print(f"Temperature cooling enabled:")
+                print(f"  Initial range: [{T_min_current:.6f}, {T_max_current:.6f}]")
+                print(f"  Final range: [{self.config.T_min_final or T_min_current:.6f}, {self.config.T_max_final or T_max_current:.6f}]")
+                print(f"  Cooling scheme: {self.config.temperature_cooling_scheme}")
         
         # Initialize replicas
         self._initialize_replicas()
@@ -327,6 +360,10 @@ class HillClimber:
                 # Attempt exchanges if we are optimizing multiple replicas
                 if self.config.n_replicas > 1:
                     self._exchange_round(scheduler)
+                
+                # Apply temperature ladder cooling if enabled
+                if self.config.T_min_final is not None or self.config.T_max_final is not None:
+                    self._update_temperature_ladder(start_time)
                 
                 # Increment batch counter
                 self.batch_counter += 1
@@ -744,7 +781,99 @@ class HillClimber:
         if self.config.db_enabled and db_exchanges:
             self.db_writer.insert_temperature_exchanges(db_exchanges)
     
-
+    def _update_temperature_ladder(self, start_time: float):
+        """Update temperature ladder based on time-based cooling.
+        
+        This implements dynamic temperature ladder cooling, where the temperature
+        range (T_min, T_max) evolves from initial values to final values over time.
+        The cooling follows the same schemes as step spread cooling: linear, geometric, or zeno.
+        
+        Args:
+            start_time (float): Start time of the optimization run.
+        """
+        # Calculate time progress
+        elapsed_time = time.time() - start_time
+        progress = min(elapsed_time / (self.config.max_time * 60.0), 1.0)  # max_time is in minutes
+        
+        # Calculate current T_min
+        T_min_initial = self.config.T_min_initial
+        T_min_final = self.config.T_min_final if self.config.T_min_final is not None else T_min_initial
+        
+        if self.config.temperature_cooling_scheme == 'geometric':
+            # Geometric interpolation: initial * (final/initial)^progress
+            if T_min_initial > 0:
+                ratio = T_min_final / T_min_initial
+                T_min_current = T_min_initial * np.power(ratio, progress)
+            else:
+                T_min_current = T_min_initial
+        elif self.config.temperature_cooling_scheme == 'zeno':
+            # Zeno halving: halve at t=0.5, t=0.75, t=0.875, etc.
+            if progress >= 1.0:
+                T_min_current = T_min_final
+            else:
+                n_halvings = int(-np.log2(1.0 - progress))
+                T_min_current = T_min_initial * np.power(0.5, n_halvings)
+                T_min_current = max(T_min_current, T_min_final)
+        else:
+            # Linear interpolation (default)
+            T_min_current = T_min_initial + (T_min_final - T_min_initial) * progress
+        
+        # Calculate current T_max
+        T_max_initial = self.config.T_max_initial
+        T_max_final = self.config.T_max_final if self.config.T_max_final is not None else T_max_initial
+        
+        if self.config.temperature_cooling_scheme == 'geometric':
+            # Geometric interpolation: initial * (final/initial)^progress
+            if T_max_initial > 0:
+                ratio = T_max_final / T_max_initial
+                T_max_current = T_max_initial * np.power(ratio, progress)
+            else:
+                T_max_current = T_max_initial
+        elif self.config.temperature_cooling_scheme == 'zeno':
+            # Zeno halving: halve at t=0.5, t=0.75, t=0.875, etc.
+            if progress >= 1.0:
+                T_max_current = T_max_final
+            else:
+                n_halvings = int(-np.log2(1.0 - progress))
+                T_max_current = T_max_initial * np.power(0.5, n_halvings)
+                T_max_current = max(T_max_current, T_max_final)
+        else:
+            # Linear interpolation (default)
+            T_max_current = T_max_initial + (T_max_final - T_max_initial) * progress
+        
+        # Regenerate temperature ladder with updated range
+        if self.config.temperature_scheme == 'geometric':
+            new_ladder = TemperatureLadder.geometric(
+                self.config.n_replicas, T_min_current, T_max_current
+            )
+        else:
+            new_ladder = TemperatureLadder.linear(
+                self.config.n_replicas, T_min_current, T_max_current
+            )
+        
+        # Update each replica's temperature while maintaining relative position in the ladder
+        # Replicas are sorted by temperature, so we can map them to the new ladder
+        sorted_indices = sorted(range(len(self.replicas)), key=lambda i: self.replicas[i]['temperature'])
+        
+        for ladder_idx, replica_idx in enumerate(sorted_indices):
+            old_temp = self.replicas[replica_idx]['temperature']
+            new_temp = new_ladder.temperatures[ladder_idx]
+            
+            # Update temperature
+            self.replicas[replica_idx]['temperature'] = new_temp
+            
+            # Record the temperature change for tracking
+            current_pnum = self.replicas[replica_idx]['perturbation_num']
+            if abs(new_temp - old_temp) > 1e-10:  # Only record if actually changed
+                record_temperature_change(self.replicas[replica_idx], new_temp, current_pnum)
+                
+                # Log to database
+                if self.config.db_enabled:
+                    self.db_writer.insert_temperature_exchanges([(current_pnum, replica_idx, new_temp)])
+        
+        # Update the temperature ladder object
+        self.temperature_ladder = new_ladder
+    
     def _get_best_replica(self) -> Dict:
         """Find replica with best objective value."""
         if self.config.mode == 'maximize':

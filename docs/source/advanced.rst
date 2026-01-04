@@ -250,6 +250,111 @@ Example:
        step_spread_scheme='zeno'     # Use Zeno halving schedule
    )
 
+Temperature ladder cooling
+--------------------------
+
+Dynamic temperature range adjustment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Just like step spread, the temperature ladder range can evolve over time. This allows
+the optimization to start with broad exploration (wide temperature range) and 
+progressively focus on refinement (narrow temperature range).
+
+**Basic configuration**
+
+By default, the temperature ladder is fixed at ``[T_min, T_max]`` throughout the run.
+To enable dynamic cooling, specify initial and final temperature ranges:
+
+.. code-block:: python
+
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       n_replicas=4,
+       T_min_initial=0.01,           # Initial coldest temperature
+       T_max_initial=10.0,           # Initial hottest temperature
+       T_min_final=0.001,            # Final coldest temperature
+       T_max_final=1.0,              # Final hottest temperature
+       temperature_cooling_scheme='geometric',  # Cooling schedule
+       temperature_scheme='geometric'  # Ladder spacing (separate parameter)
+   )
+
+**Cooling schemes**
+
+Temperature ladder cooling uses the same schemes as step spread cooling:
+
+**Linear**: Steady contraction of temperature range
+
+.. math::
+
+   T_{\text{min}}(t) &= T_{\text{min,initial}} + (T_{\text{min,final}} - T_{\text{min,initial}}) \times t \\
+   T_{\text{max}}(t) &= T_{\text{max,initial}} + (T_{\text{max,final}} - T_{\text{max,initial}}) \times t
+
+**Geometric**: Exponential decay of temperature range
+
+.. math::
+
+   T_{\text{min}}(t) &= T_{\text{min,initial}} \times \left(\frac{T_{\text{min,final}}}{T_{\text{min,initial}}}\right)^t \\
+   T_{\text{max}}(t) &= T_{\text{max,initial}} \times \left(\frac{T_{\text{max,final}}}{T_{\text{max,initial}}}\right)^t
+
+**Zeno**: Halve the temperature range at t=0.5, t=0.75, t=0.875, etc.
+
+.. math::
+
+   n &= \lfloor -\log_2(1 - t) \rfloor \\
+   T_{\text{min}}(t) &= T_{\text{min,initial}} \times 0.5^n \\
+   T_{\text{max}}(t) &= T_{\text{max,initial}} \times 0.5^n
+
+**When to use temperature ladder cooling**
+
+Temperature ladder cooling is useful when:
+
+- Starting with broad exploration but wanting to refine later
+- The problem has both coarse and fine structure
+- You want to reduce computational overhead in later stages
+- Combining with step spread cooling for dual-level adaptation
+
+Example with both step spread and temperature cooling:
+
+.. code-block:: python
+
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       max_time=30,
+       n_replicas=6,
+       
+       # Temperature ladder cooling (explores → refines)
+       T_min_initial=0.01,
+       T_max_initial=50.0,
+       T_min_final=0.001,
+       T_max_final=5.0,
+       temperature_cooling_scheme='geometric',
+       temperature_scheme='geometric',
+       
+       # Step spread cooling (coarse → fine adjustments)
+       initial_step_spread=0.3,
+       final_step_spread=0.01,
+       step_spread_scheme='geometric',
+       
+       exchange_interval=100
+   )
+
+**Backward compatibility**
+
+If you only specify ``T_min`` and ``T_max`` (without initial/final variants), 
+the temperature ladder remains fixed throughout the run:
+
+.. code-block:: python
+
+   # Traditional fixed temperature ladder
+   climber = HillClimber(
+       data=data,
+       objective_func=my_objective,
+       T_min=0.001,
+       T_max=1.0
+   )
+
 Faster convergence
 ~~~~~~~~~~~~~~~~~~
 
