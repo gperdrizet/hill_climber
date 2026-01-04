@@ -1,5 +1,6 @@
 """Hill climbing optimization with replica exchange."""
 
+import json
 import os
 import pickle
 import time
@@ -542,23 +543,13 @@ class HillClimber:
                     replica['perturbation_num'],
                     replica['best_objective'],
                     replica['temperature'],
-                    timestamp
+                    timestamp,
+                    json.dumps(replica.get('best_metrics', {})) if replica.get('best_metrics') else None
                 ))
-                
-                # Write final best metrics
-                if 'best_metrics' in replica:
-                    for metric_name, metric_value in replica['best_metrics'].items():
-                        final_improvement_metrics.append((
-                            replica['replica_id'],
-                            replica['perturbation_num'],
-                            metric_name,
-                            metric_value
-                        ))
             
             # Flush final snapshots to database
             self.db_writer.insert_perturbations_batch(final_perturbations)
             self.db_writer.insert_improvements_batch(final_improvements)
-            self.db_writer.insert_improvement_metrics_batch(final_improvement_metrics)
             
             # Update final replica status
             for replica in self.replicas:
@@ -859,6 +850,12 @@ class HillClimber:
         
         # Update the temperature ladder object
         self.temperature_ladder = new_ladder
+        
+        # Write updated temperature ladder to database if enabled
+        if self.config.db_enabled:
+            # Sort replicas by temperature (high to low) to maintain ladder position consistency
+            sorted_temps = sorted([r['temperature'] for r in self.replicas], reverse=True)
+            self.db_writer.initialize_temperature_ladder_history(sorted_temps, batch_num=self.batch_counter)
     
     def _get_best_replica(self) -> Dict:
         """Find replica with best objective value."""
