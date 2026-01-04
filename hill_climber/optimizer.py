@@ -239,6 +239,15 @@ class HillClimber:
         print(f"  T_min:              {self.config.T_min}")
         print(f"  T_max:              {self.config.T_max}")
         print(f"  Temperature scheme: {self.config.temperature_scheme}")
+        
+        # Show temperature cooling if enabled
+        if self.config.T_min_final is not None or self.config.T_max_final is not None:
+            t_min_final = self.config.T_min_final if self.config.T_min_final is not None else self.config.T_min
+            t_max_final = self.config.T_max_final if self.config.T_max_final is not None else self.config.T_max
+            print(f"  T_min_final:        {t_min_final}")
+            print(f"  T_max_final:        {t_max_final}")
+            print(f"  Temperature cooling: {self.config.temperature_cooling_scheme}")
+        
         print()
         print("Replica exchange:")
         print(f"  Number of replicas: {self.config.n_replicas}")

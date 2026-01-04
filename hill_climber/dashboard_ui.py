@@ -401,6 +401,20 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     t_min_str = f"{t_min:.1e}" if isinstance(t_min, (int, float)) else t_min
     t_max_str = f"{t_max:.1e}" if isinstance(t_max, (int, float)) else t_max
     
+    # Format final temperatures if they exist
+    t_min_final = hyperparams.get('T_min_final', 'N/A')
+    t_max_final = hyperparams.get('T_max_final', 'N/A')
+    t_min_final_str = f"{t_min_final:.1e}" if isinstance(t_min_final, (int, float)) else t_min_final
+    t_max_final_str = f"{t_max_final:.1e}" if isinstance(t_max_final, (int, float)) else t_max_final
+    temperature_cooling_scheme = hyperparams.get('temperature_cooling_scheme', 'N/A')
+    
+    # Build temperature cooling text if enabled
+    temp_cooling_text = ""
+    if t_min_final != 'N/A' or t_max_final != 'N/A':
+        temp_cooling_text = f"**T_min_final:** {t_min_final_str}  \n"
+        temp_cooling_text += f"**T_max_final:** {t_max_final_str}  \n"
+        temp_cooling_text += f"**Temperature cooling:** {temperature_cooling_scheme}  \n"
+    
     initial_step_spread = hyperparams.get('initial_step_spread', hyperparams.get('step_spread', 'N/A'))
     final_step_spread = hyperparams.get('final_step_spread', 'N/A')
     step_spread_scheme = hyperparams.get('step_spread_scheme', 'N/A')
@@ -415,7 +429,8 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
 **Exchange interval:** {metadata['exchange_interval']}  
 **Exchange strategy:** {hyperparams.get('exchange_strategy', 'N/A')}  
 **T_min:** {t_min_str}  
-**T_max:** {t_max_str}"""
+**T_max:** {t_max_str}  
+{temp_cooling_text}"""
     
     st.sidebar.markdown(hyperparams_text)
 

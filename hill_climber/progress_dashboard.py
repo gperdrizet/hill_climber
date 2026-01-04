@@ -79,7 +79,6 @@ def render() -> None:
         render_plot_options,
         render_run_information,
         render_hyperparameters,
-        render_temperature_ladder,
         render_leaderboard,
         render_progress_stats
     )
@@ -151,10 +150,6 @@ def render() -> None:
     # Sidebar: Run information
     render_run_information(metadata)
     render_hyperparameters(metadata)
-    
-    # Sidebar: Temperature ladder
-    temp_ladder_df = load_temperature_ladder(conn)
-    render_temperature_ladder(temp_ladder_df)
 
     # Load data based on plot configuration with progressive loading
     with st.spinner("Loading metrics data..."):
