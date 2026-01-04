@@ -58,6 +58,36 @@ class TemperatureLadder:
         return cls(temperatures=temps)
     
     @classmethod
+    def zeno(cls, n_replicas: int, T_min: float, T_max: float):
+        """Create zeno temperature ladder with halving-based distribution.
+        
+        Temperatures are distributed using a halving pattern that places
+        more replicas at lower temperatures for better sampling near the
+        target solution.
+        
+        Args:
+            n_replicas (int): Number of replicas.
+            T_min (float): Minimum (coldest) temperature.
+            T_max (float): Maximum (hottest) temperature.
+            
+        Returns:
+            TemperatureLadder: Instance with zeno-spaced temperatures.
+        """
+        if n_replicas == 1:
+            temps = np.array([T_min])
+        else:
+            # Create halving points: 0, 0.5, 0.75, 0.875, etc.
+            positions = np.zeros(n_replicas)
+            for i in range(1, n_replicas):
+                # Each position halves the remaining distance to 1.0
+                positions[i] = 1.0 - (0.5 ** i)
+            
+            # Map positions to temperature range
+            temps = T_min + positions * (T_max - T_min)
+        
+        return cls(temperatures=temps)
+    
+    @classmethod
     def custom(cls, temperatures: List[float]):
         """Create custom temperature ladder.
         

@@ -210,53 +210,52 @@ def render() -> None:
     
     current_n_cols = plot_config['n_cols']
     
-    # Create unique key suffix based on plot configuration to force re-rendering on changes
-    key_suffix = f"{plot_config['history_type']}_{plot_config['normalize_metrics']}_{plot_config['show_exchanges']}_{plot_config['n_cols']}"
+    # Get refresh key to ensure unique keys for every plot on every refresh
+    refresh_key = st.session_state.get('plot_refresh_key', 0)
     
-    # Create temperature ladder plot as first plot in grid
-    cols = st.columns(current_n_cols)
+    # Create grid layout
+    # We need to collect all figures first or iterate carefully
     
-    with cols[0]:
-        temp_ladder_fig = create_temperature_ladder_plot(
-            temp_ladder_history_df=temp_ladder_history_df,
-            temp_ladder_df=temp_ladder_df
+    # List of all figures to plot in order
+    figures = []
+    
+    # 1. Temperature Ladder
+    temp_ladder_fig = create_temperature_ladder_plot(
+        temp_ladder_history_df=temp_ladder_history_df,
+        temp_ladder_df=temp_ladder_df
+    )
+    figures.append(("temp_ladder", temp_ladder_fig))
+    
+    # 2. Batch Statistics
+    batch_stats_fig = create_batch_statistics_plot(batch_stats_df)
+    figures.append(("batch_stats", batch_stats_fig))
+    
+    # 3. Replica Plots
+    for replica_id in replica_ids:
+        fig = create_replica_plot(
+            metrics_df=metrics_df,
+            replica_id=replica_id,
+            objective_metric=plot_config['objective_metric'],
+            additional_metrics=plot_config['additional_metrics'],
+            exchange_interval=metadata['exchange_interval'],
+            replica_temps=replica_temps,
+            exchanges_df=exchanges_df,
+            normalize_metrics=plot_config['normalize_metrics'],
+            show_exchanges=plot_config['show_exchanges']
         )
-        st.plotly_chart(temp_ladder_fig, key=f"temp_ladder_{key_suffix}", width='stretch')
-    
-    # Create batch statistics plot as second plot in grid
-    plot_idx = 1
-    col_idx = plot_idx % current_n_cols
-    if col_idx == 0:
+        figures.append((f"replica_{replica_id}", fig))
+        
+    # Render grid
+    for i in range(0, len(figures), current_n_cols):
         cols = st.columns(current_n_cols)
-    
-    with cols[col_idx]:
-        batch_stats_fig = create_batch_statistics_plot(batch_stats_df)
-        st.plotly_chart(batch_stats_fig, key=f"batch_stats_{key_suffix}", width='stretch')
-    
-    # Create all replica plots (offset by 2 for temp ladder and batch stats)
-    for idx, replica_id in enumerate(replica_ids):
-        # Offset by 2 to account for temperature ladder and batch stats plots
-        plot_idx = idx + 2
-        
-        # Create column layout at start of each row
-        col_idx = plot_idx % current_n_cols
-        if col_idx == 0:
-            cols = st.columns(current_n_cols)
-        
-        # Use the appropriate column
-        with cols[col_idx]:
-            fig = create_replica_plot(
-                metrics_df=metrics_df,
-                replica_id=replica_id,
-                objective_metric=plot_config['objective_metric'],
-                additional_metrics=plot_config['additional_metrics'],
-                exchange_interval=metadata['exchange_interval'],
-                replica_temps=replica_temps,
-                exchanges_df=exchanges_df,
-                normalize_metrics=plot_config['normalize_metrics'],
-                show_exchanges=plot_config['show_exchanges']
-            )
-            st.plotly_chart(fig, key=f"replica_{replica_id}_{key_suffix}", width='stretch')
+        for j in range(current_n_cols):
+            if i + j < len(figures):
+                key_base, fig = figures[i + j]
+                with cols[j]:
+                    # Use dynamic keys to force Streamlit to treat these as new components
+                    # This prevents "stale" or "darkened" plots from persisting
+                    unique_key = f"{key_base}_{refresh_key}"
+                    st.plotly_chart(fig, key=unique_key, use_container_width=True)
     
     # Auto-refresh logic
     if auto_refresh:

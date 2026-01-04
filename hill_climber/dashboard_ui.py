@@ -35,14 +35,6 @@ def apply_custom_css() -> None:
         .main h2:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }
         .main h3 { font-size: 1.1rem !important; }
         
-        /* Sidebar width when expanded */
-        section[data-testid="stSidebar"][aria-expanded="true"],
-        section[data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
-            width: 275px !important;
-            min-width: 275px !important;
-            max-width: 275px !important;
-        }
-        
         /* Sidebar background color - only structural elements */
         section[data-testid="stSidebar"],
         section[data-testid="stSidebar"] > div,
@@ -61,20 +53,6 @@ def apply_custom_css() -> None:
         [data-testid="stSidebar"] button[kind="secondary"]:hover {
             background-color: #1a1a1a !important;
             border-color: #333333 !important;
-        }
-        
-        /* Sidebar collapse button position */
-        [data-testid="stSidebarCollapseButton"] {
-            position: relative !important;
-            top: -0.5rem !important;
-            z-index: 999 !important;
-        }
-        
-        /* Sidebar text - prevent wrapping */
-        [data-testid="stSidebar"] p {
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
         }
         
         /* Horizontal rules spacing */

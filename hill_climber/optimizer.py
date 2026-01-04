@@ -82,7 +82,7 @@ class HillClimber:
             - 'linear': Linear interpolation from initial to final temperature range
             - 'geometric': Exponential decay of temperature range
             - 'zeno': Halve temperature range at t=0.5, then t=0.75, t=0.875, etc.
-        temperature_scheme: 'geometric' or 'linear' temperature spacing (default: 'geometric')
+        temperature_scheme: 'geometric', 'linear', or 'zeno' temperature spacing (default: 'geometric')
         exchange_interval: Steps between exchange attempts (default: 100)
         exchange_strategy: 'even_odd', 'random', or 'all_neighbors' (default: 'even_odd')
         checkpoint_file: Path to save checkpoints (default: None, no checkpointing)
@@ -236,17 +236,12 @@ class HillClimber:
         print(f"Max runtime:          {self.config.max_time} minutes")
         print()
         print("Temperature settings:")
-        print(f"  T_min:              {self.config.T_min}")
-        print(f"  T_max:              {self.config.T_max}")
-        print(f"  Temperature scheme: {self.config.temperature_scheme}")
-        
-        # Show temperature cooling if enabled
-        if self.config.T_min_final is not None or self.config.T_max_final is not None:
-            t_min_final = self.config.T_min_final if self.config.T_min_final is not None else self.config.T_min
-            t_max_final = self.config.T_max_final if self.config.T_max_final is not None else self.config.T_max
-            print(f"  T_min_final:        {t_min_final}")
-            print(f"  T_max_final:        {t_max_final}")
-            print(f"  Temperature cooling: {self.config.temperature_cooling_scheme}")
+        print(f"  T_min_initial:       {self.config.T_min_initial}")
+        print(f"  T_max_initial:       {self.config.T_max_initial}")
+        print(f"  T_min_final:         {self.config.T_min_final if self.config.T_min_final is not None else self.config.T_min_initial}")
+        print(f"  T_max_final:         {self.config.T_max_final if self.config.T_max_final is not None else self.config.T_max_initial}")
+        print(f"  Ladder spacing:      {self.config.temperature_scheme}")
+        print(f"  Cooling schedule:    {self.config.temperature_cooling_scheme}")
         
         print()
         print("Replica exchange:")
@@ -307,7 +302,10 @@ class HillClimber:
             self.temperature_ladder = TemperatureLadder.geometric(
                 self.config.n_replicas, T_min_current, T_max_current
             )
-
+        elif self.config.temperature_scheme == 'zeno':
+            self.temperature_ladder = TemperatureLadder.zeno(
+                self.config.n_replicas, T_min_current, T_max_current
+            )
         else:
             self.temperature_ladder = TemperatureLadder.linear(
                 self.config.n_replicas, T_min_current, T_max_current
@@ -830,6 +828,10 @@ class HillClimber:
         # Regenerate temperature ladder with updated range
         if self.config.temperature_scheme == 'geometric':
             new_ladder = TemperatureLadder.geometric(
+                self.config.n_replicas, T_min_current, T_max_current
+            )
+        elif self.config.temperature_scheme == 'zeno':
+            new_ladder = TemperatureLadder.zeno(
                 self.config.n_replicas, T_min_current, T_max_current
             )
         else:

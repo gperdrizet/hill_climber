@@ -48,7 +48,7 @@ DEFAULT_DB_PATH = '../data/hill_climb.db'  # Default database file path
 VALID_MODES = ['maximize', 'minimize', 'target']
 
 # Valid temperature schemes
-VALID_TEMPERATURE_SCHEMES = ['geometric', 'linear']
+VALID_TEMPERATURE_SCHEMES = ['geometric', 'linear', 'zeno']
 
 # Valid temperature cooling schemes (for dynamic ladder cooling)
 VALID_TEMPERATURE_COOLING_SCHEMES = ['linear', 'geometric', 'zeno']
