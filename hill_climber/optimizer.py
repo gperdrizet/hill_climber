@@ -136,105 +136,71 @@ class HillClimber:
             n_workers=n_workers,
         )
         
+        # Store validated configuration
+        self.config = config
+        
         # Convert data to numpy if needed
         if isinstance(data, pd.DataFrame):
             self.data = data.values
             self.column_names = list(data.columns)
             self.is_dataframe = True
-
         else:
             self.data = np.array(data)
             self.column_names = [f'{DEFAULT_COLUMN_PREFIX}{i}' for i in range(self.data.shape[1])]
             self.is_dataframe = False
 
-
-        #### Attribute assignments from validated config #############################
+        # Derived attributes calculated from data
+        self.bounds = (np.min(self.data, axis=0), np.max(self.data, axis=0))
+        self.step_spread_absolute = None  # Will be calculated in climb()
         
-        # Hill climbing run parameters
-        self.objective_func = config.objective_func
-        self.mode = config.mode
-        self.target_value = config.target_value
-        self.max_time = config.max_time
-        self.initial_step_spread = config.initial_step_spread
-        self.final_step_spread = config.final_step_spread
-        self.step_spread_scheme = config.step_spread_scheme
-        self.perturb_fraction = config.perturb_fraction
-        self.temperature = config.T_min
-        self.cooling_rate = config.cooling_rate
-        self.checkpoint_file = config.checkpoint_file
-        self.verbose = config.verbose
-        
-        # Replica exchange parameters
-        self.n_replicas = config.n_replicas
-        self.T_min = config.T_min
-        self.exchange_interval = config.exchange_interval
-        self.temperature_scheme = config.temperature_scheme
-        self.exchange_strategy = config.exchange_strategy
-        
-        # Database parameters
-        self.db_enabled = config.db_enabled
-        self.checkpoint_interval = config.checkpoint_interval
-
-        # Placeholders - will be initialized in climb()
+        # Runtime state (initialized in climb())
         self.replicas: List[Dict] = []
         self.temperature_ladder: Optional[TemperatureLadder] = None
-
-        # Batch counter for checkpointing
         self.batch_counter = 0
-
-
-        #### Derived attributes ######################################################
-
-        # Highest temperature for replica ladder (already validated and set in config)
-        self.T_max = config.T_max
-
-        # Bounds for boundary reflection
-        self.bounds = (np.min(self.data, axis=0), np.max(self.data, axis=0))
+        self.temperature = config.T_min  # Current temperature, modified during run
         
-        # step_spread_absolute will be calculated in climb() using current bounds
-        # This allows users to modify bounds after initialization
-        self.step_spread_absolute = None
-        
-        # Database settings (already validated and defaults set in config)
+        # Database writer (conditional instantiation)
         if config.db_enabled:
-            self.db_path = config.db_path
-            self.db_step_interval = config.db_step_interval
-            
-            # Import database module only if enabled
             from .database import DatabaseWriter
-
-            self.db_writer = DatabaseWriter(self.db_path)
-
+            self.db_writer = DatabaseWriter(config.db_path)
         else:
-            self.db_path = None
-            self.db_step_interval = None
             self.db_writer = None
         
-        # Parallel processing parameters (already validated in config)
+        # Calculate n_workers with validation
         if config.n_workers is None:
-            self.n_workers = self.n_replicas
-
+            self.n_workers = config.n_replicas
         elif config.n_workers == 0:
             self.n_workers = 0
-
         elif config.n_workers > cpu_count() - 1:
             print(
                 "Warning: Requested n_workers + main process exceeds available " +
                 f"CPU cores ({cpu_count()}). Consider decreasing n_replicas and/or n_workers"
             )
-
             self.n_workers = config.n_workers
-
         elif config.n_workers > config.n_replicas:
             print('Requested workers exceed number of replicas; reducing n_workers to n_replicas.')
             self.n_workers = config.n_replicas
-
         else:
-            # Normal case: use the specified n_workers
             self.n_workers = config.n_workers
         
         # Print configuration summary
         self._print_settings()
+
+    # Backward compatibility properties - allow accessing config attributes directly
+    @property
+    def n_replicas(self):
+        """Number of replicas (backward compatibility)."""
+        return self.config.n_replicas
+    
+    @property
+    def T_min(self):
+        """Minimum temperature (backward compatibility)."""
+        return self.config.T_min
+    
+    @property
+    def T_max(self):
+        """Maximum temperature (backward compatibility)."""
+        return self.config.T_max
 
 
     def _print_settings(self):
@@ -244,41 +210,41 @@ class HillClimber:
         print("=" * 70)
         print()
         print(f"Data shape:           {self.data.shape}")
-        print(f"Optimization mode:    {self.mode}" + (f" (target={self.target_value})" if self.mode == 'target' else ""))
-        print(f"Max runtime:          {self.max_time} minutes")
+        print(f"Optimization mode:    {self.config.mode}" + (f" (target={self.config.target_value})" if self.config.mode == 'target' else ""))
+        print(f"Max runtime:          {self.config.max_time} minutes")
         print()
         print("Temperature settings:")
-        print(f"  T_min:              {self.T_min}")
-        print(f"  T_max:              {self.T_max}")
-        print(f"  Cooling rate:       {self.cooling_rate}")
-        print(f"  Temperature scheme: {self.temperature_scheme}")
+        print(f"  T_min:              {self.config.T_min}")
+        print(f"  T_max:              {self.config.T_max}")
+        print(f"  Cooling rate:       {self.config.cooling_rate}")
+        print(f"  Temperature scheme: {self.config.temperature_scheme}")
         print()
         print("Replica exchange:")
-        print(f"  Number of replicas: {self.n_replicas}")
-        print(f"  Exchange interval:  {self.exchange_interval} steps")
-        print(f"  Exchange strategy:  {self.exchange_strategy}")
+        print(f"  Number of replicas: {self.config.n_replicas}")
+        print(f"  Exchange interval:  {self.config.exchange_interval} steps")
+        print(f"  Exchange strategy:  {self.config.exchange_strategy}")
         print(f"  Worker processes:   {self.n_workers}")
         print()
         print("Perturbation settings:")
-        print(f"  Initial step spread: {self.initial_step_spread} (fraction of range)")
+        print(f"  Initial step spread: {self.config.initial_step_spread} (fraction of range)")
 
-        if self.final_step_spread is not None:
-            print(f"  Final step spread:   {self.final_step_spread} (fraction at end of run)")
-            print(f"  Cooling scheme:      {self.step_spread_scheme}")
+        if self.config.final_step_spread is not None:
+            print(f"  Final step spread:   {self.config.final_step_spread} (fraction at end of run)")
+            print(f"  Cooling scheme:      {self.config.step_spread_scheme}")
 
-        print(f"  Perturb fraction:    {self.perturb_fraction}")
+        print(f"  Perturb fraction:    {self.config.perturb_fraction}")
         print()
         print("Database settings:")
-        print(f"  Enabled:            {self.db_enabled}")
+        print(f"  Enabled:            {self.config.db_enabled}")
 
-        if self.db_enabled:
-            print(f"  Path:               {self.db_path}")
-            print(f"  Step interval:      {self.db_step_interval}")
+        if self.config.db_enabled:
+            print(f"  Path:               {self.config.db_path}")
+            print(f"  Step interval:      {self.config.db_step_interval}")
 
         print()
 
-        if self.checkpoint_file:
-            print(f"Checkpointing:        {self.checkpoint_file} (every {self.checkpoint_interval} batch)")
+        if self.config.checkpoint_file:
+            print(f"Checkpointing:        {self.config.checkpoint_file} (every {self.config.checkpoint_interval} batch)")
 
         print("=" * 70)
 
@@ -294,44 +260,44 @@ class HillClimber:
         # Calculate absolute step_spread from current bounds
         # Done here so users can modify bounds after initialization
         data_range = self.bounds[1] - self.bounds[0]
-        self.step_spread_absolute = self.initial_step_spread * data_range
+        self.step_spread_absolute = self.config.initial_step_spread * data_range
 
-        if self.verbose:
-            print(f"Starting replica exchange with {self.n_replicas} replicas...")
+        if self.config.verbose:
+            print(f"Starting replica exchange with {self.config.n_replicas} replicas...")
         
         # Initialize database if enabled
-        if self.db_enabled:
+        if self.config.db_enabled:
             self._initialize_database()
         
         # Initialize temperature ladder
-        if self.temperature_scheme == 'geometric':
+        if self.config.temperature_scheme == 'geometric':
             self.temperature_ladder = TemperatureLadder.geometric(
-                self.n_replicas, self.T_min, self.T_max
+                self.config.n_replicas, self.config.T_min, self.config.T_max
             )
 
         else:
             self.temperature_ladder = TemperatureLadder.linear(
-                self.n_replicas, self.T_min, self.T_max
+                self.config.n_replicas, self.config.T_min, self.config.T_max
             )
         
-        if self.verbose:
+        if self.config.verbose:
             print(f"Temperature ladder: {self.temperature_ladder.temperatures}")
         
         # Initialize replicas
         self._initialize_replicas()
 
-        if self.verbose:
+        if self.config.verbose:
             print(f"Initialized {len(self.replicas)} replicas.")
         
         # Store initial ladder temperatures for theoretical cooling tracking
         self.initial_ladder_temps = sorted([r['temperature'] for r in self.replicas], reverse=True)
         
         # Initialize temperature ladder history in database
-        if self.db_enabled:
+        if self.config.db_enabled:
             self.db_writer.initialize_temperature_ladder_history(self.initial_ladder_temps, batch_num=0)
 
         # Initialize exchange scheduler and statistics
-        scheduler = ExchangeScheduler(self.n_replicas, self.exchange_strategy)
+        scheduler = ExchangeScheduler(self.config.n_replicas, self.config.exchange_strategy)
         
         # Do the run
         return self._climb_parallel(scheduler)
@@ -352,25 +318,25 @@ class HillClimber:
         
         # Create worker pool
         with Pool(processes=self.n_workers) as pool:
-            while (time.time() - start_time) < (self.max_time * 60 - avg_batch_time):
+            while (time.time() - start_time) < (self.config.max_time * 60 - avg_batch_time):
                 batch_start = time.time()
                 
                 # Run batch of steps in parallel
-                self._parallel_step_batch(pool, self.exchange_interval, start_time)
+                self._parallel_step_batch(pool, self.config.exchange_interval, start_time)
                 
                 # Attempt exchanges if we are optimizing multiple replicas
-                if self.n_replicas > 1:
+                if self.config.n_replicas > 1:
                     self._exchange_round(scheduler)
                 
                 # Increment batch counter
                 self.batch_counter += 1
                 
                 # Update temperature ladder history by applying cooling to previous batch
-                if self.db_enabled:
+                if self.config.db_enabled:
                     self.db_writer.update_temperature_ladder_history(
                         self.batch_counter, 
-                        self.cooling_rate, 
-                        self.exchange_interval
+                        self.config.cooling_rate, 
+                        self.config.exchange_interval
                     )
                     
                     # Record batch statistics (step spread and acceptance rates)
@@ -389,17 +355,17 @@ class HillClimber:
                         
                         # Calculate current step spread (same logic as replica_worker)
                         data_range = self.bounds[1] - self.bounds[0]
-                        if start_time is not None and self.final_step_spread is not None:
+                        if start_time is not None and self.config.final_step_spread is not None:
                             elapsed_time = time.time() - start_time
-                            progress = min(elapsed_time / (self.max_time * 60.0), 1.0)
-                            step_spread_initial = self.initial_step_spread * data_range
-                            step_spread_final = self.final_step_spread * data_range
+                            progress = min(elapsed_time / (self.config.max_time * 60.0), 1.0)
+                            step_spread_initial = self.config.initial_step_spread * data_range
+                            step_spread_final = self.config.final_step_spread * data_range
                             
-                            if self.step_spread_scheme == 'geometric':
+                            if self.config.step_spread_scheme == 'geometric':
                                 # Geometric interpolation: initial * (final/initial)^progress
                                 ratio = step_spread_final / step_spread_initial
                                 current_step_spread = step_spread_initial * np.power(ratio, progress)
-                            elif self.step_spread_scheme == 'zeno':
+                            elif self.config.step_spread_scheme == 'zeno':
                                 # Zeno halving: halve at t=0.5, t=0.75, t=0.875, etc.
                                 if progress >= 1.0:
                                     current_step_spread = step_spread_final
@@ -426,8 +392,8 @@ class HillClimber:
                         )
                 
                 # Checkpoint after every checkpoint_interval batches
-                if self.checkpoint_file and (self.batch_counter % self.checkpoint_interval == 0):
-                    self.save_checkpoint(self.checkpoint_file)
+                if self.config.checkpoint_file and (self.batch_counter % self.config.checkpoint_interval == 0):
+                    self.save_checkpoint(self.config.checkpoint_file)
                 
                 # Update average batch time
                 batch_time = time.time() - batch_start
@@ -455,21 +421,21 @@ class HillClimber:
         # Prepare database config if enabled
         db_config = None
 
-        if self.db_enabled:
+        if self.config.db_enabled:
             db_config = {
                 'enabled': True,
-                'path': self.db_path,
-                'step_interval': self.db_step_interval
+                'path': self.config.db_path,
+                'step_interval': self.config.db_step_interval
             }
         
         # Create partial function with fixed parameters
         worker_func = partial(
             run_replica_steps,
-            objective_func=self.objective_func,
+            objective_func=self.config.objective_func,
             bounds=self.bounds,
             n_steps=n_steps,
-            mode=self.mode,
-            target_value=self.target_value,
+            mode=self.config.mode,
+            target_value=self.config.target_value,
             db_config=db_config,
             start_time=start_time
         )
@@ -497,7 +463,7 @@ class HillClimber:
             self.replicas[i]['temperature_history'] = temp_history
         
         # Flush all collected database buffers to database (single source of truth)
-        if self.db_enabled:
+        if self.config.db_enabled:
             self.db_writer.insert_perturbations_batch(all_perturbations)
             self.db_writer.insert_accepted_steps_batch(all_accepted)
             self.db_writer.insert_improvements_batch(all_improvements)
@@ -525,7 +491,7 @@ class HillClimber:
         """
 
         # Write final state to database to ensure dashboard shows final values
-        if self.db_enabled:
+        if self.config.db_enabled:
             import time
             timestamp = time.time()
             
@@ -588,13 +554,13 @@ class HillClimber:
             self.db_writer.checkpoint_database()
 
         # Final checkpoint
-        if self.checkpoint_file:
-            self.save_checkpoint(self.checkpoint_file)
+        if self.config.checkpoint_file:
+            self.save_checkpoint(self.config.checkpoint_file)
         
         # Return results from best replica
         best_replica = self._get_best_replica()
         
-        if self.verbose:
+        if self.config.verbose:
             print(
                 f"\nBest result from replica {best_replica['replica_id']} "
                 f"(T={best_replica['temperature']:.1f})"
@@ -638,11 +604,11 @@ class HillClimber:
         and inserts run metadata.
         """
 
-        if not self.db_enabled or not self.db_writer:
+        if not self.config.db_enabled or not self.db_writer:
             return
         
         # Create database directory if needed
-        db_dir = os.path.dirname(self.db_path)
+        db_dir = os.path.dirname(self.config.db_path)
 
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
@@ -652,34 +618,34 @@ class HillClimber:
         
         # Insert run metadata
         hyperparameters = {
-            'max_time': self.max_time,
-            'perturb_fraction': self.perturb_fraction,
+            'max_time': self.config.max_time,
+            'perturb_fraction': self.config.perturb_fraction,
             'temperature': self.temperature,
-            'cooling_rate': self.cooling_rate,
-            'mode': self.mode,
-            'target_value': self.target_value,
-            'initial_step_spread': self.initial_step_spread,
-            'final_step_spread': self.final_step_spread,
-            'step_spread_scheme': self.step_spread_scheme,
-            'T_min': self.T_min,
-            'T_max': self.T_max,
-            'temperature_scheme': self.temperature_scheme,
-            'exchange_strategy': self.exchange_strategy
+            'cooling_rate': self.config.cooling_rate,
+            'mode': self.config.mode,
+            'target_value': self.config.target_value,
+            'initial_step_spread': self.config.initial_step_spread,
+            'final_step_spread': self.config.final_step_spread,
+            'step_spread_scheme': self.config.step_spread_scheme,
+            'T_min': self.config.T_min,
+            'T_max': self.config.T_max,
+            'temperature_scheme': self.config.temperature_scheme,
+            'exchange_strategy': self.config.exchange_strategy
         }
         
         self.db_writer.insert_run_metadata(
-            n_replicas=self.n_replicas,
-            exchange_interval=self.exchange_interval,
-            db_step_interval=self.db_step_interval,
+            n_replicas=self.config.n_replicas,
+            exchange_interval=self.config.exchange_interval,
+            db_step_interval=self.config.db_step_interval,
             hyperparameters=hyperparameters,
-            checkpoint_file=self.checkpoint_file,
-            objective_function_name=self.objective_func.__name__ if hasattr(self.objective_func, '__name__') else None,
+            checkpoint_file=self.config.checkpoint_file,
+            objective_function_name=self.config.objective_func.__name__ if hasattr(self.config.objective_func, '__name__') else None,
             dataset_size=len(self.data)
         )
         
-        if self.verbose:
-            print(f"Database initialized: {self.db_path}")
-            print(f"  Step interval: {self.db_step_interval} (collecting every {self.db_step_interval}th step)")
+        if self.config.verbose:
+            print(f"Database initialized: {self.config.db_path}")
+            print(f"  Step interval: {self.config.db_step_interval} (collecting every {self.config.db_step_interval}th step)")
     
 
     def _initialize_replicas(self):
@@ -690,22 +656,22 @@ class HillClimber:
         """
 
         hyperparams = {
-            'max_time': self.max_time,
-            'perturb_fraction': self.perturb_fraction,
-            'cooling_rate': self.cooling_rate,
-            'mode': self.mode,
-            'target_value': self.target_value,
-            'initial_step_spread': self.initial_step_spread,
-            'final_step_spread': self.final_step_spread,
-            'step_spread_scheme': self.step_spread_scheme,
+            'max_time': self.config.max_time,
+            'perturb_fraction': self.config.perturb_fraction,
+            'cooling_rate': self.config.cooling_rate,
+            'mode': self.config.mode,
+            'target_value': self.config.target_value,
+            'initial_step_spread': self.config.initial_step_spread,
+            'final_step_spread': self.config.final_step_spread,
+            'step_spread_scheme': self.config.step_spread_scheme,
             'step_spread_absolute_initial': self.step_spread_absolute.copy(),
-            'step_spread_absolute_final': self.final_step_spread * (self.bounds[1] - self.bounds[0]) if self.final_step_spread is not None else None
+            'step_spread_absolute_final': self.config.final_step_spread * (self.bounds[1] - self.bounds[0]) if self.config.final_step_spread is not None else None
         }
         
         # Evaluate initial objective
         from .climber_functions import calculate_objective
         metrics, objective = calculate_objective(
-            self.data, self.objective_func
+            self.data, self.config.objective_func
         )
         
         self.replicas = []
@@ -751,7 +717,7 @@ class HillClimber:
                 replica_j['current_objective'],
                 replica_i['temperature'],
                 replica_j['temperature'],
-                self.mode
+                self.config.mode
             )
             
             if accepted:
@@ -766,7 +732,7 @@ class HillClimber:
                 record_temperature_change(replica_j, old_temp_i, replica_j['perturbation_num'])
                 
                 # Collect for database logging
-                if self.db_enabled:
+                if self.config.db_enabled:
                     db_exchanges.append((current_pnum, i, old_temp_j))
                     db_exchanges.append((replica_j['perturbation_num'], j, old_temp_i))
             
@@ -775,19 +741,19 @@ class HillClimber:
             record_exchange(replica_j, i, accepted)
         
         # Log exchanges to database
-        if self.db_enabled and db_exchanges:
+        if self.config.db_enabled and db_exchanges:
             self.db_writer.insert_temperature_exchanges(db_exchanges)
     
 
     def _get_best_replica(self) -> Dict:
         """Find replica with best objective value."""
-        if self.mode == 'maximize':
+        if self.config.mode == 'maximize':
             return max(self.replicas, key=lambda r: r['best_objective'])
-        elif self.mode == 'minimize':
+        elif self.config.mode == 'minimize':
             return min(self.replicas, key=lambda r: r['best_objective'])
         else:  # target mode
             return min(self.replicas, 
-                      key=lambda r: abs(r['best_objective'] - self.target_value))
+                      key=lambda r: abs(r['best_objective'] - self.config.target_value))
     
 
     def save_checkpoint(self, filepath: str):
@@ -800,8 +766,8 @@ class HillClimber:
             'is_dataframe': self.is_dataframe,
             'column_names': self.column_names,
             'bounds': self.bounds,
-            'exchange_interval': self.exchange_interval,
-            'verbose': self.verbose,
+            'exchange_interval': self.config.exchange_interval,
+            'verbose': self.config.verbose,
             'n_workers': self.n_workers
         }
         
@@ -813,7 +779,7 @@ class HillClimber:
         with open(filepath, 'wb') as f:
             pickle.dump(checkpoint, f)
         
-        if self.verbose:
+        if self.config.verbose:
             print(f"Checkpoint saved: {filepath}")
     
 
