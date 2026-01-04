@@ -1,20 +1,16 @@
 __pycache__
+.pytest_cache
+.ipynb_checkpoints
 .venv
 .vscode
 
 # Distribution / packaging
-build/
-dist/
 *.egg-info/
-.eggs/
-*.egg
-
-# PyPI
-.pypirc
 
 # Run progress database
 *.db-shm
 *.db-wal
+
 # Database files (too large for GitHub)
 *.db
 *.db-wal
