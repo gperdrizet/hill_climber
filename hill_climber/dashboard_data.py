@@ -105,15 +105,12 @@ def load_metrics_history(
     history_type: str = 'improvements',
     max_points_per_replica: int = 500
 ) -> pd.DataFrame:
-    """Load metrics history with SQL-side downsampling for performance.
+    """Load metrics history from JSON-denormalized tables.
     
     Loads data from different tables based on history_type:
     - 'improvements': Only new best values (monotonically improving)
     - 'accepted': All accepted steps (includes exploration)
     - 'perturbations': All sampled perturbations (sampled at db_step_interval)
-    
-    Uses SQL window functions to downsample data on the database side,
-    significantly reducing data transfer and memory usage.
     
     Args:
         conn (sqlite3.Connection): SQLite connection.
@@ -121,7 +118,7 @@ def load_metrics_history(
             'Objective value' to load objectives. Default is None.
         history_type (str): Type of history to load - 'improvements', 'accepted', or 
             'perturbations'. Default is 'improvements'.
-        max_points_per_replica (int): Downsample if more points exist. Default is 500.
+        max_points_per_replica (int): Unused, kept for compatibility. Default is 500.
         
     Returns:
         pd.DataFrame: DataFrame with columns: replica_id, perturbation_num, metric_name, value.
@@ -131,73 +128,73 @@ def load_metrics_history(
         return pd.DataFrame()
 
     try:
-        all_dfs = []
-        
-        # Determine which tables to query based on history_type
+        # Determine which table to query based on history_type
         if history_type == 'improvements':
-            obj_table = 'improvements'
+            table = 'improvements'
             obj_column = 'best_objective'
-            metrics_table = 'improvement_metrics'
         elif history_type == 'accepted':
-            obj_table = 'accepted_steps'
+            table = 'accepted_steps'
             obj_column = 'objective'
-            metrics_table = 'step_metrics'
         elif history_type == 'perturbations':
-            obj_table = 'perturbations'
+            table = 'perturbations'
             obj_column = 'objective'
-            metrics_table = 'step_metrics'
         else:
             raise ValueError(f"Invalid history_type: {history_type}. Must be 'improvements', 'accepted', or 'perturbations'")
         
-        # Load objectives with SQL-side downsampling
-        if 'Objective value' in metric_names:
-            obj_query = f"""
-                WITH numbered AS (
-                    SELECT 
-                        replica_id, 
-                        perturbation_num, 
-                        {obj_column} as value,
-                        ROW_NUMBER() OVER (PARTITION BY replica_id ORDER BY perturbation_num) as rn,
-                        COUNT(*) OVER (PARTITION BY replica_id) as total
-                    FROM {obj_table}
-                )
-                SELECT replica_id, perturbation_num, value
-                FROM numbered
-                WHERE total <= ? OR rn % MAX(1, CAST(total / ? AS INTEGER)) = 0
+        # Load data with metrics JSON (skip perturbations as they don't have metrics)
+        if history_type == 'perturbations':
+            query = f"""
+                SELECT replica_id, perturbation_num, {obj_column} as objective
+                FROM {table}
                 ORDER BY replica_id, perturbation_num
             """
-            obj_df = pd.read_sql_query(obj_query, conn, params=(max_points_per_replica, max_points_per_replica))
-            if not obj_df.empty:
-                obj_df['metric_name'] = 'Objective value'
-                all_dfs.append(obj_df)
-        
-        # Load user-defined metrics with SQL-side downsampling
-        user_metrics = [m for m in metric_names if m != 'Objective value']
-        if user_metrics and metrics_table:
-            placeholders = ','.join(['?' for _ in user_metrics])
-            metrics_query = f"""
-                WITH numbered AS (
-                    SELECT 
-                        replica_id, 
-                        perturbation_num, 
-                        metric_name, 
-                        value,
-                        ROW_NUMBER() OVER (PARTITION BY replica_id, metric_name ORDER BY perturbation_num) as rn,
-                        COUNT(*) OVER (PARTITION BY replica_id, metric_name) as total
-                    FROM {metrics_table}
-                    WHERE metric_name IN ({placeholders})
-                )
-                SELECT replica_id, perturbation_num, metric_name, value
-                FROM numbered
-                WHERE total <= ? OR rn % MAX(1, CAST(total / ? AS INTEGER)) = 0
-                ORDER BY replica_id, metric_name, perturbation_num
+        else:
+            query = f"""
+                SELECT replica_id, perturbation_num, {obj_column} as objective, metrics
+                FROM {table}
+                ORDER BY replica_id, perturbation_num
             """
-            params = user_metrics + [max_points_per_replica, max_points_per_replica]
-            metrics_df = pd.read_sql_query(metrics_query, conn, params=params)
-            if not metrics_df.empty:
-                all_dfs.append(metrics_df)
         
-        return pd.concat(all_dfs, ignore_index=True) if all_dfs else pd.DataFrame()
+        df = pd.read_sql_query(query, conn)
+        
+        if df.empty:
+            return pd.DataFrame()
+        
+        # Build result with requested metrics
+        result_dfs = []
+        
+        # Add objective if requested
+        if 'Objective value' in metric_names:
+            obj_df = df[['replica_id', 'perturbation_num', 'objective']].copy()
+            obj_df['metric_name'] = 'Objective value'
+            obj_df.rename(columns={'objective': 'value'}, inplace=True)
+            result_dfs.append(obj_df)
+        
+        # Parse JSON and extract user metrics if requested and available
+        user_metrics = [m for m in metric_names if m != 'Objective value']
+        if user_metrics and history_type != 'perturbations' and 'metrics' in df.columns:
+            # Parse JSON metrics
+            metrics_list = []
+            for _, row in df.iterrows():
+                if pd.notna(row['metrics']) and row['metrics']:
+                    try:
+                        metrics_dict = json.loads(row['metrics'])
+                        for metric_name in user_metrics:
+                            if metric_name in metrics_dict:
+                                metrics_list.append({
+                                    'replica_id': row['replica_id'],
+                                    'perturbation_num': row['perturbation_num'],
+                                    'metric_name': metric_name,
+                                    'value': metrics_dict[metric_name]
+                                })
+                    except json.JSONDecodeError:
+                        pass  # Skip invalid JSON
+            
+            if metrics_list:
+                metrics_df = pd.DataFrame(metrics_list)
+                result_dfs.append(metrics_df)
+        
+        return pd.concat(result_dfs, ignore_index=True) if result_dfs else pd.DataFrame()
     except Exception:
         return pd.DataFrame()
 
@@ -226,8 +223,8 @@ def load_temperature_exchanges(conn: sqlite3.Connection) -> pd.DataFrame:
 def get_available_metrics(conn: sqlite3.Connection, history_type: str = 'improvements') -> List[str]:
     """Get list of all metric names in the database.
     
-    Includes 'Objective value' plus all user-defined metrics from the appropriate table
-    based on history_type.
+    Includes 'Objective value' plus all user-defined metrics extracted from JSON
+    in the appropriate table based on history_type.
     
     Args:
         conn (sqlite3.Connection): SQLite connection.
@@ -239,22 +236,29 @@ def get_available_metrics(conn: sqlite3.Connection, history_type: str = 'improve
     """
     metrics = ['Objective value']  # Always include objective
     
-    # Determine which metrics table to query
+    # Determine which table to query
     if history_type == 'improvements':
-        metrics_table = 'improvement_metrics'
+        table = 'improvements'
     elif history_type == 'accepted':
-        metrics_table = 'step_metrics'
+        table = 'accepted_steps'
     elif history_type == 'perturbations':
-        # For perturbations, metrics available from step_metrics (for accepted ones)
-        metrics_table = 'step_metrics'
+        # Perturbations don't have metrics
+        return metrics
     else:
-        metrics_table = 'improvement_metrics'  # Default fallback
+        table = 'improvements'  # Default fallback
     
-    query = f"SELECT DISTINCT metric_name FROM {metrics_table} ORDER BY metric_name"
+    # Extract metric names from first JSON entry
+    query = f"SELECT metrics FROM {table} WHERE metrics IS NOT NULL LIMIT 1"
     cursor = conn.cursor()
     try:
         cursor.execute(query)
-        metrics.extend([row[0] for row in cursor.fetchall()])
+        row = cursor.fetchone()
+        if row and row[0]:
+            try:
+                metrics_dict = json.loads(row[0])
+                metrics.extend(sorted(metrics_dict.keys()))
+            except json.JSONDecodeError:
+                pass  # Skip invalid JSON
     except Exception:
         pass  # Table might not exist or have data yet
     

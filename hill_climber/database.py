@@ -118,7 +118,7 @@ class DatabaseWriter:
                 ON perturbations(replica_id, perturbation_num)
             """)
             
-            # Accepted perturbations (all SA-accepted moves)
+            # Accepted perturbations (snapshots at db_step_interval)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS accepted_steps (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -127,6 +127,7 @@ class DatabaseWriter:
                     objective REAL NOT NULL,
                     temperature REAL NOT NULL,
                     timestamp REAL NOT NULL,
+                    metrics TEXT,
                     UNIQUE(replica_id, perturbation_num)
                 )
             """)
@@ -136,29 +137,7 @@ class DatabaseWriter:
                 ON accepted_steps(replica_id, perturbation_num)
             """)
             
-            # Metrics for accepted steps
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS step_metrics (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    replica_id INTEGER NOT NULL,
-                    perturbation_num INTEGER NOT NULL,
-                    metric_name TEXT NOT NULL,
-                    value REAL NOT NULL,
-                    UNIQUE(replica_id, perturbation_num, metric_name)
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_step_metrics_replica_num
-                ON step_metrics(replica_id, perturbation_num)
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_step_metrics_name
-                ON step_metrics(metric_name)
-            """)
-            
-            # New best solutions (all improvements)
+            # New best solutions (improvements snapshots at db_step_interval)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS improvements (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -167,6 +146,7 @@ class DatabaseWriter:
                     best_objective REAL NOT NULL,
                     temperature REAL NOT NULL,
                     timestamp REAL NOT NULL,
+                    metrics TEXT,
                     UNIQUE(replica_id, perturbation_num)
                 )
             """)
@@ -176,39 +156,7 @@ class DatabaseWriter:
                 ON improvements(replica_id, perturbation_num)
             """)
             
-            # Metrics for improvements
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS improvement_metrics (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    replica_id INTEGER NOT NULL,
-                    perturbation_num INTEGER NOT NULL,
-                    metric_name TEXT NOT NULL,
-                    value REAL NOT NULL,
-                    UNIQUE(replica_id, perturbation_num, metric_name)
-                )
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_improvement_metrics_replica_num
-                ON improvement_metrics(replica_id, perturbation_num)
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_improvement_metrics_name
-                ON improvement_metrics(metric_name)
-            """)
-            
             # Composite indexes for dashboard performance
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_improvement_metrics_composite
-                ON improvement_metrics(replica_id, metric_name, perturbation_num)
-            """)
-            
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_step_metrics_composite
-                ON step_metrics(replica_id, metric_name, perturbation_num)
-            """)
-            
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_perturbations_composite
                 ON perturbations(replica_id, perturbation_num, objective)
@@ -403,7 +351,7 @@ class DatabaseWriter:
         
         Args:
             accepted_data (List[tuple]): List of tuples with format 
-                (replica_id, perturbation_num, objective, temperature, timestamp).
+                (replica_id, perturbation_num, objective, temperature, timestamp, metrics_json).
         """
 
         if not accepted_data:
@@ -414,30 +362,9 @@ class DatabaseWriter:
                 cursor = conn.cursor()
                 cursor.executemany("""
                     INSERT OR REPLACE INTO accepted_steps
-                    (replica_id, perturbation_num, objective, temperature, timestamp)
-                    VALUES (?, ?, ?, ?, ?)
+                    (replica_id, perturbation_num, objective, temperature, timestamp, metrics)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """, accepted_data)
-    
-    
-    def insert_step_metrics_batch(self, metrics_data: List[tuple]):
-        """Insert batch of step metrics.
-        
-        Args:
-            metrics_data (List[tuple]): List of tuples with format 
-                (replica_id, perturbation_num, metric_name, value).
-        """
-
-        if not metrics_data:
-            return
-            
-        with self._lock:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.executemany("""
-                    INSERT OR REPLACE INTO step_metrics
-                    (replica_id, perturbation_num, metric_name, value)
-                    VALUES (?, ?, ?, ?)
-                """, metrics_data)
     
     
     def insert_improvements_batch(self, improvements_data: List[tuple]):
@@ -445,7 +372,7 @@ class DatabaseWriter:
         
         Args:
             improvements_data (List[tuple]): List of tuples with format 
-                (replica_id, perturbation_num, best_objective, temperature, timestamp).
+                (replica_id, perturbation_num, best_objective, temperature, timestamp, metrics_json).
         """
 
         if not improvements_data:
@@ -456,31 +383,10 @@ class DatabaseWriter:
                 cursor = conn.cursor()
                 cursor.executemany("""
                     INSERT OR REPLACE INTO improvements
-                    (replica_id, perturbation_num, best_objective, temperature, timestamp)
-                    VALUES (?, ?, ?, ?, ?)
+                    (replica_id, perturbation_num, best_objective, temperature, timestamp, metrics)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """, improvements_data)
     
-    
-    def insert_improvement_metrics_batch(self, metrics_data: List[tuple]):
-        """Insert batch of improvement metrics.
-        
-        Args:
-            metrics_data (List[tuple]): List of tuples with format 
-                (replica_id, perturbation_num, metric_name, value).
-        """
-
-        if not metrics_data:
-            return
-            
-        with self._lock:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.executemany("""
-                    INSERT OR REPLACE INTO improvement_metrics
-                    (replica_id, perturbation_num, metric_name, value)
-                    VALUES (?, ?, ?, ?)
-                """, metrics_data)
-
 
     def insert_temperature_exchanges(self, exchanges: List[tuple]):
         """Insert temperature exchange records.

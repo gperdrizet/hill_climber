@@ -1,5 +1,6 @@
 """Worker process for parallel replica optimization."""
 
+import json
 import time
 import numpy as np
 from typing import Dict, Any, Tuple, Callable
@@ -95,13 +96,7 @@ def run_replica_steps(
     db_enabled = db_config and db_config.get('enabled', False)
     perturbations_buffer = []
     accepted_buffer = []
-    step_metrics_buffer = []
     improvements_buffer = []
-    improvement_metrics_buffer = []
-    
-    # Track last recorded snapshots to avoid duplicates
-    last_recorded_accepted_num = -1
-    last_recorded_best_num = -1
     
     if db_enabled:
         db_step_interval = db_config['step_interval']
@@ -147,6 +142,7 @@ def run_replica_steps(
         if accept:
             state['current_data'] = perturbed
             state['current_objective'] = objective
+            state['current_metrics'] = metrics.copy()
             state['num_accepted'] += 1
         
         # Cool temperature after every step (using pre-extracted cooling_rate)
@@ -163,49 +159,34 @@ def run_replica_steps(
         if db_enabled and (perturbation_num % db_step_interval == 0):
             timestamp = time.time()
             
-            # 1. Always record current perturbation being evaluated
+            # 1. Record current perturbation being evaluated
             perturbations_buffer.append((
                 replica_id, perturbation_num, objective,
                 accept, is_better, state['temperature'], timestamp
             ))
             
-            # 2. Record current accepted state (last accepted step's objective)
-            # Only record if we've had an acceptance since the last snapshot
-            if state['num_accepted'] > 0 and last_recorded_accepted_num != state['num_accepted']:
+            # 2. Record current accepted state snapshot
+            if state['num_accepted'] > 0:
                 accepted_buffer.append((
                     replica_id, perturbation_num, state['current_objective'],
-                    state['temperature'], timestamp
+                    state['temperature'], timestamp,
+                    json.dumps(state['current_metrics'])
                 ))
-                # Record metrics for current accepted state
-                current_metrics = calculate_objective(state['current_data'], objective_func)[0]
-                for metric_name, metric_value in current_metrics.items():
-                    step_metrics_buffer.append((
-                        replica_id, perturbation_num, metric_name, metric_value
-                    ))
-                last_recorded_accepted_num = state['num_accepted']
             
-            # 3. Record current best (improvement state)
-            # Only record if best has changed since last snapshot
-            if state['num_improvements'] > 0 and last_recorded_best_num != state['num_improvements']:
+            # 3. Record current best solution snapshot
+            if state['num_improvements'] > 0:
                 improvements_buffer.append((
                     replica_id, perturbation_num, state['best_objective'],
-                    state['temperature'], timestamp
+                    state['temperature'], timestamp,
+                    json.dumps(state['best_metrics'])
                 ))
-                # Record metrics for current best
-                for metric_name, metric_value in state['best_metrics'].items():
-                    improvement_metrics_buffer.append((
-                        replica_id, perturbation_num, metric_name, metric_value
-                    ))
-                last_recorded_best_num = state['num_improvements']
     
     # Return all buffers to main process for centralized writing
     if db_enabled:
         state['db_buffers'] = {
             'perturbations': perturbations_buffer,
             'accepted': accepted_buffer,
-            'step_metrics': step_metrics_buffer,
-            'improvements': improvements_buffer,
-            'improvement_metrics': improvement_metrics_buffer
+            'improvements': improvements_buffer
         }
     
     # Return state (already in dict format)

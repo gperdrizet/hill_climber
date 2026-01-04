@@ -480,9 +480,7 @@ class HillClimber:
         # Collect database buffers from all replicas
         all_perturbations = []
         all_accepted = []
-        all_step_metrics = []
         all_improvements = []
-        all_improvement_metrics = []
 
         for i, state_dict in enumerate(updated_states):
 
@@ -491,9 +489,7 @@ class HillClimber:
                 buffers = state_dict.pop('db_buffers')
                 all_perturbations.extend(buffers.get('perturbations', []))
                 all_accepted.extend(buffers.get('accepted', []))
-                all_step_metrics.extend(buffers.get('step_metrics', []))
                 all_improvements.extend(buffers.get('improvements', []))
-                all_improvement_metrics.extend(buffers.get('improvement_metrics', []))
             
             # Preserve temperature_history before updating
             temp_history = self.replicas[i]['temperature_history']
@@ -504,9 +500,7 @@ class HillClimber:
         if self.db_enabled:
             self.db_writer.insert_perturbations_batch(all_perturbations)
             self.db_writer.insert_accepted_steps_batch(all_accepted)
-            self.db_writer.insert_step_metrics_batch(all_step_metrics)
             self.db_writer.insert_improvements_batch(all_improvements)
-            self.db_writer.insert_improvement_metrics_batch(all_improvement_metrics)
             
             # Update replica status snapshot
             for replica in self.replicas:
