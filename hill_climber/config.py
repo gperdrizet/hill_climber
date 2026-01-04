@@ -16,6 +16,8 @@ from typing import Optional, Callable
 # Temperature parameters
 DEFAULT_T_MIN = 1e-2  # Default minimum temperature for coldest replica
 DEFAULT_T_MAX_MULTIPLIER = 100  # T_max = T_min * this multiplier when not specified (results in T_max=1.0)
+DEFAULT_T_MIN_FINAL = 1e-8  # Default final minimum temperature (1,000,000x smaller than DEFAULT_T_MIN)
+DEFAULT_T_MAX_FINAL = 1e-6  # Default final maximum temperature (1,000,000x smaller than DEFAULT_T_MAX)
 
 # Perturbation parameters
 DEFAULT_INITIAL_STEP_SPREAD = 0.5  # Default perturbation spread (50% of data range)
@@ -113,8 +115,8 @@ class OptimizerConfig:
     T_max: Optional[float] = None
     T_min_initial: Optional[float] = None
     T_max_initial: Optional[float] = None
-    T_min_final: Optional[float] = 0.0
-    T_max_final: Optional[float] = 0.0
+    T_min_final: Optional[float] = DEFAULT_T_MIN_FINAL
+    T_max_final: Optional[float] = DEFAULT_T_MAX_FINAL
     temperature_cooling_scheme: str = DEFAULT_TEMPERATURE_COOLING_SCHEME
     temperature_scheme: str = DEFAULT_TEMPERATURE_SCHEME
     exchange_interval: int = DEFAULT_EXCHANGE_INTERVAL

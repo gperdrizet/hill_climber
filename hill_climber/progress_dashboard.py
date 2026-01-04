@@ -151,6 +151,9 @@ def render() -> None:
     render_run_information(metadata)
     render_hyperparameters(metadata)
 
+    # Load temperature ladder (needed for plot, not sidebar)
+    temp_ladder_df = load_temperature_ladder(conn)
+
     # Load data based on plot configuration with progressive loading
     with st.spinner("Loading metrics data..."):
         metrics_df = load_metrics_history(
