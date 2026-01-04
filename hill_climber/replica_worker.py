@@ -154,8 +154,8 @@ def run_replica_steps(
             state['current_objective'] = objective
             state['num_accepted'] += 1
             
-            # Record accepted step with full metrics
-            if db_enabled:
+            # Record accepted step with full metrics (sampled at db_step_interval)
+            if db_enabled and (perturbation_num % db_step_interval == 0):
                 timestamp = time.time()
                 accepted_buffer.append((
                     replica_id, perturbation_num, objective,
