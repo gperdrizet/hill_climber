@@ -1,3 +1,2 @@
 *.ipynb linguist-vendored
-*.db filter=lfs diff=lfs merge=lfs -text
 *.pkl filter=lfs diff=lfs merge=lfs -text

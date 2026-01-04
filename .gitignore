@@ -15,3 +15,7 @@ dist/
 # Run progress database
 *.db-shm
 *.db-wal
+# Database files (too large for GitHub)
+*.db
+*.db-wal
+*.db-shm
