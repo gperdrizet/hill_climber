@@ -66,19 +66,22 @@ class DatabaseWriter:
             cursor = conn.cursor()
             
             if drop_existing:
-                # Drop old tables
-                cursor.execute("DROP TABLE IF EXISTS temperature_exchanges")
-                cursor.execute("DROP TABLE IF EXISTS temperature_ladder_history")
-                cursor.execute("DROP TABLE IF EXISTS batch_statistics")
-                cursor.execute("DROP TABLE IF EXISTS metrics_history")
-                cursor.execute("DROP TABLE IF EXISTS replica_status")
-                cursor.execute("DROP TABLE IF EXISTS run_metadata")
-                # Drop new tables
-                cursor.execute("DROP TABLE IF EXISTS perturbations")
-                cursor.execute("DROP TABLE IF EXISTS accepted_steps")
-                cursor.execute("DROP TABLE IF EXISTS step_metrics")
-                cursor.execute("DROP TABLE IF EXISTS improvements")
-                cursor.execute("DROP TABLE IF EXISTS improvement_metrics")
+                # Drop all tables (old and new schema)
+                tables_to_drop = [
+                    'temperature_exchanges',
+                    'temperature_ladder_history',
+                    'batch_statistics',
+                    'metrics_history',
+                    'replica_status',
+                    'run_metadata',
+                    'perturbations',
+                    'accepted_steps',
+                    'step_metrics',
+                    'improvements',
+                    'improvement_metrics'
+                ]
+                for table in tables_to_drop:
+                    cursor.execute(f"DROP TABLE IF EXISTS {table}")
             
             # Run metadata table
             cursor.execute("""

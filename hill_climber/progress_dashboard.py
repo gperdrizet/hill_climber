@@ -13,6 +13,7 @@ import os
 import time
 from pathlib import Path
 from typing import Any
+from .dashboard_imports import st, HAS_STREAMLIT
 
 
 def _init_session_state(st: Any) -> None:
@@ -82,12 +83,11 @@ def render() -> None:
         create_batch_statistics_plot
     )
     
-    try:
-        import streamlit as st
-        import pandas as pd
-    except ImportError as e:
-        print(f"Missing dependency: {e}")
+    if not HAS_STREAMLIT:
+        print("Error: streamlit is required for the dashboard. Install with: pip install streamlit plotly")
         sys.exit(1)
+    
+    import pandas as pd
 
     # Page config
     import os

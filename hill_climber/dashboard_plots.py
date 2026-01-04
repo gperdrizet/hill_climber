@@ -7,7 +7,7 @@ separating visualization logic from data and UI concerns.
 from typing import List, Dict, Optional
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
+from .dashboard_imports import go
 from plotly.subplots import make_subplots
 
 

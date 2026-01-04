@@ -9,12 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Set, Tuple
 import pandas as pd
-
-try:
-    import streamlit as st
-
-except ImportError:
-    st = None
+from .dashboard_imports import st
 
 
 def apply_custom_css() -> None:

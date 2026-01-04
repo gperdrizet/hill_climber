@@ -5,16 +5,16 @@ providing a clean separation from UI logic.
 """
 
 import json
+import logging
 import sqlite3
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import pandas as pd
 
-try:
-    import streamlit as st
-    HAS_STREAMLIT = True
-except ImportError:
-    HAS_STREAMLIT = False
+from .dashboard_imports import st, HAS_STREAMLIT
+
+# Set up logging for dashboard data operations
+logger = logging.getLogger(__name__)
 
 
 def get_connection(db_path_str: str) -> sqlite3.Connection:
@@ -195,7 +195,8 @@ def load_metrics_history(
                 result_dfs.append(metrics_df)
         
         return pd.concat(result_dfs, ignore_index=True) if result_dfs else pd.DataFrame()
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error loading metrics history: {e}")
         return pd.DataFrame()
 
 
@@ -216,7 +217,8 @@ def load_temperature_exchanges(conn: sqlite3.Connection) -> pd.DataFrame:
     """
     try:
         return pd.read_sql_query(query, conn)
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error loading temperature exchanges: {e}")
         return pd.DataFrame()
 
 
@@ -257,9 +259,11 @@ def get_available_metrics(conn: sqlite3.Connection, history_type: str = 'improve
             try:
                 metrics_dict = json.loads(row[0])
                 metrics.extend(sorted(metrics_dict.keys()))
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                logger.warning(f"Invalid JSON in metrics column: {e}")
                 pass  # Skip invalid JSON
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error getting available metrics: {e}")
         pass  # Table might not exist or have data yet
     
     return metrics
@@ -332,7 +336,8 @@ def load_leaderboard(conn: sqlite3.Connection, limit: int = 3) -> pd.DataFrame:
     """
     try:
         return pd.read_sql_query(query, conn, params=(limit,))
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error loading leaderboard: {e}")
         return pd.DataFrame()
 
 
@@ -349,7 +354,8 @@ def load_replica_temperatures(conn: sqlite3.Connection) -> Dict[int, float]:
     try:
         temp_df = pd.read_sql_query(query, conn)
         return dict(zip(temp_df['replica_id'], temp_df['temperature']))
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error loading replica temperatures: {e}")
         return {}
 
 
@@ -365,7 +371,8 @@ def load_temperature_ladder(conn: sqlite3.Connection) -> pd.DataFrame:
     query = "SELECT replica_id, temperature FROM replica_status ORDER BY replica_id"
     try:
         return pd.read_sql_query(query, conn)
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error loading temperature ladder: {e}")
         return pd.DataFrame()
 
 
@@ -385,7 +392,8 @@ def load_temperature_ladder_history(conn: sqlite3.Connection) -> pd.DataFrame:
     """
     try:
         return pd.read_sql_query(query, conn)
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Temperature ladder history not available: {e}")
         # Table doesn't exist yet - return empty DataFrame
         return pd.DataFrame(columns=['batch_num', 'ladder_position', 'temperature'])
 
@@ -407,7 +415,8 @@ def load_batch_statistics(conn: sqlite3.Connection) -> pd.DataFrame:
     """
     try:
         return pd.read_sql_query(query, conn)
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Batch statistics not available: {e}")
         # Table doesn't exist yet - return empty DataFrame
         return pd.DataFrame(columns=['batch_num', 'step_spread', 'mean_acceptance_rate', 'min_acceptance_rate', 'max_acceptance_rate'])
 
@@ -435,7 +444,7 @@ def load_progress_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
                 'total_perturbations': result['total_perturbations'].iloc[0] or 0,
                 'total_accepted': result['total_accepted'].iloc[0] or 0
             }
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Error loading progress stats: {e}")
     
     return {'total_perturbations': 0, 'total_accepted': 0}
