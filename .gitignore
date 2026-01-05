@@ -7,11 +7,12 @@ __pycache__
 # Distribution / packaging
 *.egg-info/
 
-# Run progress database
-*.db-shm
-*.db-wal
-
-# Database files (too large for GitHub)
+# Database files
+*.pkl
 *.db
 *.db-wal
 *.db-shm
+
+# Don't ignore data from demo notebooks
+!pearson-spearman.db
+!pearson_spearman_results.pkl
