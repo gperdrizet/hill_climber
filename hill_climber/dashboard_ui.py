@@ -7,7 +7,7 @@ keeping UI concerns separate from data and plotting.
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Set, Tuple
+from typing import Optional, List, Dict, Any, Set, Tuple, Callable
 import pandas as pd
 from .dashboard_imports import st
 
@@ -160,8 +160,11 @@ def render_database_selector(session_state: Any, db_files: List[Path], project_r
     return db_path
 
 
-def render_auto_refresh_controls() -> Tuple[bool, float]:
+def render_auto_refresh_controls(clear_cache_func=None) -> Tuple[bool, float]:
     """Render auto-refresh controls in sidebar.
+    
+    Args:
+        clear_cache_func: Optional function to call to clear data cache before refresh.
     
     Returns:
         Tuple[bool, float]: Tuple of (auto_refresh_enabled, refresh_interval_seconds).
@@ -179,16 +182,12 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
     )
 
     if st.sidebar.button("Refresh now", key="refresh_now"):
-
-        # Increment refresh key to force clean plot re-rendering
-        st.session_state.plot_refresh_key = st.session_state.get('plot_refresh_key', 0) + 1
-
-        # Save current plot options before refresh
-        st.session_state.saved_history_type = st.session_state.get('history_type', 'Improvements (best)')
-        st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
-        st.session_state.saved_normalize_metrics = st.session_state.get('normalize_metrics', False)
-        st.session_state.saved_show_exchanges = st.session_state.get('show_exchanges', False)
-        st.session_state.saved_plot_columns = st.session_state.get('plot_columns', 'Two columns')
+        # Clear data cache to force fresh database queries
+        st.sidebar.write("DEBUG: Refresh button clicked!")
+        if clear_cache_func is not None:
+            st.sidebar.write("DEBUG: Calling clear_cache_func...")
+            clear_cache_func()
+            st.sidebar.write("DEBUG: Cache cleared, about to rerun...")
         st.rerun()
     
     return auto_refresh, refresh_interval_minutes * 60
@@ -196,6 +195,9 @@ def render_auto_refresh_controls() -> Tuple[bool, float]:
 
 def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     """Render plot configuration options in sidebar.
+    
+    All widgets use Streamlit's built-in key-based state persistence.
+    Widget changes trigger automatic rerun via Streamlit's default behavior.
     
     Args:
         available_metrics (List[str]): List of available metric names from database.
@@ -211,26 +213,6 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
         
     st.sidebar.markdown("<hr style='margin-top: 0.5rem; margin-bottom: 1rem;'>", unsafe_allow_html=True)
     st.sidebar.subheader("Plot options")
-    
-    # Restore saved values if they exist (from manual refresh)
-    if 'saved_history_type' in st.session_state and 'history_type' not in st.session_state:
-        st.session_state.history_type = st.session_state.saved_history_type
-    if 'saved_additional_base_metrics' in st.session_state and 'additional_base_metrics' not in st.session_state:
-        st.session_state.additional_base_metrics = st.session_state.saved_additional_base_metrics
-    if 'saved_normalize_metrics' in st.session_state and 'normalize_metrics' not in st.session_state:
-        st.session_state.normalize_metrics = st.session_state.saved_normalize_metrics
-    if 'saved_show_exchanges' in st.session_state and 'show_exchanges' not in st.session_state:
-        st.session_state.show_exchanges = st.session_state.saved_show_exchanges
-    
-    # For plot_columns, calculate the index instead of setting session state
-    # to avoid conflict between default value and session state
-    plot_columns_options = ["One column", "Two columns"]
-    plot_columns_default_index = 1  # Default to "Two columns"
-    if 'saved_plot_columns' in st.session_state:
-        try:
-            plot_columns_default_index = plot_columns_options.index(st.session_state.saved_plot_columns)
-        except ValueError:
-            pass  # Keep default if saved value not in options
     
     # Extract non-objective metrics
     base_metrics = [m for m in available_metrics if "Objective" not in m]
@@ -272,11 +254,12 @@ def render_plot_options(available_metrics: List[str]) -> Dict[str, Any]:
     
     # Layout - widget value automatically preserved via key
     st.sidebar.markdown("Plot layout")
+    plot_columns_options = ["One column", "Two columns"]
 
     plot_columns = st.sidebar.radio(
         "Plot layout",
         options=plot_columns_options,
-        index=plot_columns_default_index,
+        index=1,  # Default to "Two columns"
         key="plot_columns",
         help="Switch between two-column or single-column plot layout",
         label_visibility="collapsed"

@@ -32,7 +32,7 @@ scikit-learn   # Machine learning utilities used in some examples
 # ==============================================================================
 # Additional packages needed to run the progress dashboard
 
-streamlit      # Web app framework for the progress dashboard
+streamlit>=1.33.0  # Web app framework (1.33+ required for st.fragment)
 plotly         # Interactive plotting library for dashboard visualizations
 pandas>=2.0.0
 streamlit-file-browser>=0.3.0

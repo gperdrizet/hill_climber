@@ -11,8 +11,17 @@ It requires `streamlit`, `plotly`, and `pandas` to be installed.
 import sys
 import os
 import time
+import logging
 from pathlib import Path
 from typing import Any
+
+# Configure logging to terminal
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 # Use absolute import to work when run via streamlit run
 try:
@@ -43,10 +52,6 @@ def _init_session_state(st: Any) -> None:
                 st.session_state.db_path = candidate
                 return
         st.session_state.db_path = "data/hill_climber_progress.db"
-    
-    # Initialize plot refresh counter for forcing clean re-renders
-    if 'plot_refresh_key' not in st.session_state:
-        st.session_state.plot_refresh_key = 0
 
 
 def render() -> None:
@@ -55,6 +60,9 @@ def render() -> None:
     Main dashboard rendering function that orchestrates all UI components,
     data loading, and plot generation.
     """
+    logger.info("=" * 60)
+    logger.info("render() START")
+    
     # Import modular dashboard components (use absolute imports for Streamlit compatibility)
     from hill_climber.dashboard_data import (
         get_connection,
@@ -69,7 +77,8 @@ def render() -> None:
         load_leaderboard,
         load_replica_temperatures,
         load_temperature_ladder,
-        load_progress_stats
+        load_progress_stats,
+        clear_data_cache
     )
     from hill_climber.dashboard_ui import (
         apply_custom_css,
@@ -110,18 +119,23 @@ def render() -> None:
 
     # Initialize session state
     _init_session_state(st)
+    logger.info("Session state initialized")
     
     # Sidebar: Database selection
     db_files = find_all_databases(get_project_root())
     db_path = render_database_selector(st.session_state, db_files, get_project_root())
+    logger.info(f"Database path: {db_path}")
     
-    # Sidebar: Auto-refresh controls
-    auto_refresh, refresh_interval = render_auto_refresh_controls()
+    # Sidebar: Auto-refresh controls (returns refresh_interval in seconds)
+    auto_refresh, refresh_interval_seconds = render_auto_refresh_controls(clear_data_cache)
+    logger.info(f"Auto-refresh: {auto_refresh}, interval: {refresh_interval_seconds}s")
 
     # Check database and connect
     if not Path(db_path).exists():
         st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
         st.info("Select a database in the sidebar to view progress.")
+        logger.info("render() END - no database")
+        return
         return
 
     try:
@@ -135,9 +149,6 @@ def render() -> None:
     if metadata is None:
         st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
         st.warning("No run metadata found. Waiting for optimization to start...")
-        time.sleep(refresh_interval if auto_refresh else 10)
-        if auto_refresh:
-            st.rerun()
         st.stop()
 
     # Get all available metrics (from improvements table - superset of all metrics)
@@ -145,34 +156,33 @@ def render() -> None:
     available_metrics = get_available_metrics(conn, history_type='improvements')
     
     # Sidebar: Plot options (renders widgets and updates session state)
+    logger.info("About to call render_plot_options()")
     plot_config = render_plot_options(available_metrics)
+    logger.info(f"plot_config returned: n_cols={plot_config['n_cols']}, history_type={plot_config['history_type']}, additional_metrics={plot_config['additional_metrics']}")
     
     # Sidebar: Run information
     render_run_information(metadata)
     render_hyperparameters(metadata)
 
     # Load temperature ladder (needed for plot, not sidebar)
-    temp_ladder_df = load_temperature_ladder(conn)
+    temp_ladder_df = load_temperature_ladder(db_path)
 
-    # Load data based on plot configuration with progressive loading
-    with st.spinner("Loading metrics data..."):
-        metrics_df = load_metrics_history(
-            conn,
-            metric_names=[plot_config['objective_metric']] + plot_config['additional_metrics'],
-            history_type=plot_config['history_type'],
-            max_points_per_replica=plot_config['max_points']
-        )
+    # Load data based on plot configuration (uses cached functions)
+    metrics_df = load_metrics_history(
+        db_path,
+        metric_names=[plot_config['objective_metric']] + plot_config['additional_metrics'],
+        history_type=plot_config['history_type'],
+        max_points_per_replica=plot_config['max_points']
+    )
     
     # Only load temperature exchanges if user wants to see them (performance optimization)
     if plot_config['show_exchanges']:
-        with st.spinner("Loading temperature exchanges..."):
-            exchanges_df = load_temperature_exchanges(conn)
+        exchanges_df = load_temperature_exchanges(db_path)
     else:
         exchanges_df = pd.DataFrame()  # Empty DataFrame to skip loading
     
-    with st.spinner("Loading temperature ladder and batch statistics..."):
-        temp_ladder_history_df = load_temperature_ladder_history(conn)
-        batch_stats_df = load_batch_statistics(conn)
+    temp_ladder_history_df = load_temperature_ladder_history(db_path)
+    batch_stats_df = load_batch_statistics(db_path)
 
     if metrics_df.empty:
         st.info("No metrics found yet. Waiting for data...")
@@ -193,28 +203,37 @@ def render() -> None:
             st.error("No objective metric found in database.")
             st.stop()
 
-    # Main content: Leaderboard (show immediately for responsiveness)
-    with st.spinner("Loading leaderboard..."):
-        leaderboard_df = load_leaderboard(conn, limit=3)
+    # Main content: Leaderboard
+    leaderboard_df = load_leaderboard(db_path, limit=3)
     render_leaderboard(leaderboard_df)
 
     # Main content: Progress stats
-    with st.spinner("Loading progress statistics..."):
-        stats = load_progress_stats(conn)
+    stats = load_progress_stats(db_path)
     render_progress_stats(stats, metadata)
     
     # Main content: Progress plots
-    st.markdown("---")
-    replica_ids = sorted(metrics_df['replica_id'].unique())
-    replica_temps = load_replica_temperatures(conn)
+    # Load additional data needed for plots
+    replica_temps = load_replica_temperatures(db_path)
     
+    replica_ids = sorted(metrics_df['replica_id'].unique())
     current_n_cols = plot_config['n_cols']
     
-    # Get refresh key to ensure unique keys for every plot on every refresh
-    refresh_key = st.session_state.get('plot_refresh_key', 0)
+    # Track config for logging
+    config_key = f"{current_n_cols}_{len(plot_config['additional_metrics'])}"
+    if 'prev_config_key' not in st.session_state:
+        st.session_state.prev_config_key = config_key
     
-    # Create grid layout
-    # We need to collect all figures first or iterate carefully
+    if st.session_state.prev_config_key != config_key:
+        logger.info(f"CONFIG CHANGED: {st.session_state.prev_config_key} -> {config_key}")
+        st.session_state.prev_config_key = config_key
+    
+    st.markdown("---")
+    
+    # DEBUG: Show configuration and render count
+    if 'render_count' not in st.session_state:
+        st.session_state.render_count = 0
+    st.session_state.render_count += 1
+    st.caption(f"DEBUG: Render #{st.session_state.render_count}, n_cols={current_n_cols}, history_type={plot_config['history_type']}, metrics={plot_config['additional_metrics']}")
     
     # List of all figures to plot in order
     figures = []
@@ -244,34 +263,29 @@ def render() -> None:
             show_exchanges=plot_config['show_exchanges']
         )
         figures.append((f"replica_{replica_id}", fig))
-        
-    # Render grid
+    
+    logger.info(f"Created {len(figures)} figures, rendering in {current_n_cols} columns")
+    
+    # Render plots in grid - no keys, let Streamlit handle naturally
+    st.caption(f"DEBUG: About to render {len(figures)} figures")
     for i in range(0, len(figures), current_n_cols):
         cols = st.columns(current_n_cols)
         for j in range(current_n_cols):
             if i + j < len(figures):
-                key_base, fig = figures[i + j]
+                _, fig = figures[i + j]
                 with cols[j]:
-                    # Use dynamic keys to force Streamlit to treat these as new components
-                    # This prevents "stale" or "darkened" plots from persisting
-                    unique_key = f"{key_base}_{refresh_key}"
-                    st.plotly_chart(fig, key=unique_key, use_container_width=True)
+                    st.plotly_chart(fig, use_container_width=True)
+    st.caption("DEBUG: Done rendering figures")
     
-    # Auto-refresh logic
+    logger.info("render() END - complete")
+    
+    # Auto-refresh: sleep then rerun (at end of page to ensure full render first)
     if auto_refresh:
-        # Increment refresh key to force clean plot re-rendering
-        st.session_state.plot_refresh_key = st.session_state.get('plot_refresh_key', 0) + 1
-        # Save current plot options before auto-refresh
-        st.session_state.saved_history_type = st.session_state.get('history_type', 'Best')
-        st.session_state.saved_additional_base_metrics = st.session_state.get('additional_base_metrics', [])
-        st.session_state.saved_normalize_metrics = st.session_state.get('normalize_metrics', False)
-        st.session_state.saved_show_exchanges = st.session_state.get('show_exchanges', False)
-        st.session_state.saved_plot_columns = st.session_state.get('plot_columns', 'Two columns')
-        time.sleep(refresh_interval)
+        logger.info(f"Auto-refresh enabled, sleeping {refresh_interval_seconds}s...")
+        time.sleep(refresh_interval_seconds)
+        clear_data_cache()
+        logger.info("Triggering st.rerun()")
         st.rerun()
-
-
-    # End render
 
 
 def main() -> None:

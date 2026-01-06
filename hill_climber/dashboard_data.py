@@ -17,6 +17,24 @@ from .dashboard_imports import st, HAS_STREAMLIT
 logger = logging.getLogger(__name__)
 
 
+def clear_data_cache() -> None:
+    """Clear all cached data to force fresh database queries.
+    
+    Call this before st.rerun() when data refresh is needed (auto-refresh timer
+    or manual refresh button).
+    """
+    if HAS_STREAMLIT:
+        # Clear cache for all data loading functions
+        load_metrics_history.clear()
+        load_temperature_exchanges.clear()
+        load_temperature_ladder_history.clear()
+        load_batch_statistics.clear()
+        load_leaderboard.clear()
+        load_replica_temperatures.clear()
+        load_temperature_ladder.clear()
+        load_progress_stats.clear()
+
+
 def get_connection(db_path_str: str) -> sqlite3.Connection:
     """Create a cached read-only SQLite connection with performance optimizations.
     
@@ -99,13 +117,37 @@ def load_run_metadata(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
         return None
 
 
-def load_metrics_history(
-    conn: sqlite3.Connection,
+if HAS_STREAMLIT:
+    @st.cache_data(show_spinner=False)
+    def load_metrics_history(
+        db_path: str,
+        metric_names: Optional[List[str]] = None,
+        history_type: str = 'improvements',
+        max_points_per_replica: int = 500
+    ) -> pd.DataFrame:
+        """Load metrics history from JSON-denormalized tables (cached)."""
+        return _load_metrics_history_impl(db_path, metric_names, history_type, max_points_per_replica)
+else:
+    def load_metrics_history(
+        db_path: str,
+        metric_names: Optional[List[str]] = None,
+        history_type: str = 'improvements',
+        max_points_per_replica: int = 500
+    ) -> pd.DataFrame:
+        """Load metrics history from JSON-denormalized tables."""
+        return _load_metrics_history_impl(db_path, metric_names, history_type, max_points_per_replica)
+
+
+def _load_metrics_history_impl(
+    db_path: str,
     metric_names: Optional[List[str]] = None,
     history_type: str = 'improvements',
     max_points_per_replica: int = 500
 ) -> pd.DataFrame:
     """Load metrics history from JSON-denormalized tables.
+    
+    This function is cached by db_path to avoid redundant database queries.
+    Cache is cleared on data refresh (timer or manual button).
     
     Loads data from different tables based on history_type:
     - 'improvements': Only new best values (monotonically improving)
@@ -140,6 +182,9 @@ def load_metrics_history(
             obj_column = 'objective'
         else:
             raise ValueError(f"Invalid history_type: {history_type}. Must be 'improvements', 'accepted', or 'perturbations'")
+        
+        # Get connection from db_path
+        conn = get_connection(db_path)
         
         # Load data with metrics JSON (skip perturbations as they don't have metrics)
         if history_type == 'perturbations':
@@ -200,16 +245,30 @@ def load_metrics_history(
         return pd.DataFrame()
 
 
-def load_temperature_exchanges(conn: sqlite3.Connection) -> pd.DataFrame:
+if HAS_STREAMLIT:
+    @st.cache_data(show_spinner=False)
+    def load_temperature_exchanges(db_path: str) -> pd.DataFrame:
+        """Load temperature exchange events (cached)."""
+        return _load_temperature_exchanges_impl(db_path)
+else:
+    def load_temperature_exchanges(db_path: str) -> pd.DataFrame:
+        """Load temperature exchange events."""
+        return _load_temperature_exchanges_impl(db_path)
+
+
+def _load_temperature_exchanges_impl(db_path: str) -> pd.DataFrame:
     """Load temperature exchange events.
     
+    This function is cached by db_path. Cache is cleared on data refresh.
+    
     Args:
-        conn (sqlite3.Connection): SQLite connection.
+        db_path (str): Path to SQLite database file.
         
     Returns:
         pd.DataFrame: DataFrame with columns: perturbation_num, replica_id, new_temperature, timestamp.
             Returns empty DataFrame if no data found.
     """
+    conn = get_connection(db_path)
     query = """
         SELECT perturbation_num, replica_id, new_temperature, timestamp
         FROM temperature_exchanges
@@ -317,17 +376,31 @@ def find_all_databases(base_path: Optional[Path] = None) -> List[Path]:
     return sorted(db_files)
 
 
-def load_leaderboard(conn: sqlite3.Connection, limit: int = 3) -> pd.DataFrame:
+if HAS_STREAMLIT:
+    @st.cache_data(show_spinner=False)
+    def load_leaderboard(db_path: str, limit: int = 3) -> pd.DataFrame:
+        """Load replica leaderboard data (cached)."""
+        return _load_leaderboard_impl(db_path, limit)
+else:
+    def load_leaderboard(db_path: str, limit: int = 3) -> pd.DataFrame:
+        """Load replica leaderboard data."""
+        return _load_leaderboard_impl(db_path, limit)
+
+
+def _load_leaderboard_impl(db_path: str, limit: int = 3) -> pd.DataFrame:
     """Load replica leaderboard data.
     
+    This function is cached by db_path. Cache is cleared on data refresh.
+    
     Args:
-        conn (sqlite3.Connection): SQLite connection.
+        db_path (str): Path to SQLite database file.
         limit (int): Maximum number of replicas to return. Default is 3.
         
     Returns:
         pd.DataFrame: DataFrame with replica_id, best_objective, current_perturbation_num, temperature.
             Returns empty DataFrame if no data found.
     """
+    conn = get_connection(db_path)
     query = """
         SELECT replica_id, best_objective, current_perturbation_num, temperature
         FROM replica_status
@@ -341,15 +414,29 @@ def load_leaderboard(conn: sqlite3.Connection, limit: int = 3) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def load_replica_temperatures(conn: sqlite3.Connection) -> Dict[int, float]:
+if HAS_STREAMLIT:
+    @st.cache_data(show_spinner=False)
+    def load_replica_temperatures(db_path: str) -> Dict[int, float]:
+        """Load current temperatures for all replicas (cached)."""
+        return _load_replica_temperatures_impl(db_path)
+else:
+    def load_replica_temperatures(db_path: str) -> Dict[int, float]:
+        """Load current temperatures for all replicas."""
+        return _load_replica_temperatures_impl(db_path)
+
+
+def _load_replica_temperatures_impl(db_path: str) -> Dict[int, float]:
     """Load current temperatures for all replicas.
     
+    This function is cached by db_path. Cache is cleared on data refresh.
+    
     Args:
-        conn (sqlite3.Connection): SQLite connection.
+        db_path (str): Path to SQLite database file.
         
     Returns:
         Dict[int, float]: Dictionary mapping replica_id to temperature.
     """
+    conn = get_connection(db_path)
     query = "SELECT replica_id, temperature FROM replica_status"
     try:
         temp_df = pd.read_sql_query(query, conn)
@@ -359,15 +446,29 @@ def load_replica_temperatures(conn: sqlite3.Connection) -> Dict[int, float]:
         return {}
 
 
-def load_temperature_ladder(conn: sqlite3.Connection) -> pd.DataFrame:
+if HAS_STREAMLIT:
+    @st.cache_data(show_spinner=False)
+    def load_temperature_ladder(db_path: str) -> pd.DataFrame:
+        """Load initial temperatures from replica_status table (cached)."""
+        return _load_temperature_ladder_impl(db_path)
+else:
+    def load_temperature_ladder(db_path: str) -> pd.DataFrame:
+        """Load initial temperatures from replica_status table."""
+        return _load_temperature_ladder_impl(db_path)
+
+
+def _load_temperature_ladder_impl(db_path: str) -> pd.DataFrame:
     """Load initial temperatures from replica_status table.
     
+    This function is cached by db_path. Cache is cleared on data refresh.
+    
     Args:
-        conn (sqlite3.Connection): SQLite connection.
+        db_path (str): Path to SQLite database file.
         
     Returns:
         pd.DataFrame: DataFrame with replica_id and temperature columns.
     """
+    conn = get_connection(db_path)
     query = "SELECT replica_id, temperature FROM replica_status ORDER BY replica_id"
     try:
         return pd.read_sql_query(query, conn)
@@ -376,15 +477,29 @@ def load_temperature_ladder(conn: sqlite3.Connection) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def load_temperature_ladder_history(conn: sqlite3.Connection) -> pd.DataFrame:
+if HAS_STREAMLIT:
+    @st.cache_data(show_spinner=False)
+    def load_temperature_ladder_history(db_path: str) -> pd.DataFrame:
+        """Load temperature ladder history (cached)."""
+        return _load_temperature_ladder_history_impl(db_path)
+else:
+    def load_temperature_ladder_history(db_path: str) -> pd.DataFrame:
+        """Load temperature ladder history."""
+        return _load_temperature_ladder_history_impl(db_path)
+
+
+def _load_temperature_ladder_history_impl(db_path: str) -> pd.DataFrame:
     """Load temperature ladder history tracking temperature at each ladder position over time.
     
+    This function is cached by db_path. Cache is cleared on data refresh.
+    
     Args:
-        conn (sqlite3.Connection): SQLite connection.
+        db_path (str): Path to SQLite database file.
         
     Returns:
         pd.DataFrame: DataFrame with columns: batch_num, ladder_position, temperature.
     """
+    conn = get_connection(db_path)
     query = """
         SELECT batch_num, ladder_position, temperature
         FROM temperature_ladder_history
@@ -398,16 +513,30 @@ def load_temperature_ladder_history(conn: sqlite3.Connection) -> pd.DataFrame:
         return pd.DataFrame(columns=['batch_num', 'ladder_position', 'temperature'])
 
 
-def load_batch_statistics(conn: sqlite3.Connection) -> pd.DataFrame:
+if HAS_STREAMLIT:
+    @st.cache_data(show_spinner=False)
+    def load_batch_statistics(db_path: str) -> pd.DataFrame:
+        """Load batch statistics (cached)."""
+        return _load_batch_statistics_impl(db_path)
+else:
+    def load_batch_statistics(db_path: str) -> pd.DataFrame:
+        """Load batch statistics."""
+        return _load_batch_statistics_impl(db_path)
+
+
+def _load_batch_statistics_impl(db_path: str) -> pd.DataFrame:
     """Load batch statistics including step spread and acceptance rates.
     
+    This function is cached by db_path. Cache is cleared on data refresh.
+    
     Args:
-        conn (sqlite3.Connection): SQLite connection.
+        db_path (str): Path to SQLite database file.
         
     Returns:
         pd.DataFrame: DataFrame with columns: batch_num, step_spread, 
             mean_acceptance_rate, min_acceptance_rate, max_acceptance_rate.
     """
+    conn = get_connection(db_path)
     query = """
         SELECT batch_num, step_spread, mean_acceptance_rate, min_acceptance_rate, max_acceptance_rate
         FROM batch_statistics
@@ -421,16 +550,30 @@ def load_batch_statistics(conn: sqlite3.Connection) -> pd.DataFrame:
         return pd.DataFrame(columns=['batch_num', 'step_spread', 'mean_acceptance_rate', 'min_acceptance_rate', 'max_acceptance_rate'])
 
 
-def load_progress_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
+if HAS_STREAMLIT:
+    @st.cache_data(show_spinner=False)
+    def load_progress_stats(db_path: str) -> Dict[str, Any]:
+        """Load progress statistics (cached)."""
+        return _load_progress_stats_impl(db_path)
+else:
+    def load_progress_stats(db_path: str) -> Dict[str, Any]:
+        """Load progress statistics."""
+        return _load_progress_stats_impl(db_path)
+
+
+def _load_progress_stats_impl(db_path: str) -> Dict[str, Any]:
     """Load progress statistics including perturbation counts and acceptance counts.
     
+    This function is cached by db_path. Cache is cleared on data refresh.
+    
     Args:
-        conn (sqlite3.Connection): SQLite connection.
+        db_path (str): Path to SQLite database file.
         
     Returns:
         Dict[str, Any]: Dictionary with total_perturbations and total_accepted.
             Returns zeros if no data found.
     """
+    conn = get_connection(db_path)
     query = """
         SELECT 
             SUM(current_perturbation_num) as total_perturbations,
