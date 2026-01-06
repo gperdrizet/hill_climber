@@ -15,7 +15,7 @@ from .dashboard_imports import st
 def apply_custom_css() -> None:
     """Apply custom CSS styling to the dashboard.
     
-    Adjusts padding, font sizes, and text wrapping for optimal dashboard appearance.
+    Adjusts font sizes, colors, and spacing for optimal dashboard appearance.
     """
 
     if st is None:
@@ -23,13 +23,6 @@ def apply_custom_css() -> None:
         
     st.markdown("""
         <style>
-        /* Main content spacing */
-        .main, .main .block-container, 
-        [data-testid="stAppViewContainer"] > section:first-child,
-        .stMainBlockContainer {
-            padding-top: 1.5rem !important;
-        }
-        
         /* Typography */
         .main h2 { font-size: 1.5rem !important; margin-top: 0.5rem !important; }
         .main h2:first-of-type { margin-top: 0 !important; padding-top: 0 !important; }
@@ -81,13 +74,13 @@ def render_sidebar_title() -> None:
         with open(logo_path, 'r') as f:
             svg_content = f.read()
         st.sidebar.markdown(
-            f"<div style='margin-top: -3rem; padding-top: 0.25rem;'>{svg_content}</div>",
+            f"<div>{svg_content}</div>",
             unsafe_allow_html=True
         )
     else:
         # Fallback to text if logo not found
         st.sidebar.markdown(
-            "<h1 style='margin-top: -3rem; padding-top: 0.25rem; font-size: 2.8rem; line-height: 1.2; color: #ff4b4b;'>"
+            "<h1 style='font-size: 2.8rem; line-height: 1.2; color: #ff4b4b;'>"
             "Hill<br>climber</h1>",
             unsafe_allow_html=True
         )
