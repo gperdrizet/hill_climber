@@ -183,11 +183,8 @@ def render_auto_refresh_controls(clear_cache_func=None) -> Tuple[bool, float]:
 
     if st.sidebar.button("Refresh now", key="refresh_now"):
         # Clear data cache to force fresh database queries
-        st.sidebar.write("DEBUG: Refresh button clicked!")
         if clear_cache_func is not None:
-            st.sidebar.write("DEBUG: Calling clear_cache_func...")
             clear_cache_func()
-            st.sidebar.write("DEBUG: Cache cleared, about to rerun...")
         st.rerun()
     
     return auto_refresh, refresh_interval_minutes * 60

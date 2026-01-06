@@ -541,7 +541,8 @@ class HillClimber:
                     False,  # not newly accepted (just a snapshot)
                     False,  # not a new improvement (just a snapshot)
                     replica['temperature'],
-                    timestamp
+                    timestamp,
+                    json.dumps(replica.get('current_metrics', {})) if replica.get('current_metrics') else None
                 ))
                 
                 # Write final best as improvement

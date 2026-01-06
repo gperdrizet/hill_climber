@@ -112,6 +112,7 @@ class DatabaseWriter:
                     is_improvement BOOLEAN NOT NULL,
                     temperature REAL NOT NULL,
                     timestamp REAL NOT NULL,
+                    metrics TEXT,
                     UNIQUE(replica_id, perturbation_num)
                 )
             """)
@@ -333,7 +334,7 @@ class DatabaseWriter:
         
         Args:
             perturbations_data (List[tuple]): List of tuples with format 
-                (replica_id, perturbation_num, objective, is_accepted, is_improvement, temperature, timestamp).
+                (replica_id, perturbation_num, objective, is_accepted, is_improvement, temperature, timestamp, metrics_json).
         """
 
         if not perturbations_data:
@@ -344,8 +345,8 @@ class DatabaseWriter:
                 cursor = conn.cursor()
                 cursor.executemany("""
                     INSERT OR REPLACE INTO perturbations
-                    (replica_id, perturbation_num, objective, is_accepted, is_improvement, temperature, timestamp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (replica_id, perturbation_num, objective, is_accepted, is_improvement, temperature, timestamp, metrics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, perturbations_data)
     
     

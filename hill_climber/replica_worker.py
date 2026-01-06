@@ -155,10 +155,11 @@ def run_replica_steps(
         if db_enabled and (perturbation_num % db_step_interval == 0):
             timestamp = time.time()
             
-            # 1. Record current perturbation being evaluated
+            # 1. Record current perturbation being evaluated (with its metrics)
             perturbations_buffer.append((
                 replica_id, perturbation_num, objective,
-                accept, is_better, state['temperature'], timestamp
+                accept, is_better, state['temperature'], timestamp,
+                json.dumps(metrics)
             ))
             
             # 2. Record current accepted state snapshot

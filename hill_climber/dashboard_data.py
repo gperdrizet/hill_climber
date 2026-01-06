@@ -186,19 +186,12 @@ def _load_metrics_history_impl(
         # Get connection from db_path
         conn = get_connection(db_path)
         
-        # Load data with metrics JSON (skip perturbations as they don't have metrics)
-        if history_type == 'perturbations':
-            query = f"""
-                SELECT replica_id, perturbation_num, {obj_column} as objective
-                FROM {table}
-                ORDER BY replica_id, perturbation_num
-            """
-        else:
-            query = f"""
-                SELECT replica_id, perturbation_num, {obj_column} as objective, metrics
-                FROM {table}
-                ORDER BY replica_id, perturbation_num
-            """
+        # Load data with metrics JSON
+        query = f"""
+            SELECT replica_id, perturbation_num, {obj_column} as objective, metrics
+            FROM {table}
+            ORDER BY replica_id, perturbation_num
+        """
         
         df = pd.read_sql_query(query, conn)
         
@@ -217,7 +210,7 @@ def _load_metrics_history_impl(
         
         # Parse JSON and extract user metrics if requested and available
         user_metrics = [m for m in metric_names if m != 'Objective value']
-        if user_metrics and history_type != 'perturbations' and 'metrics' in df.columns:
+        if user_metrics and 'metrics' in df.columns:
             # Parse JSON metrics
             metrics_list = []
             for _, row in df.iterrows():
@@ -303,8 +296,7 @@ def get_available_metrics(conn: sqlite3.Connection, history_type: str = 'improve
     elif history_type == 'accepted':
         table = 'accepted_steps'
     elif history_type == 'perturbations':
-        # Perturbations don't have metrics
-        return metrics
+        table = 'perturbations'
     else:
         table = 'improvements'  # Default fallback
     

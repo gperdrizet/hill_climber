@@ -10,8 +10,8 @@ It requires `streamlit`, `plotly`, and `pandas` to be installed.
 
 import sys
 import os
-import time
 import logging
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -136,7 +136,6 @@ def render() -> None:
         st.info("Select a database in the sidebar to view progress.")
         logger.info("render() END - no database")
         return
-        return
 
     try:
         conn = get_connection(db_path)
@@ -163,129 +162,122 @@ def render() -> None:
     # Sidebar: Run information
     render_run_information(metadata)
     render_hyperparameters(metadata)
+    
+    # Define the auto-refreshing content fragment
+    # Use dynamic run_every based on user setting
+    refresh_interval = timedelta(seconds=refresh_interval_seconds) if auto_refresh else None
+    
+    @st.fragment(run_every=refresh_interval)
+    def refreshable_content():
+        """Fragment that contains all refreshable dashboard content."""
+        logger.info("refreshable_content() called")
+        
+        # Clear cache on each fragment run to get fresh data
+        clear_data_cache()
 
-    # Load temperature ladder (needed for plot, not sidebar)
-    temp_ladder_df = load_temperature_ladder(db_path)
+        # Load temperature ladder (needed for plot, not sidebar)
+        temp_ladder_df = load_temperature_ladder(db_path)
 
-    # Load data based on plot configuration (uses cached functions)
-    metrics_df = load_metrics_history(
-        db_path,
-        metric_names=[plot_config['objective_metric']] + plot_config['additional_metrics'],
-        history_type=plot_config['history_type'],
-        max_points_per_replica=plot_config['max_points']
-    )
-    
-    # Only load temperature exchanges if user wants to see them (performance optimization)
-    if plot_config['show_exchanges']:
-        exchanges_df = load_temperature_exchanges(db_path)
-    else:
-        exchanges_df = pd.DataFrame()  # Empty DataFrame to skip loading
-    
-    temp_ladder_history_df = load_temperature_ladder_history(db_path)
-    batch_stats_df = load_batch_statistics(db_path)
-
-    if metrics_df.empty:
-        st.info("No metrics found yet. Waiting for data...")
-        return
-
-    # Verify objective metric exists in loaded data
-    loaded_metrics = metrics_df['metric_name'].unique().tolist()
-    
-    if plot_config['objective_metric'] not in loaded_metrics:
-        st.warning(f"'{plot_config['objective_metric']}' not found. Available: {', '.join(loaded_metrics)}")
-        # Fallback to available objective metric
-        for fallback in ['Best Objective', 'Objective value']:
-            if fallback in loaded_metrics:
-                st.info(f"Falling back to '{fallback}'")
-                plot_config['objective_metric'] = fallback
-                break
-        else:
-            st.error("No objective metric found in database.")
-            st.stop()
-
-    # Main content: Leaderboard
-    leaderboard_df = load_leaderboard(db_path, limit=3)
-    render_leaderboard(leaderboard_df)
-
-    # Main content: Progress stats
-    stats = load_progress_stats(db_path)
-    render_progress_stats(stats, metadata)
-    
-    # Main content: Progress plots
-    # Load additional data needed for plots
-    replica_temps = load_replica_temperatures(db_path)
-    
-    replica_ids = sorted(metrics_df['replica_id'].unique())
-    current_n_cols = plot_config['n_cols']
-    
-    # Track config for logging
-    config_key = f"{current_n_cols}_{len(plot_config['additional_metrics'])}"
-    if 'prev_config_key' not in st.session_state:
-        st.session_state.prev_config_key = config_key
-    
-    if st.session_state.prev_config_key != config_key:
-        logger.info(f"CONFIG CHANGED: {st.session_state.prev_config_key} -> {config_key}")
-        st.session_state.prev_config_key = config_key
-    
-    st.markdown("---")
-    
-    # DEBUG: Show configuration and render count
-    if 'render_count' not in st.session_state:
-        st.session_state.render_count = 0
-    st.session_state.render_count += 1
-    st.caption(f"DEBUG: Render #{st.session_state.render_count}, n_cols={current_n_cols}, history_type={plot_config['history_type']}, metrics={plot_config['additional_metrics']}")
-    
-    # List of all figures to plot in order
-    figures = []
-    
-    # 1. Temperature Ladder
-    temp_ladder_fig = create_temperature_ladder_plot(
-        temp_ladder_history_df=temp_ladder_history_df,
-        temp_ladder_df=temp_ladder_df
-    )
-    figures.append(("temp_ladder", temp_ladder_fig))
-    
-    # 2. Batch Statistics
-    batch_stats_fig = create_batch_statistics_plot(batch_stats_df)
-    figures.append(("batch_stats", batch_stats_fig))
-    
-    # 3. Replica Plots
-    for replica_id in replica_ids:
-        fig = create_replica_plot(
-            metrics_df=metrics_df,
-            replica_id=replica_id,
-            objective_metric=plot_config['objective_metric'],
-            additional_metrics=plot_config['additional_metrics'],
-            exchange_interval=metadata['exchange_interval'],
-            replica_temps=replica_temps,
-            exchanges_df=exchanges_df,
-            normalize_metrics=plot_config['normalize_metrics'],
-            show_exchanges=plot_config['show_exchanges']
+        # Load data based on plot configuration (uses cached functions)
+        metrics_df = load_metrics_history(
+            db_path,
+            metric_names=[plot_config['objective_metric']] + plot_config['additional_metrics'],
+            history_type=plot_config['history_type'],
+            max_points_per_replica=plot_config['max_points']
         )
-        figures.append((f"replica_{replica_id}", fig))
+        
+        # Only load temperature exchanges if user wants to see them (performance optimization)
+        if plot_config['show_exchanges']:
+            exchanges_df = load_temperature_exchanges(db_path)
+        else:
+            exchanges_df = pd.DataFrame()  # Empty DataFrame to skip loading
+        
+        temp_ladder_history_df = load_temperature_ladder_history(db_path)
+        batch_stats_df = load_batch_statistics(db_path)
+
+        if metrics_df.empty:
+            st.info("No metrics found yet. Waiting for data...")
+            return
+
+        # Verify objective metric exists in loaded data
+        loaded_metrics = metrics_df['metric_name'].unique().tolist()
+        current_objective = plot_config['objective_metric']
+        
+        if current_objective not in loaded_metrics:
+            st.warning(f"'{current_objective}' not found. Available: {', '.join(loaded_metrics)}")
+            # Fallback to available objective metric
+            for fallback in ['Best Objective', 'Objective value']:
+                if fallback in loaded_metrics:
+                    st.info(f"Falling back to '{fallback}'")
+                    current_objective = fallback
+                    break
+            else:
+                st.error("No objective metric found in database.")
+                return
+
+        # Main content: Leaderboard
+        leaderboard_df = load_leaderboard(db_path, limit=3)
+        render_leaderboard(leaderboard_df)
+
+        # Main content: Progress stats
+        stats = load_progress_stats(db_path)
+        render_progress_stats(stats, metadata)
+        
+        # Main content: Progress plots
+        # Load additional data needed for plots
+        replica_temps = load_replica_temperatures(db_path)
+        
+        replica_ids = sorted(metrics_df['replica_id'].unique())
+        current_n_cols = plot_config['n_cols']
+        
+        st.markdown("---")
+        
+        # List of all figures to plot in order
+        figures = []
+        
+        # 1. Temperature Ladder
+        temp_ladder_fig = create_temperature_ladder_plot(
+            temp_ladder_history_df=temp_ladder_history_df,
+            temp_ladder_df=temp_ladder_df
+        )
+        figures.append(("temp_ladder", temp_ladder_fig))
+        
+        # 2. Batch Statistics
+        batch_stats_fig = create_batch_statistics_plot(batch_stats_df)
+        figures.append(("batch_stats", batch_stats_fig))
+        
+        # 3. Replica Plots
+        for replica_id in replica_ids:
+            fig = create_replica_plot(
+                metrics_df=metrics_df,
+                replica_id=replica_id,
+                objective_metric=current_objective,
+                additional_metrics=plot_config['additional_metrics'],
+                exchange_interval=metadata['exchange_interval'],
+                replica_temps=replica_temps,
+                exchanges_df=exchanges_df,
+                normalize_metrics=plot_config['normalize_metrics'],
+                show_exchanges=plot_config['show_exchanges']
+            )
+            figures.append((f"replica_{replica_id}", fig))
+        
+        logger.info(f"Created {len(figures)} figures, rendering in {current_n_cols} columns")
+        
+        # Render plots in grid
+        for i in range(0, len(figures), current_n_cols):
+            cols = st.columns(current_n_cols)
+            for j in range(current_n_cols):
+                if i + j < len(figures):
+                    name, fig = figures[i + j]
+                    with cols[j]:
+                        st.plotly_chart(fig, width="stretch")
+        
+        logger.info("refreshable_content() complete")
     
-    logger.info(f"Created {len(figures)} figures, rendering in {current_n_cols} columns")
-    
-    # Render plots in grid - no keys, let Streamlit handle naturally
-    st.caption(f"DEBUG: About to render {len(figures)} figures")
-    for i in range(0, len(figures), current_n_cols):
-        cols = st.columns(current_n_cols)
-        for j in range(current_n_cols):
-            if i + j < len(figures):
-                _, fig = figures[i + j]
-                with cols[j]:
-                    st.plotly_chart(fig, use_container_width=True)
-    st.caption("DEBUG: Done rendering figures")
+    # Run the refreshable content fragment
+    refreshable_content()
     
     logger.info("render() END - complete")
-    
-    # Auto-refresh: sleep then rerun (at end of page to ensure full render first)
-    if auto_refresh:
-        logger.info(f"Auto-refresh enabled, sleeping {refresh_interval_seconds}s...")
-        time.sleep(refresh_interval_seconds)
-        clear_data_cache()
-        logger.info("Triggering st.rerun()")
-        st.rerun()
 
 
 def main() -> None:
