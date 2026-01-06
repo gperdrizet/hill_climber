@@ -16,3 +16,5 @@ __pycache__
 # Don't ignore data from demo notebooks
 !pearson-spearman.db
 !pearson_spearman_results.pkl
+!feature_interactions.db
+!feature_interaction_results.pkl
