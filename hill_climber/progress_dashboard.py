@@ -174,6 +174,10 @@ def render() -> None:
 
         # Load temperature ladder (needed for plot, not sidebar)
         temp_ladder_df = load_temperature_ladder(db_path)
+        
+        # Refresh metadata to capture run completion (end_time updates)
+        # Use existing metadata as fallback if load fails
+        live_metadata = load_run_metadata(conn) or metadata
 
         # Load data based on plot configuration (uses cached functions)
         metrics_df = load_metrics_history(
@@ -218,7 +222,7 @@ def render() -> None:
 
         # Main content: Progress stats
         stats = load_progress_stats(db_path)
-        render_progress_stats(stats, metadata)
+        render_progress_stats(stats, live_metadata)
         
         # Main content: Progress plots
         # Load additional data needed for plots
@@ -250,7 +254,7 @@ def render() -> None:
                 replica_id=replica_id,
                 objective_metric=current_objective,
                 additional_metrics=plot_config['additional_metrics'],
-                exchange_interval=metadata['exchange_interval'],
+                exchange_interval=live_metadata['exchange_interval'],
                 replica_temps=replica_temps,
                 exchanges_df=exchanges_df,
                 normalize_metrics=plot_config['normalize_metrics'],

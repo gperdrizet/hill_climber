@@ -347,13 +347,25 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     hyperparams = metadata['hyperparameters']
     
     # Format initial and final temperatures in scientific notation
-    t_min_initial = hyperparams.get('T_min_initial', hyperparams.get('T_min', 'N/A'))
-    t_max_initial = hyperparams.get('T_max_initial', hyperparams.get('T_max', 'N/A'))
+    t_min_initial = hyperparams.get('T_min_initial')
+    if t_min_initial is None:
+        t_min_initial = hyperparams.get('T_min', 'N/A')
+
+    t_max_initial = hyperparams.get('T_max_initial')
+    if t_max_initial is None:
+        t_max_initial = hyperparams.get('T_max', 'N/A')
+
     t_min_initial_str = f"{t_min_initial:.1e}" if isinstance(t_min_initial, (int, float)) else t_min_initial
     t_max_initial_str = f"{t_max_initial:.1e}" if isinstance(t_max_initial, (int, float)) else t_max_initial
     
-    t_min_final = hyperparams.get('T_min_final', 'N/A')
-    t_max_final = hyperparams.get('T_max_final', 'N/A')
+    t_min_final = hyperparams.get('T_min_final')
+    if t_min_final is None:
+        t_min_final = 'N/A'
+
+    t_max_final = hyperparams.get('T_max_final')
+    if t_max_final is None:
+        t_max_final = 'N/A'
+
     t_min_final_str = f"{t_min_final:.1e}" if isinstance(t_min_final, (int, float)) else t_min_final
     t_max_final_str = f"{t_max_final:.1e}" if isinstance(t_max_final, (int, float)) else t_max_final
     
@@ -368,8 +380,14 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     temp_text += f"**Temperature scheme:** {temperature_scheme}  \n"
     temp_text += f"**Temperature cooling:** {temperature_cooling_scheme}  \n"
     
-    initial_step_spread = hyperparams.get('initial_step_spread', hyperparams.get('step_spread', 'N/A'))
-    final_step_spread = hyperparams.get('final_step_spread', 'N/A')
+    initial_step_spread = hyperparams.get('initial_step_spread')
+    if initial_step_spread is None:
+        initial_step_spread = hyperparams.get('step_spread', 'N/A')
+
+    final_step_spread = hyperparams.get('final_step_spread')
+    if final_step_spread is None:
+        final_step_spread = 'N/A'
+
     step_spread_scheme = hyperparams.get('step_spread_scheme', 'N/A')
     step_spread_text = f"**Initial step spread:** {initial_step_spread}  \n"
 

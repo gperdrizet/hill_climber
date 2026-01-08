@@ -652,6 +652,11 @@ class HillClimber:
             'step_spread_scheme': self.config.step_spread_scheme,
             'T_min': self.config.T_min,
             'T_max': self.config.T_max,
+            'T_min_initial': self.config.T_min_initial,
+            'T_max_initial': self.config.T_max_initial,
+            'T_min_final': self.config.T_min_final,
+            'T_max_final': self.config.T_max_final,
+            'temperature_cooling_scheme': self.config.temperature_cooling_scheme,
             'temperature_scheme': self.config.temperature_scheme,
             'exchange_strategy': self.config.exchange_strategy
         }
