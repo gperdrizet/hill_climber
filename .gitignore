@@ -18,3 +18,5 @@ __pycache__
 !pearson_spearman_results.pkl
 !feature_interactions.db
 !feature_interaction_results.pkl
+!princess.db
+!princess_results.pkl
