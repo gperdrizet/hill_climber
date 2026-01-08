@@ -377,7 +377,7 @@ def render_hyperparameters(metadata: Dict[str, Any]) -> None:
     temp_text += f"**T_max_initial:** {t_max_initial_str}  \n"
     temp_text += f"**T_min_final:** {t_min_final_str}  \n"
     temp_text += f"**T_max_final:** {t_max_final_str}  \n"
-    temp_text += f"**Temperature scheme:** {temperature_scheme}  \n"
+    temp_text += f"**Temperature ladder:** {temperature_scheme}  \n"
     temp_text += f"**Temperature cooling:** {temperature_cooling_scheme}  \n"
     
     initial_step_spread = hyperparams.get('initial_step_spread')
@@ -492,8 +492,8 @@ def render_progress_stats(stats: Dict[str, Any], metadata: Dict[str, Any]) -> No
         acceptance_rate = (total_accepted / total_perturbations * 100) if total_perturbations > 0 else 0
         
         st.markdown(
-            f"**Exploration rate:** {exploration_rate:,.1f} perturbations/sec | "
-            f"**Progress rate:** {progress_rate:,.1f} accepted/sec | "
+            f"**Exploration rate:** {int(exploration_rate):,} perturbations/sec | "
+            f"**Progress rate:** {int(progress_rate):,} accepted/sec | "
             f"**Acceptance rate:** {acceptance_rate:.1f}% ({total_accepted:,} / {total_perturbations:,})"
         )
 
